@@ -13,6 +13,9 @@
   let currentTagFilter = null;
   let isBatchMode = false;
   let selectedPromptIds = new Set();
+  let recentUsageCollapsed = false;
+  let currentSortMode = 'updatedAt'; // updatedAt | createdAt | title | usageCount
+  let displayMode = 'list'; // list | grouped
 
   // Settings snapshot (for Apply/Cancel)
   let settingsSnapshot = null;
@@ -21,7 +24,9 @@
       language: document.getElementById('setting-language').value,
       enableSidebar: document.getElementById('setting-enable-sidebar').checked,
       showBadge: document.getElementById('setting-show-badge').checked,
+      showRecent: document.getElementById('setting-show-recent').checked,
       defaultFolder: document.getElementById('setting-default-folder').value,
+      displayMode: document.getElementById('setting-display-mode').value,
     };
   }
 
@@ -290,6 +295,35 @@
         tagInput.value = '';
       }
     });
+
+    // Toggle recent usage collapse/expand
+    const recentToggle = document.getElementById('recent-usage-toggle');
+    if (recentToggle) {
+      recentToggle.addEventListener('click', () => {
+        recentUsageCollapsed = !recentUsageCollapsed;
+        renderRecentUsage();
+      });
+    }
+
+    // Clear all recent usage
+    const btnClearRecent = document.getElementById('btn-clear-recent');
+    if (btnClearRecent) {
+      btnClearRecent.addEventListener('click', (e) => {
+        e.stopPropagation();
+        confirmDelete('clear_recent');
+      });
+    }
+
+    // Sort select
+    const sortSelect = document.getElementById('sort-select');
+    if (sortSelect) {
+      sortSelect.value = currentSortMode;
+      sortSelect.addEventListener('change', () => {
+        currentSortMode = sortSelect.value;
+        renderPrompts();
+      });
+    }
+
   }
 
   /**
@@ -521,6 +555,9 @@
     if (query) {
       const results = await Storage.searchPrompts(query);
       renderPrompts(results);
+      // Hide recent usage section when searching
+      const section = document.getElementById('recent-usage-section');
+      if (section) section.classList.add('hidden');
     } else {
       renderAll();
     }
@@ -534,7 +571,8 @@
       renderPrompts(),
       renderFolders(),
       renderTags(),
-      renderPinned()
+      renderPinned(),
+      renderRecentUsage(),
     ]);
   }
 
@@ -553,6 +591,12 @@
       }
     }
 
+    // Delegate to grouped renderer if in grouped mode
+    if (displayMode === 'grouped' && !currentFolderFilter && !currentTagFilter) {
+      await renderPromptsGrouped(container, emptyState, prompts);
+      return;
+    }
+
     if (prompts.length === 0) {
       container.innerHTML = '';
       emptyState.classList.remove('hidden');
@@ -562,10 +606,21 @@
       return;
     }
 
-    // Sort: pinned first, then by updatedAt descending
+    // Sort: pinned first, then by current sort mode
     prompts.sort((a, b) => {
       if (a.pinned !== b.pinned) return b.pinned ? 1 : -1;
-      return (b.updatedAt || 0) - (a.updatedAt || 0);
+      switch (currentSortMode) {
+        case 'updatedAt':
+          return (b.updatedAt || 0) - (a.updatedAt || 0);
+        case 'createdAt':
+          return (b.createdAt || 0) - (a.createdAt || 0);
+        case 'title':
+          return (a.title || '').localeCompare(b.title || '', i18n.getLocale());
+        case 'usageCount':
+          return (b.usageCount || 0) - (a.usageCount || 0);
+        default:
+          return (b.updatedAt || 0) - (a.updatedAt || 0);
+      }
     });
 
     emptyState.classList.add('hidden');
@@ -601,17 +656,6 @@
             <div class="prompt-card-header">
               <div class="prompt-card-title">${escapeHtml(prompt.title)}</div>
               <div class="prompt-card-actions">
-                <button class="prompt-card-action copy" title="${i18n.t('btn_copy')}" data-id="${prompt.id}">
-                  <svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2">
-                    <rect x="9" y="9" width="13" height="13" rx="2" ry="2"></rect>
-                    <path d="M5 15H4a2 2 0 0 1-2-2V4a2 2 0 0 1 2-2h9a2 2 0 0 1 2 2v1"></path>
-                  </svg>
-                </button>
-                <button class="prompt-card-action use" title="${i18n.t('btn_use')}" data-id="${prompt.id}">
-                  <svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2">
-                    <path d="M21 15a2 2 0 0 1-2 2H7l-4 4V5a2 2 0 0 1 2-2h14a2 2 0 0 1 2 2z"></path>
-                  </svg>
-                </button>
                 <button class="prompt-card-action edit" title="${i18n.t('btn_edit')}" data-id="${prompt.id}">
                   <svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2">
                     <path d="M11 4H4a2 2 0 0 0-2 2v14a2 2 0 0 0 2 2h14a2 2 0 0 0 2-2v-7"></path>
@@ -636,6 +680,7 @@
             <div class="prompt-card-meta">
               <span class="prompt-card-folder" style="border-left: 3px solid ${folderColor}">${escapeHtml(folderName)}</span>
               ${(prompt.tags || []).map(tag => `<span class="prompt-card-tag">${escapeHtml(tag)}</span>`).join('')}
+              ${prompt.usageCount > 0 ? `<span class="prompt-card-usage">${i18n.t('usage_stats', prompt.usageCount, formatRelativeTime(prompt.lastUsedAt))}</span>` : ''}
             </div>
           </div>
         `;
@@ -661,21 +706,6 @@
         });
       });
 
-      // Copy button - one-click copy
-      container.querySelectorAll('.prompt-card-action.copy').forEach(btn => {
-        btn.addEventListener('click', (e) => {
-          e.stopPropagation();
-          copyPromptToClipboard(btn.dataset.id);
-        });
-      });
-
-      container.querySelectorAll('.prompt-card-action.use').forEach(btn => {
-        btn.addEventListener('click', (e) => {
-          e.stopPropagation();
-          copyPromptToClipboard(btn.dataset.id);
-        });
-      });
-
       container.querySelectorAll('.prompt-card-action.edit').forEach(btn => {
         btn.addEventListener('click', (e) => {
           e.stopPropagation();
@@ -698,6 +728,177 @@
         });
       });
     }
+  }
+
+  /**
+   * Render prompts grouped by folder
+   */
+  async function renderPromptsGrouped(container, emptyState, prompts) {
+    const folders = await Storage.getFolders();
+
+    // Group prompts by folder
+    const groups = {};
+    folders.forEach(f => { groups[f.id] = []; });
+    // Ensure default folder exists
+    if (!groups['default']) groups['default'] = [];
+    prompts.forEach(p => {
+      const fid = p.folder || 'default';
+      if (!groups[fid]) groups[fid] = [];
+      groups[fid].push(p);
+    });
+
+    // Sort groups: default first, then by folder name
+    const sortedFolderIds = folders
+      .filter(f => f.id !== 'default')
+      .sort((a, b) => a.name.localeCompare(b.name, i18n.getLocale()))
+      .map(f => f.id);
+    const folderOrder = ['default', ...sortedFolderIds];
+
+    const hasAny = folderOrder.some(fid => groups[fid] && groups[fid].length > 0);
+    if (!hasAny) {
+      container.innerHTML = '';
+      emptyState.classList.remove('hidden');
+      emptyState.querySelector('p').textContent = i18n.t('empty_no_prompts');
+      emptyState.querySelector('.empty-hint').textContent = i18n.t('empty_prompts_hint');
+      return;
+    }
+
+    emptyState.classList.add('hidden');
+
+    container.innerHTML = folderOrder.map(fid => {
+      const groupPrompts = groups[fid];
+      if (!groupPrompts || groupPrompts.length === 0) return '';
+
+      const folder = folders.find(f => f.id === fid);
+      const folderName = folder && folder.id !== 'default' ? escapeHtml(folder.name) : i18n.t('folder_uncategorized');
+      const folderColor = folder ? folder.color : '#808080';
+
+      const cardsHtml = groupPrompts.map(prompt => {
+        const isSelected = selectedPromptIds.has(prompt.id);
+        if (isBatchMode) {
+          return `
+            <div class="prompt-card ${isSelected ? 'selected' : ''}" data-id="${prompt.id}" data-batch-select="true">
+              <div class="batch-checkbox">
+                <input type="checkbox" ${isSelected ? 'checked' : ''} data-id="${prompt.id}">
+              </div>
+              <div class="prompt-card-content">
+                <div class="prompt-card-header">
+                  <div class="prompt-card-title">${escapeHtml(prompt.title)}</div>
+                </div>
+                <div class="prompt-card-preview">${escapeHtml((prompt.content || '').substring(0, 150))}${(prompt.content || '').length > 150 ? '...' : ''}</div>
+                <div class="prompt-card-meta">
+                  ${(prompt.tags || []).map(tag => `<span class="prompt-card-tag">${escapeHtml(tag)}</span>`).join('')}
+                </div>
+              </div>
+            </div>
+          `;
+        } else {
+          return `
+            <div class="prompt-card" data-id="${prompt.id}">
+              <div class="prompt-card-header">
+                <div class="prompt-card-title">${escapeHtml(prompt.title)}</div>
+                <div class="prompt-card-actions">
+                  <button class="prompt-card-action edit" title="${i18n.t('btn_edit')}" data-id="${prompt.id}">
+                    <svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2">
+                      <path d="M11 4H4a2 2 0 0 0-2 2v14a2 2 0 0 0 2 2h14a2 2 0 0 0 2-2v-7"></path>
+                      <path d="M18.5 2.5a2.121 2.121 0 0 1 3 3L12 15l-4 1 1-4 9.5-9.5z"></path>
+                    </svg>
+                  </button>
+                  <button class="prompt-card-action pin ${prompt.pinned ? 'active' : ''}" title="${i18n.t('btn_pin')}" data-id="${prompt.id}">
+                    <svg width="16" height="16" viewBox="0 0 24 24" fill="${prompt.pinned ? 'currentColor' : 'none'}" stroke="currentColor" stroke-width="2">
+                      <line x1="12" y1="17" x2="12" y2="22"></line>
+                      <path d="M5 17h14v-1.76a2 2 0 0 0-1.11-1.79l-1.78-.9A2 2 0 0 1 15 10.76V6h1a2 2 0 0 0 0-4H8a2 2 0 0 0 0 4h1v4.76a2 2 0 0 1-1.11 1.79l-1.78.9A2 2 0 0 0 5 15.24z"></path>
+                    </svg>
+                  </button>
+                  <button class="prompt-card-action delete" title="${i18n.t('btn_delete')}" data-id="${prompt.id}">
+                    <svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2">
+                      <polyline points="3 6 5 6 21 6"></polyline>
+                      <path d="M19 6v14a2 2 0 0 1-2 2H7a2 2 0 0 1-2-2V6m3 0V4a2 2 0 0 1 2-2h4a2 2 0 0 1 2 2v2"></path>
+                    </svg>
+                  </button>
+                </div>
+              </div>
+              <div class="prompt-card-preview">${escapeHtml((prompt.content || '').substring(0, 150))}${(prompt.content || '').length > 150 ? '...' : ''}</div>
+              <div class="prompt-card-meta">
+                ${(prompt.tags || []).map(tag => `<span class="prompt-card-tag">${escapeHtml(tag)}</span>`).join('')}
+                ${prompt.usageCount > 0 ? `<span class="prompt-card-usage">${i18n.t('usage_stats', prompt.usageCount, formatRelativeTime(prompt.lastUsedAt))}</span>` : ''}
+              </div>
+            </div>
+          `;
+        }
+      }).join('');
+
+      return `
+        <div class="folder-group" data-folder-id="${fid}">
+          <div class="folder-group-header" data-folder-id="${fid}">
+            <span class="folder-group-arrow">▾</span>
+            <span class="folder-group-dot" style="background:${folderColor}"></span>
+            <span class="folder-group-name">${folderName}</span>
+            <span class="folder-group-count">${groupPrompts.length}</span>
+          </div>
+          <div class="folder-group-list">
+            ${cardsHtml}
+          </div>
+        </div>
+      `;
+    }).join('');
+
+    // Attach event listeners (same as list mode)
+    if (isBatchMode) {
+      container.querySelectorAll('.prompt-card').forEach(card => {
+        card.addEventListener('click', (e) => {
+          const id = card.dataset.id;
+          togglePromptSelection(id);
+        });
+      });
+      updateBatchActionsBar();
+    } else {
+      container.querySelectorAll('.prompt-card').forEach(card => {
+        card.addEventListener('click', (e) => {
+          if (!e.target.closest('.prompt-card-action')) {
+            copyPromptToClipboard(card.dataset.id);
+          }
+        });
+      });
+
+      container.querySelectorAll('.prompt-card-action.edit').forEach(btn => {
+        btn.addEventListener('click', (e) => {
+          e.stopPropagation();
+          openPromptModal(btn.dataset.id);
+        });
+      });
+
+      container.querySelectorAll('.prompt-card-action.pin').forEach(btn => {
+        btn.addEventListener('click', async (e) => {
+          e.stopPropagation();
+          await Storage.togglePin(btn.dataset.id);
+          renderAll();
+        });
+      });
+
+      container.querySelectorAll('.prompt-card-action.delete').forEach(btn => {
+        btn.addEventListener('click', (e) => {
+          e.stopPropagation();
+          confirmDelete('prompt', btn.dataset.id);
+        });
+      });
+    }
+
+    // Folder group collapse/expand
+    container.querySelectorAll('.folder-group-header').forEach(header => {
+      header.addEventListener('click', () => {
+        const group = header.closest('.folder-group');
+        const list = group.querySelector('.folder-group-list');
+        const arrow = header.querySelector('.folder-group-arrow');
+        if (list.classList.contains('hidden')) {
+          list.classList.remove('hidden');
+          arrow.textContent = '▾';
+        } else {
+          list.classList.add('hidden');
+          arrow.textContent = '▸';
+        }
+      });
+    });
   }
 
   /**
@@ -887,6 +1088,7 @@
           <div class="prompt-card-meta">
             <span class="prompt-card-folder" style="border-left: 3px solid ${folderColor}">${escapeHtml(folderName)}</span>
             ${(prompt.tags || []).map(tag => `<span class="prompt-card-tag">${escapeHtml(tag)}</span>`).join('')}
+            ${prompt.usageCount > 0 ? `<span class="prompt-card-usage">${i18n.t('usage_stats', prompt.usageCount, formatRelativeTime(prompt.lastUsedAt))}</span>` : ''}
           </div>
         </div>
       `;
@@ -922,6 +1124,115 @@
         confirmDelete('prompt', btn.dataset.id);
       });
     });
+  }
+
+  /**
+   * Render recent usage section on home page (top 5)
+   */
+  async function renderRecentUsage() {
+    const section = document.getElementById('recent-usage-section');
+    const list = document.getElementById('recent-usage-list');
+    if (!section || !list) return;
+
+    // Check settings: hide if showRecent is disabled
+    const settings = await Storage.getSettings();
+    if (settings.showRecent === false) {
+      section.classList.add('hidden');
+      return;
+    }
+
+    // Only show on prompts tab
+    if (currentTab !== 'prompts') {
+      section.classList.add('hidden');
+      return;
+    }
+
+    // Check if user collapsed it
+    const arrow = section.querySelector('.recent-toggle-arrow');
+    if (recentUsageCollapsed) {
+      section.classList.add('collapsed');
+      if (arrow) arrow.textContent = '▸';
+    } else {
+      section.classList.remove('collapsed');
+      if (arrow) arrow.textContent = '▾';
+    }
+
+    const prompts = await Storage.getPrompts();
+    const recent = prompts
+      .filter(p => p.lastUsedAt > 0)
+      .sort((a, b) => (b.lastUsedAt || 0) - (a.lastUsedAt || 0))
+      .slice(0, 5);
+
+    if (recent.length === 0) {
+      section.classList.add('hidden');
+      return;
+    }
+
+    section.classList.remove('hidden');
+    const folders = await Storage.getFolders();
+
+    list.innerHTML = recent.map(prompt => {
+      const folder = folders.find(f => f.id === prompt.folder);
+      const folderName = folder && folder.id !== 'default' ? escapeHtml(folder.name) : i18n.t('folder_uncategorized');
+      const folderColor = folder ? folder.color : '#808080';
+
+      return `
+        <div class="recent-usage-item" data-id="${prompt.id}">
+          <div class="recent-usage-title">${escapeHtml(prompt.title)}</div>
+          <div class="recent-usage-meta">
+            <span class="recent-usage-folder" style="border-left: 3px solid ${folderColor}">${folderName}</span>
+            <span class="recent-usage-time">${formatRelativeTime(prompt.lastUsedAt)}</span>
+            <button class="recent-item-delete" data-id="${prompt.id}" title="${i18n.t('btn_delete')}">×</button>
+          </div>
+        </div>
+      `;
+    }).join('');
+
+    // Click to copy (excluding delete button)
+    list.querySelectorAll('.recent-usage-item').forEach(item => {
+      item.addEventListener('click', (e) => {
+        if (e.target.classList.contains('recent-item-delete')) return;
+        copyPromptToClipboard(item.dataset.id);
+      });
+    });
+
+    // Delete single recent item
+    list.querySelectorAll('.recent-item-delete').forEach(btn => {
+      btn.addEventListener('click', (e) => {
+        e.stopPropagation();
+        deleteRecentItem(btn.dataset.id);
+      });
+    });
+  }
+
+  /**
+   * Delete single recent usage item (reset its usage stats)
+   */
+  async function deleteRecentItem(promptId) {
+    const prompt = await Storage.getPrompt(promptId);
+    if (!prompt) return;
+    prompt.lastUsedAt = 0;
+    prompt.usageCount = 0;
+    await Storage.savePrompt(prompt);
+    showToast(i18n.t('toast_deleted'), 'success');
+    await renderAll();
+  }
+
+  /**
+   * Clear all recent usage (reset all prompts' usage stats)
+   */
+  async function clearAllRecentUsage() {
+    const prompts = await Storage.getPrompts();
+    prompts.forEach(p => {
+      p.lastUsedAt = 0;
+      p.usageCount = 0;
+    });
+    for (const p of prompts) {
+      await Storage.savePrompt(p);
+    }
+    recentUsageCollapsed = false;
+    showToast(i18n.t('toast_cleared'), 'success');
+    await renderAll();
   }
 
   /**
@@ -1145,11 +1456,25 @@
 
     openModal('folder-modal');
 
-    document.querySelectorAll('.color-preset').forEach(btn => {
-      btn.addEventListener('click', () => {
+    // Bind color presets (excluding custom color button)
+    document.querySelectorAll('.color-preset:not(.custom-color-btn)').forEach(btn => {
+      btn.onclick = () => {
         document.getElementById('folder-color').value = btn.dataset.color;
-      });
+      };
     });
+
+    // Bind custom color button
+    const customColorBtn = document.getElementById('custom-color-btn');
+    const customColorInput = document.getElementById('custom-color-input');
+    if (customColorBtn && customColorInput) {
+      customColorBtn.title = i18n.t('custom_color');
+      customColorBtn.onclick = () => {
+        customColorInput.click();
+      };
+      customColorInput.onchange = () => {
+        document.getElementById('folder-color').value = customColorInput.value;
+      };
+    }
   }
 
   async function saveFolder() {
@@ -1236,6 +1561,8 @@
     const prompt = await Storage.getPrompt(promptId);
     if (!prompt) return;
     await navigator.clipboard.writeText(prompt.content);
+    // Record usage
+    await Storage.recordUsage(promptId);
     showToast(i18n.t('toast_copied'), 'success');
   }
 
@@ -1259,6 +1586,9 @@
         }
       });
     });
+
+    // Record usage
+    await Storage.recordUsage(promptId);
   }
 
   function confirmDelete(type, id) {
@@ -1272,6 +1602,9 @@
     } else if (type === 'folder') {
       title.textContent = i18n.t('confirm_delete_folder');
       message.textContent = i18n.t('confirm_delete_folder_msg');
+    } else if (type === 'clear_recent') {
+      title.textContent = i18n.t('confirm_clear_recent');
+      message.textContent = i18n.t('confirm_clear_recent_msg');
     }
 
     openModal('confirm-dialog');
@@ -1283,6 +1616,8 @@
       } else if (type === 'folder') {
         await Storage.deleteFolder(id);
         showToast(i18n.t('toast_deleted'), 'success');
+      } else if (type === 'clear_recent') {
+        await clearAllRecentUsage();
       }
       closeAllModals();
       renderAll();
@@ -1357,6 +1692,15 @@
     const badgeCheckbox = document.getElementById('setting-show-badge');
     if (badgeCheckbox) badgeCheckbox.checked = settings.showBadge !== false;
 
+    // Load display mode
+    displayMode = settings.displayMode || 'list';
+    const displayModeSelect = document.getElementById('setting-display-mode');
+    if (displayModeSelect) displayModeSelect.value = displayMode;
+
+    // Load show recent
+    const recentCheckbox = document.getElementById('setting-show-recent');
+    if (recentCheckbox) recentCheckbox.checked = settings.showRecent !== false;
+
     // Also populate and select default folder
     await updateFolderSelects(await Storage.getFolders());
     const defaultFolderSelect = document.getElementById('setting-default-folder');
@@ -1372,17 +1716,23 @@
     const newLang = document.getElementById('setting-language').value;
     const newEnableSidebar = document.getElementById('setting-enable-sidebar').checked;
     const newShowBadge = document.getElementById('setting-show-badge').checked;
+    const newShowRecent = document.getElementById('setting-show-recent').checked;
     const newDefaultFolder = document.getElementById('setting-default-folder').value;
+    const newDisplayMode = document.getElementById('setting-display-mode').value;
 
     // Detect what changed
     const langChanged = newLang !== settings.locale;
     const badgeChanged = newShowBadge !== (settings.showBadge !== false);
+    const recentChanged = newShowRecent !== (settings.showRecent !== false);
+    const displayModeChanged = newDisplayMode !== (settings.displayMode || 'list');
 
     // Update settings object
     settings.locale = newLang;
     settings.enableSidebar = newEnableSidebar;
     settings.showBadge = newShowBadge;
+    settings.showRecent = newShowRecent;
     settings.defaultFolder = newDefaultFolder;
+    settings.displayMode = newDisplayMode;
 
     await Storage.saveSettings(settings);
 
@@ -1391,6 +1741,17 @@
       await i18n.setLocale(newLang);
       applyTranslations();
       await renderAll();
+    }
+
+    // Apply display mode change
+    if (displayModeChanged) {
+      displayMode = newDisplayMode;
+      await renderPrompts();
+    }
+
+    // Apply show recent change
+    if (recentChanged) {
+      await renderRecentUsage();
     }
 
     // Update badge (explicitly wait for background to process)
@@ -1468,6 +1829,29 @@
     const div = document.createElement('div');
     div.textContent = text;
     return div.innerHTML;
+  }
+
+  /**
+   * Format timestamp to relative time string
+   * @param {number} timestamp - Unix timestamp (ms)
+   * @returns {string} relative time string
+   */
+  function formatRelativeTime(timestamp) {
+    if (!timestamp) return '';
+    const now = Date.now();
+    const diff = now - timestamp;
+    const seconds = Math.floor(diff / 1000);
+    const minutes = Math.floor(seconds / 60);
+    const hours = Math.floor(minutes / 60);
+    const days = Math.floor(hours / 24);
+
+    if (seconds < 60) return i18n.t('time_just_now');
+    if (minutes < 60) return i18n.t('time_minutes_ago', minutes);
+    if (hours < 24) return i18n.t('time_hours_ago', hours);
+    if (days < 7) return i18n.t('time_days_ago', days);
+    if (days < 30) return i18n.t('time_weeks_ago', Math.floor(days / 7));
+    if (days < 365) return i18n.t('time_months_ago', Math.floor(days / 30));
+    return i18n.t('time_years_ago', Math.floor(days / 365));
   }
 
   function debounce(func, wait) {

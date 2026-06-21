@@ -51,6 +51,7 @@ const i18n = (() => {
       label_tags: '标签',
       label_name: '名称',
       label_color: '颜色',
+      custom_color: '自定义颜色',
       label_dark_mode: '深色模式',
       label_default_folder: '默认文件夹',
       label_language: '语言',
@@ -198,6 +199,40 @@ const i18n = (() => {
       back_to_all: '返回全部',
       btn_apply: '应用',
       toast_settings_applied: '设置已应用',
+      // Recent usage
+      recent_used: '最近使用',
+      recent_used_empty: '暂无最近使用',
+      recent_used_empty_hint: '使用提示词后会显示在这里',
+      // Usage stats
+      usage_stats: '使用 {0} 次 · {1}',
+      // Relative time
+      time_just_now: '刚刚',
+      time_minutes_ago: '{0} 分钟前',
+      time_hours_ago: '{0} 小时前',
+      time_days_ago: '{0} 天前',
+      time_weeks_ago: '{0} 周前',
+      time_months_ago: '{0} 个月前',
+      time_years_ago: '{0} 年前',
+      // Sort options
+      sort_updated: '按更新时间',
+      sort_created: '按创建时间',
+      sort_title: '按名称 A-Z',
+      sort_usage: '按使用次数',
+      // Recent usage
+      recent_clear: '清空',
+      confirm_clear_recent: '清空最近使用',
+      confirm_clear_recent_msg: '确定要清空所有最近使用记录吗？提示词本身不会被删除。',
+      toast_cleared: '已清空',
+      // View mode
+      view_mode_list: '列表模式',
+      view_mode_grouped: '分组模式',
+      // Settings - display mode
+      label_display_mode: '显示模式',
+      display_mode_list: '列表',
+      display_mode_grouped: '按文件夹分组',
+      // Settings - show recent
+      label_show_recent: '显示最近使用',
+      settings_show_recent_hint: '在首页显示最近使用的提示词',
     },
     en: {
       // Header
@@ -245,6 +280,7 @@ const i18n = (() => {
       label_tags: 'Tags',
       label_name: 'Name',
       label_color: 'Color',
+      custom_color: 'Custom color',
       label_dark_mode: 'Dark Mode',
       label_default_folder: 'Default Folder',
       label_language: 'Language',
@@ -392,6 +428,40 @@ const i18n = (() => {
       back_to_all: 'Back to all',
       btn_apply: 'Apply',
       toast_settings_applied: 'Settings applied',
+      // Recent usage
+      recent_used: 'Recent',
+      recent_used_empty: 'No recent usage',
+      recent_used_empty_hint: 'Prompts you use will appear here',
+      // Usage stats
+      usage_stats: 'Used {0} times · {1}',
+      // Relative time
+      time_just_now: 'Just now',
+      time_minutes_ago: '{0} minutes ago',
+      time_hours_ago: '{0} hours ago',
+      time_days_ago: '{0} days ago',
+      time_weeks_ago: '{0} weeks ago',
+      time_months_ago: '{0} months ago',
+      time_years_ago: '{0} years ago',
+      // Sort options
+      sort_updated: 'By update time',
+      sort_created: 'By creation time',
+      sort_title: 'By name A-Z',
+      sort_usage: 'By usage count',
+      // Recent usage
+      recent_clear: 'Clear',
+      confirm_clear_recent: 'Clear recent usage',
+      confirm_clear_recent_msg: 'Are you sure you want to clear all recent usage records? Prompts themselves will not be deleted.',
+      toast_cleared: 'Cleared',
+      // View mode
+      view_mode_list: 'List mode',
+      view_mode_grouped: 'Grouped mode',
+      // Settings - display mode
+      label_display_mode: 'Display Mode',
+      display_mode_list: 'List',
+      display_mode_grouped: 'Group by Folder',
+      // Settings - show recent
+      label_show_recent: 'Show Recent Usage',
+      settings_show_recent_hint: 'Show recently used prompts on home page',
     },
   };
 

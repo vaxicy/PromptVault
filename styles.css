@@ -788,6 +788,25 @@ body {
   transform: scale(1.1);
 }
 
+/* Custom color button */
+.color-preset.custom-color-btn {
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  background: linear-gradient(45deg, #ff0000, #ffff00, #00ff00, #00ffff, #0000ff, #ff00ff);
+  border: 2px solid var(--border-color);
+}
+
+.color-preset.custom-color-btn:hover {
+  border-color: var(--text-primary);
+  transform: scale(1.1);
+}
+
+.color-preset.custom-color-btn svg {
+  color: white;
+  filter: drop-shadow(0 0 2px rgba(0,0,0,0.5));
+}
+
 /* Tag Suggestions */
 .tag-suggestions {
   display: flex;
@@ -1059,6 +1078,86 @@ body {
   align-items: center;
 }
 
+.sort-select {
+  padding: 5px 8px;
+  background: var(--bg-tertiary);
+  border: 1px solid var(--border-color);
+  border-radius: var(--radius-sm);
+  color: var(--text-secondary);
+  font-size: 12px;
+  cursor: pointer;
+  transition: var(--transition);
+  max-width: 120px;
+}
+
+.sort-select:hover {
+  border-color: var(--accent-primary);
+}
+
+.sort-select:focus {
+  outline: none;
+  border-color: var(--accent-primary);
+}
+
+/* Folder group (grouped view) */
+.folder-group {
+  margin-bottom: 8px;
+}
+
+.folder-group-header {
+  display: flex;
+  align-items: center;
+  gap: 6px;
+  padding: 6px 8px;
+  background: var(--bg-secondary);
+  border-radius: var(--radius-sm);
+  cursor: pointer;
+  transition: var(--transition);
+  user-select: none;
+}
+
+.folder-group-header:hover {
+  background: var(--bg-hover);
+}
+
+.folder-group-arrow {
+  font-size: 12px;
+  color: var(--text-muted);
+  width: 12px;
+  text-align: center;
+}
+
+.folder-group-dot {
+  width: 10px;
+  height: 10px;
+  border-radius: 50%;
+  flex-shrink: 0;
+}
+
+.folder-group-name {
+  font-size: 13px;
+  font-weight: 600;
+  color: var(--text-primary);
+}
+
+.folder-group-count {
+  font-size: 11px;
+  color: var(--text-muted);
+  background: var(--bg-tertiary);
+  padding: 1px 6px;
+  border-radius: 8px;
+  margin-left: auto;
+}
+
+.folder-group-list {
+  padding-left: 8px;
+  margin-top: 6px;
+}
+
+.folder-group-list.hidden {
+  display: none;
+}
+
 #btn-batch-manage {
   font-size: 12px;
   padding: 6px 12px;
@@ -1068,6 +1167,157 @@ body {
   background: var(--accent-primary);
   color: white;
   border-color: var(--accent-primary);
+}
+
+/* Recent Usage Section */
+.recent-usage-section {
+  margin-bottom: 12px;
+  padding: 0 12px;
+}
+
+.recent-usage-section.collapsed .recent-usage-list {
+  display: none;
+}
+
+.recent-usage-header {
+  display: flex;
+  align-items: center;
+  gap: 6px;
+  margin-bottom: 8px;
+  cursor: pointer;
+  padding: 4px 0;
+  border-radius: var(--radius-sm);
+  transition: var(--transition);
+}
+
+.recent-usage-header:hover {
+  background: var(--bg-hover);
+}
+
+.recent-toggle-arrow {
+  font-size: 12px;
+  color: var(--text-muted);
+  transition: transform 0.2s;
+  width: 12px;
+  text-align: center;
+}
+
+.recent-clear-btn {
+  display: none;
+  background: none;
+  border: none;
+  font-size: 11px;
+  color: var(--text-muted);
+  cursor: pointer;
+  padding: 2px 6px;
+  border-radius: 4px;
+  margin-left: auto;
+  transition: var(--transition);
+}
+
+.recent-clear-btn:hover {
+  color: var(--danger);
+  background: var(--bg-hover);
+}
+
+.recent-usage-header:hover .recent-clear-btn {
+  display: inline-block;
+}
+
+.recent-usage-header h3 {
+  font-size: 13px;
+  font-weight: 600;
+  color: var(--text-secondary);
+  margin: 0;
+}
+
+.recent-usage-list {
+  display: flex;
+  flex-direction: column;
+  gap: 6px;
+}
+
+.recent-usage-item {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  padding: 8px 12px;
+  background: var(--bg-secondary);
+  border-radius: var(--radius-sm);
+  cursor: pointer;
+  transition: var(--transition);
+  border-left: 3px solid var(--accent-primary);
+  position: relative;
+}
+
+.recent-item-delete {
+  display: none;
+  background: none;
+  border: none;
+  font-size: 14px;
+  line-height: 1;
+  color: var(--text-muted);
+  cursor: pointer;
+  padding: 0 4px;
+  border-radius: 4px;
+  flex-shrink: 0;
+  margin-left: 4px;
+  transition: var(--transition);
+}
+
+.recent-item-delete:hover {
+  color: var(--danger);
+  background: var(--bg-hover);
+}
+
+.recent-usage-item:hover .recent-item-delete {
+  display: inline-block;
+}
+
+.recent-usage-item:hover {
+  background: var(--bg-hover);
+}
+
+.recent-usage-title {
+  font-size: 13px;
+  font-weight: 500;
+  color: var(--text-primary);
+  white-space: nowrap;
+  overflow: hidden;
+  text-overflow: ellipsis;
+  flex: 1;
+  min-width: 0;
+}
+
+.recent-usage-meta {
+  display: flex;
+  align-items: center;
+  gap: 8px;
+  flex-shrink: 0;
+  margin-left: 8px;
+}
+
+.recent-usage-folder {
+  font-size: 11px;
+  color: var(--text-muted);
+  padding: 2px 6px;
+  background: var(--bg-tertiary);
+  border-radius: 4px;
+}
+
+.recent-usage-time {
+  font-size: 11px;
+  color: var(--text-muted);
+  white-space: nowrap;
+}
+
+/* Prompt Card Usage Stats */
+.prompt-card-usage {
+  display: inline-flex;
+  font-size: 11px;
+  color: var(--text-muted);
+  margin-left: 8px;
+  padding: 2px 0;
 }
 
 /* Utility Classes */

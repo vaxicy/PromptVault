@@ -3,14 +3,55 @@
  * Handles extension events and background tasks
  */
 
-// Load i18n module
-importScripts('i18n.js');
+// Inline minimal i18n for background service worker (avoids importScripts issues in MV3)
+const i18n = (() => {
+  const translations = {
+    zh: {
+      ctx_save_as_prompt: '保存为提示词',
+      ctx_insert_prompt: '插入提示词',
+      app_title: 'PromptVault',
+      notif_prompt_saved: '提示词已保存！',
+    },
+    en: {
+      ctx_save_as_prompt: 'Save as Prompt',
+      ctx_insert_prompt: 'Insert Prompt',
+      app_title: 'PromptVault',
+      notif_prompt_saved: 'Prompt saved!',
+    },
+  };
+  let currentLocale = 'zh';
 
-// Load stored locale
-i18n.loadLocale();
+  async function loadLocale() {
+    try {
+      const data = await chrome.storage.local.get('promptvault_data');
+      const store = data.promptvault_data;
+      if (store && store.settings && store.settings.locale) {
+        currentLocale = store.settings.locale;
+      }
+    } catch (e) {
+      currentLocale = 'zh';
+    }
+  }
+
+  function t(key) {
+    return (translations[currentLocale] && translations[currentLocale][key]) || key;
+  }
+
+  function setLocale(locale) {
+    currentLocale = locale;
+  }
+
+  return { t, setLocale, loadLocale };
+})();
+
+// Load locale on service worker startup (fire-and-forget; onInstalled awaits it explicitly)
+i18n.loadLocale().catch(() => {});
 
 // Initialize extension
 chrome.runtime.onInstalled.addListener(async (details) => {
+  // Load locale before creating context menus
+  await i18n.loadLocale();
+
   if (details.reason === 'install') {
     console.log('PromptVault installed');
     await initializeStorage();
