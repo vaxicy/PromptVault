@@ -18,17 +18,28 @@ chrome.runtime.onInstalled.addListener(async (details) => {
     console.log('PromptVault updated to version', chrome.runtime.getManifest().version);
   }
 
-  // Create context menu with i18n
-  try {
+  // Create context menu
+  createContextMenus();
+});
+
+function createContextMenus() {
+  // Remove all existing menus first
+  chrome.contextMenus.removeAll(() => {
+    // Save as prompt (when text is selected)
     chrome.contextMenus.create({
       id: 'saveAsPrompt',
-      title: i18n.t('ctx_save_as_prompt'),
+      title: '💾 ' + i18n.t('ctx_save_as_prompt'),
       contexts: ['selection']
     });
-  } catch (e) {
-    console.log('Context menu not available:', e.message);
-  }
-});
+
+    // Insert prompt (when in editable area)
+    chrome.contextMenus.create({
+      id: 'insertPrompt',
+      title: '📋 ' + i18n.t('ctx_insert_prompt'),
+      contexts: ['editable']
+    });
+  });
+}
 
 // Update context menu title when locale changes
 chrome.storage.onChanged.addListener((changes, namespace) => {
@@ -93,7 +104,7 @@ async function savePromptFromPage(promptData) {
 
     const prompt = {
       id: generateId(),
-      title: promptData.title || 'Untitled Prompt',
+      title: promptData.title || i18n.t('default_prompt_title'),
       content: promptData.content,
       folder: promptData.folder || 'default',
       tags: promptData.tags || [],
@@ -119,6 +130,16 @@ function generateId() {
   return Date.now().toString(36) + Math.random().toString(36).substr(2);
 }
 
+/**
+ * Generate a short title from text (max 20 chars)
+ */
+function generateShortTitle(text) {
+  if (!text) return '';
+  const trimmed = text.trim();
+  if (trimmed.length <= 20) return trimmed;
+  return trimmed.substring(0, 20) + '...';
+}
+
 // Context menu for saving selected text as prompt
 if (chrome.contextMenus && chrome.contextMenus.onClicked) {
   chrome.contextMenus.onClicked.addListener(async (info, tab) => {
@@ -137,7 +158,7 @@ if (chrome.contextMenus && chrome.contextMenus.onClicked) {
 
         const prompt = {
           id: generateId(),
-          title: selectedText.substring(0, 50) + (selectedText.length > 50 ? '...' : ''),
+          title: generateShortTitle(selectedText),
           content: selectedText,
           folder: 'default',
           tags: [],
@@ -164,6 +185,13 @@ if (chrome.contextMenus && chrome.contextMenus.onClicked) {
         }
       }
     }
+
+    if (info.menuItemId === 'insertPrompt') {
+      // Tell content script to show prompt picker
+      if (tab && tab.id) {
+        chrome.tabs.sendMessage(tab.id, { action: 'showPromptPicker' });
+      }
+    }
   });
 }
 
@@ -172,6 +200,14 @@ if (chrome.commands) {
   chrome.commands.onCommand.addListener((command) => {
     if (command === 'open-promptvault') {
       chrome.action.openPopup();
+    }
+    if (command === 'open-command-palette') {
+      // Send message to active tab to open command palette
+      chrome.tabs.query({ active: true, currentWindow: true }, (tabs) => {
+        if (tabs[0]) {
+          chrome.tabs.sendMessage(tabs[0].id, { action: 'openCommandPalette' });
+        }
+      });
     }
   });
 }

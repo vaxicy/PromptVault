@@ -1,7 +1,7 @@
 {
   "manifest_version": 3,
   "name": "PromptVault - AI提示词管理助手",
-  "version": "1.0.0",
+  "version": "1.1.0",
   "description": "保存、整理和快速访问你的 AI 提示词 | Save, organize, and quickly access your AI prompts",
   "permissions": [
     "storage",
@@ -11,13 +11,17 @@
     "notifications"
   ],
   "host_permissions": [
-    "https://chat.openai.com/*",
-    "https://claude.ai/*",
-    "https://gemini.google.com/*",
-    "https://grok.x.ai/*",
-    "https://*/*",
-    "http://*/*"
+    "<all_urls>"
   ],
+  "commands": {
+    "open-command-palette": {
+      "suggested_key": {
+        "default": "Ctrl+Shift+P",
+        "mac": "MacCtrl+Shift+P"
+      },
+      "description": "Open PromptVault Command Palette"
+    }
+  },
   "background": {
     "service_worker": "background.js"
   },
@@ -31,27 +35,21 @@
   },
   "content_scripts": [
     {
-      "matches": [
-        "https://chatgpt.com/*",
-        "https://chat.openai.com/*",
-        "https://claude.ai/*",
-        "https://gemini.google.com/*",
-        "https://grok.x.ai/*"
-      ],
-      "js": ["i18n.js", "content.js", "sidebar.js"],
-      "run_at": "document_end"
+      "matches": ["<all_urls>"],
+      "js": ["i18n.js", "storage.js", "universal-insert.js", "content.js", "sidebar.js", "command-palette.js"],
+      "run_at": "document_idle"
     }
   ],
   "web_accessible_resources": [
     {
-      "resources": ["sidebar.css"],
-      "matches": [
-        "https://chatgpt.com/*",
-        "https://chat.openai.com/*",
-        "https://claude.ai/*",
-        "https://gemini.google.com/*",
-        "https://grok.x.ai/*"
-      ]
+      "resources": [
+        "sidebar.css",
+        "styles.css",
+        "icons/icon16.png",
+        "icons/icon48.png",
+        "icons/icon128.png"
+      ],
+      "matches": ["<all_urls>"]
     }
   ],
   "icons": {

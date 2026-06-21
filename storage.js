@@ -303,6 +303,31 @@ const Storage = (() => {
     return Date.now().toString(36) + Math.random().toString(36).substr(2);
   }
 
+  /**
+   * Get recent usage (last 20)
+   */
+  async function getRecentUsage() {
+    const data = await getAll();
+    return (data.recentUsage || []).slice(0, 20);
+  }
+
+  /**
+   * Add a prompt to recent usage by promptId
+   */
+  async function addRecentUsage(promptId) {
+    const data = await getAll();
+    if (!data.recentUsage) data.recentUsage = [];
+
+    const usage = {
+      promptId: promptId,
+      timestamp: Date.now(),
+    };
+
+    data.recentUsage.unshift(usage);
+    data.recentUsage = data.recentUsage.slice(0, 20);
+    await saveAll(data);
+  }
+
   // Public API
   return {
     init,
@@ -325,6 +350,8 @@ const Storage = (() => {
     importData,
     getSettings,
     saveSettings,
-    generateId
+    generateId,
+    getRecentUsage,
+    addRecentUsage,
   };
 })();

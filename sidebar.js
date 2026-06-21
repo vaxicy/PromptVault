@@ -10,6 +10,11 @@
   const SIDEBAR_WIDTH = 360;
   const TOAST_DURATION = 2000;
 
+  // ========== Helpers ==========
+  function generateId() {
+    return Date.now().toString(36) + Math.random().toString(36).substr(2);
+  }
+
   // ========== State ==========
   let prompts = [];
   let folders = [];
@@ -29,7 +34,7 @@
     if (host.includes('claude.ai')) return 'claude';
     if (host.includes('gemini.google.com')) return 'gemini';
     if (host.includes('grok.x.ai') || host.includes('x.com')) return 'grok';
-    return 'unknown';
+    return 'generic'; // Changed from 'unknown' to load on all sites
   }
 
   // ========== Input Box Detection ==========
@@ -89,11 +94,11 @@
   }
 
   // ========== Insert Prompt ==========
-  function insertPrompt(text) {
+  function insertPrompt(text, promptId) {
     const input = findInputBox();
 
     if (!input) {
-      showToast('未找到输入框，请先点击输入框', 'error');
+      showToast(i18n.t('sidebar_no_input'), 'error');
       return false;
     }
 
@@ -107,13 +112,15 @@
       }
 
       // Record usage
-      recordUsage(text);
+      if (promptId) {
+        recordUsage(promptId);
+      }
 
-      showToast('已插入提示词');
+      showToast(i18n.t('sidebar_inserted'));
       return true;
     } catch (err) {
       console.error('[PromptVault] Insert failed:', err);
-      showToast('插入失败，请手动复制', 'error');
+      showToast(i18n.t('sidebar_insert_failed'), 'error');
       return false;
     }
   }
@@ -156,10 +163,10 @@
   }
 
   // ========== Recent Usage ==========
-  function recordUsage(promptContent) {
+  function recordUsage(promptId) {
     try {
       const usage = {
-        content: promptContent.substring(0, 100),
+        promptId: promptId,
         timestamp: Date.now(),
       };
 
@@ -175,6 +182,21 @@
     } catch (e) {
       console.warn('[PromptVault] Failed to record usage:', e);
     }
+  }
+
+  // ========== Format Time Ago ==========
+  function formatTimeAgo(timestamp) {
+    const now = Date.now();
+    const diff = now - timestamp;
+    const seconds = Math.floor(diff / 1000);
+    const minutes = Math.floor(seconds / 60);
+    const hours = Math.floor(minutes / 60);
+    const days = Math.floor(hours / 24);
+
+    if (days > 0) return days + (i18n.getLocale() === 'zh' ? '天前' : 'd ago');
+    if (hours > 0) return hours + (i18n.getLocale() === 'zh' ? '小时前' : 'h ago');
+    if (minutes > 0) return minutes + (i18n.getLocale() === 'zh' ? '分钟前' : 'm ago');
+    return i18n.getLocale() === 'zh' ? '刚刚' : 'just now';
   }
 
   // ========== Load Data ==========
@@ -206,18 +228,43 @@
       return;
     }
 
+    // Calculate usage stats for each prompt
+    const usageStats = {};
+    recentUsage.forEach(usage => {
+      if (!usageStats[usage.promptId]) {
+        usageStats[usage.promptId] = { count: 0, lastUsed: 0 };
+      }
+      usageStats[usage.promptId].count++;
+      if (usage.timestamp > usageStats[usage.promptId].lastUsed) {
+        usageStats[usage.promptId].lastUsed = usage.timestamp;
+      }
+    });
+
     listEl.innerHTML = filteredPrompts
       .map(
-        (prompt) => `
+        (prompt) => {
+          const stats = usageStats[prompt.id] || { count: 0, lastUsed: 0 };
+          const lastUsedText = stats.lastUsed > 0 ? formatTimeAgo(stats.lastUsed) : '';
+          const usageText = stats.count > 0
+            ? (i18n.getLocale() === 'zh'
+              ? `使用 ${stats.count} 次${lastUsedText ? ' · ' + lastUsedText : ''}`
+              : `Used ${stats.count} time${stats.count > 1 ? 's' : ''}${lastUsedText ? ' · ' + lastUsedText : ''}`)
+            : '';
+
+          // Check if batch mode is active
+          const isBatchMode = document.getElementById('pv-sidebar')?.classList.contains('pv-batch-mode');
+
+          return `
       <div class="pv-card" data-prompt-id="${prompt.id}">
+        ${isBatchMode ? `<input type="checkbox" class="pv-batch-checkbox" data-prompt-id="${prompt.id}">` : ''}
         <div class="pv-card-title">
           <span>${escapeHtml(prompt.title)}</span>
-          <div class="pv-card-actions">
+          ${isBatchMode ? '' : `<div class="pv-card-actions">
             <button class="pv-card-action-btn pv-copy-btn" data-prompt-id="${prompt.id}" title="${i18n.t('btn_copy')}">📋</button>
             <button class="pv-card-action-btn pv-edit-btn" data-prompt-id="${prompt.id}" title="${i18n.t('btn_edit')}">✏️</button>
             <button class="pv-card-action-btn pv-fav-btn ${prompt.favorite ? 'pv-favorited' : ''}" data-prompt-id="${prompt.id}" title="${i18n.t('btn_favorite')}">⭐</button>
             <button class="pv-card-action-btn pv-del-btn" data-prompt-id="${prompt.id}" title="${i18n.t('btn_delete')}">🗑️</button>
-          </div>
+          </div>`}
         </div>
         ${
           prompt.tags && prompt.tags.length > 0
@@ -227,9 +274,11 @@
         <div class="pv-card-content">${escapeHtml(prompt.content)}</div>
         <div class="pv-card-meta">
           ${prompt.folder ? `<span class="pv-card-folder">${escapeHtml(prompt.folder)}</span>` : ''}
+          ${usageText ? `<span class="pv-card-usage">${usageText}</span>` : ''}
         </div>
       </div>
-    `
+    `;
+        }
       )
       .join('');
 
@@ -240,7 +289,9 @@
         if (card.querySelector('.pv-edit-form')) return; // skip if in edit mode
         const promptId = card.dataset.promptId;
         const prompt = prompts.find((p) => p.id === promptId);
-        if (prompt) insertPrompt(prompt.content);
+        if (prompt) {
+          insertPrompt(prompt.content, prompt.id);
+        }
       });
     });
 
@@ -281,6 +332,66 @@
           i18n.t('confirm_delete_prompt_msg'),
           () => deletePrompt(promptId)
         );
+      });
+    });
+  }
+
+  // ========== New Prompt Form ==========
+  function showNewPromptForm() {
+    const listEl = document.querySelector('#pv-sidebar .pv-list');
+    if (!listEl) return;
+
+    // Insert form at top of list
+    const formEl = document.createElement('div');
+    formEl.className = 'pv-card pv-editing';
+    formEl.id = 'pv-new-prompt-form';
+    formEl.innerHTML = `
+      <div class="pv-edit-form">
+        <div class="pv-edit-row">
+          <input type="text" class="pv-edit-title" value="" placeholder="${i18n.t('placeholder_title')}">
+        </div>
+        <div class="pv-edit-row">
+          <textarea class="pv-edit-content" placeholder="${i18n.t('placeholder_content')}"></textarea>
+        </div>
+        <div class="pv-edit-actions">
+          <button class="pv-edit-cancel-btn">${i18n.t('btn_cancel')}</button>
+          <button class="pv-edit-save-btn">${i18n.t('btn_save')}</button>
+        </div>
+      </div>
+    `;
+
+    listEl.insertBefore(formEl, listEl.firstChild);
+
+    // Cancel
+    formEl.querySelector('.pv-edit-cancel-btn').addEventListener('click', () => {
+      formEl.remove();
+    });
+
+    // Save
+    formEl.querySelector('.pv-edit-save-btn').addEventListener('click', () => {
+      const title = formEl.querySelector('.pv-edit-title').value.trim();
+      const content = formEl.querySelector('.pv-edit-content').value.trim();
+      if (!title) { showToast(i18n.t('placeholder_title') + ' ' + i18n.t('toast_error_folder_name'), 'error'); return; }
+      if (!content) { showToast(i18n.t('placeholder_content') + ' ' + i18n.t('toast_error_folder_name'), 'error'); return; }
+
+      chrome.storage.local.get('promptvault_data', (data) => {
+        const store = data.promptvault_data || {};
+        if (!store.prompts) store.prompts = [];
+        store.prompts.push({
+          id: generateId(),
+          title,
+          content,
+          tags: [],
+          favorite: false,
+          folder: '',
+          createdAt: Date.now(),
+          updatedAt: Date.now(),
+        });
+        chrome.storage.local.set({ promptvault_data: store }, () => {
+          formEl.remove();
+          loadData(() => renderSidebar());
+          showToast(i18n.t('toast_created') || '已创建');
+        });
       });
     });
   }
@@ -450,11 +561,11 @@
     if (currentTab === 'favorites') {
       result = result.filter((p) => p.favorite);
     } else if (currentTab === 'recent') {
-      const recentIds = [...new Set(recentUsage.map((u) => u.content))];
-      result = result.filter((p) => recentIds.includes(p.content));
+      const recentIds = [...new Set(recentUsage.map((u) => u.promptId))];
+      result = result.filter((p) => recentIds.includes(p.id));
       result.sort((a, b) => {
-        const aIdx = recentIds.indexOf(a.content);
-        const bIdx = recentIds.indexOf(b.content);
+        const aIdx = recentIds.indexOf(a.id);
+        const bIdx = recentIds.indexOf(b.id);
         return aIdx - bIdx;
       });
     }
@@ -571,9 +682,15 @@
       </div>
 
       <div class="pv-tabs">
-        <button class="pv-tab pv-active" data-tab="all">${i18n.t('sidebar_all')}</button>
-        <button class="pv-tab" data-tab="recent">${i18n.t('sidebar_recent')}</button>
-        <button class="pv-tab" data-tab="favorites">${i18n.t('sidebar_favorites')}</button>
+        <div class="pv-tabs-left">
+          <button class="pv-tab pv-active" data-tab="all">${i18n.t('sidebar_all')}</button>
+          <button class="pv-tab" data-tab="recent">${i18n.t('sidebar_recent')}</button>
+          <button class="pv-tab" data-tab="favorites">${i18n.t('sidebar_favorites')}</button>
+        </div>
+        <div class="pv-tabs-actions">
+          <button class="pv-action-btn pv-batch-btn" id="pv-batch-btn">${i18n.t('btn_batch') || '批量'}</button>
+          <button class="pv-action-btn pv-add-btn" id="pv-add-btn">+ ${i18n.t('btn_new_prompt')}</button>
+        </div>
       </div>
 
       <div class="pv-list">
@@ -637,6 +754,26 @@
     if (closeBtn) {
       closeBtn.addEventListener('click', toggleSidebar);
     }
+
+    // Batch mode toggle
+    const batchBtn = document.getElementById('pv-batch-btn');
+    if (batchBtn) {
+      batchBtn.addEventListener('click', () => {
+        const list = document.getElementById('pv-sidebar');
+        if (!list) return;
+        const isBatch = list.classList.toggle('pv-batch-mode');
+        batchBtn.classList.toggle('pv-active', isBatch);
+        renderSidebar();
+      });
+    }
+
+    // Add new prompt
+    const addBtn = document.getElementById('pv-add-btn');
+    if (addBtn) {
+      addBtn.addEventListener('click', () => {
+        showNewPromptForm();
+      });
+    }
   }
 
   function toggleSidebar() {
@@ -669,9 +806,7 @@
 
   // ========== Init ==========
   async function init() {
-    // Only inject on supported websites
-    if (WEBSITE === 'unknown') return;
-
+    // Load on all websites (generic or known AI sites)
     console.log(`[PromptVault] Injecting sidebar for ${WEBSITE}`);
 
     // Load i18n
@@ -685,17 +820,19 @@
     link.href = chrome.runtime.getURL('sidebar.css');
     document.head.appendChild(link);
 
-    // Create sidebar
+    // Create sidebar (starts hidden)
     createSidebar();
 
     // Load data and render
     loadData(() => {
       renderSidebar();
-      // Auto-show sidebar after load
-      setTimeout(() => {
-        const sidebar = document.getElementById('pv-sidebar');
-        if (sidebar) sidebar.classList.remove('pv-hidden');
-      }, 300);
+      // Don't auto-show on generic websites; wait for user action
+      if (WEBSITE !== 'generic') {
+        setTimeout(() => {
+          const sidebar = document.getElementById('pv-sidebar');
+          if (sidebar) sidebar.classList.remove('pv-hidden');
+        }, 300);
+      }
     });
 
     // Listen for storage changes
@@ -708,4 +845,28 @@
   } else {
     init();
   }
+
+  // Expose global API for floating button / command palette
+  window.PromptVault = {
+    toggleSidebar,
+    insertPrompt,
+    showSidebar: () => {
+      const sidebar = document.getElementById('pv-sidebar');
+      const toggle = document.getElementById('pv-sidebar-toggle');
+      if (sidebar) {
+        sidebar.classList.remove('pv-hidden');
+        sidebarVisible = true;
+      }
+      if (toggle) toggle.style.display = 'none';
+    },
+    hideSidebar: () => {
+      const sidebar = document.getElementById('pv-sidebar');
+      const toggle = document.getElementById('pv-sidebar-toggle');
+      if (sidebar) {
+        sidebar.classList.add('pv-hidden');
+        sidebarVisible = false;
+      }
+      if (toggle) toggle.style.display = 'flex';
+    },
+  };
 })();

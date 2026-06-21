@@ -90,6 +90,7 @@ const i18n = (() => {
       toast_saved: '保存成功！',
       toast_updated: '更新成功！',
       toast_deleted: '已删除',
+      toast_created: '创建成功',
       toast_folder_created: '文件夹已创建',
       toast_folder_updated: '文件夹已更新',
       toast_tag_created: '标签已创建',
@@ -150,6 +151,22 @@ const i18n = (() => {
       batch_selected_count: '{0} 已选',
       batch_move_to_folder: '移动到文件夹...',
       batch_moved: '{0} 个提示词已移动',
+
+      // Command Palette
+      cmd_search_placeholder: '搜索提示词...',
+      cmd_all: '所有',
+      cmd_favorites: '收藏',
+      cmd_recent: '最近',
+      cmd_no_prompts: '暂无提示词',
+      cmd_nav: '↑↓ 导航',
+      cmd_insert: 'Enter 插入',
+      cmd_close: 'Esc 关闭',
+
+      // Context menu
+      ctx_save_as_prompt: '保存为提示词',
+      ctx_insert_prompt: '插入提示词',
+      ctx_favorite: '加入收藏',
+      default_prompt_title: '网页提示词',
     },
     en: {
       // Header
@@ -236,6 +253,7 @@ const i18n = (() => {
       toast_saved: 'Prompt saved!',
       toast_updated: 'Prompt updated!',
       toast_deleted: 'Deleted',
+      toast_created: 'Prompt created!',
       toast_folder_created: 'Folder created',
       toast_folder_updated: 'Folder updated',
       toast_tag_created: 'Tag created',
@@ -296,6 +314,22 @@ const i18n = (() => {
       batch_selected_count: '{0} selected',
       batch_move_to_folder: 'Move to folder...',
       batch_moved: '{0} prompts moved',
+
+      // Command Palette
+      cmd_search_placeholder: 'Search prompts...',
+      cmd_all: 'All',
+      cmd_favorites: 'Favorites',
+      cmd_recent: 'Recent',
+      cmd_no_prompts: 'No prompts',
+      cmd_nav: '↑↓ Nav',
+      cmd_insert: 'Enter Insert',
+      cmd_close: 'Esc Close',
+
+      // Context menu
+      ctx_save_as_prompt: 'Save as Prompt',
+      ctx_insert_prompt: 'Insert Prompt',
+      ctx_favorite: 'Add to Favorites',
+      default_prompt_title: 'Web Prompt',
     },
   };
 
