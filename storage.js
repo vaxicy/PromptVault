@@ -135,20 +135,149 @@ const Storage = (() => {
   }
 
   /**
+   * Normalize search text for lightweight fuzzy matching.
+   */
+  function normalizeSearchText(value) {
+    return String(value || '')
+      .toLowerCase()
+      .normalize('NFKC')
+      .replace(/\s+/g, ' ')
+      .trim();
+  }
+
+  function getFolderLabel(prompt, folderMap) {
+    const folderId = prompt.folder || 'default';
+    return folderMap[folderId] || folderId;
+  }
+
+  function parseSearchQuery(query) {
+    const tokens = normalizeSearchText(query).match(/"[^"]+"|\S+/g) || [];
+    const filters = {
+      terms: [],
+      tags: [],
+      folders: [],
+      titleTerms: [],
+      pinned: null,
+    };
+
+    tokens.forEach(token => {
+      const clean = token.replace(/^"|"$/g, '');
+      const [rawKey, ...rest] = clean.split(':');
+      const value = rest.join(':').trim();
+      const key = rawKey.trim();
+
+      if (value && key === 'tag') {
+        filters.tags.push(value);
+      } else if (value && key === 'folder') {
+        filters.folders.push(value);
+      } else if (value && key === 'title') {
+        filters.titleTerms.push(value);
+      } else if (value && key === 'is') {
+        if (value === 'pinned' || value === 'favorite') filters.pinned = true;
+        if (value === 'unpinned') filters.pinned = false;
+      } else {
+        filters.terms.push(clean);
+      }
+    });
+
+    return filters;
+  }
+
+  function promptMatchesFilters(prompt, filters, folderLabel) {
+    const title = normalizeSearchText(prompt.title);
+    const content = normalizeSearchText(prompt.content);
+    const tags = (prompt.tags || []).map(normalizeSearchText);
+    const folder = normalizeSearchText(folderLabel);
+
+    if (filters.pinned !== null && Boolean(prompt.pinned) !== filters.pinned) return false;
+
+    const tagMatches = filters.tags.every(term => tags.some(tag => tag.includes(term)));
+    if (!tagMatches) return false;
+
+    const folderMatches = filters.folders.every(term => folder.includes(term));
+    if (!folderMatches) return false;
+
+    const titleMatches = filters.titleTerms.every(term => title.includes(term));
+    if (!titleMatches) return false;
+
+    return filters.terms.every(term =>
+      title.includes(term) ||
+      content.includes(term) ||
+      tags.some(tag => tag.includes(term)) ||
+      folder.includes(term)
+    );
+  }
+
+  function getFieldScore(text, term, weights) {
+    if (!term || !text.includes(term)) return 0;
+    if (text === term) return weights.exact;
+    if (text.startsWith(term)) return weights.prefix;
+    return weights.contains;
+  }
+
+  function scorePrompt(prompt, filters, folderLabel) {
+    const title = normalizeSearchText(prompt.title);
+    const content = normalizeSearchText(prompt.content);
+    const tags = (prompt.tags || []).map(normalizeSearchText);
+    const folder = normalizeSearchText(folderLabel);
+    const allTerms = [...filters.terms, ...filters.titleTerms, ...filters.tags, ...filters.folders];
+
+    let score = 0;
+    allTerms.forEach(term => {
+      score += getFieldScore(title, term, { exact: 120, prefix: 90, contains: 65 });
+      score += tags.reduce((sum, tag) => sum + getFieldScore(tag, term, { exact: 80, prefix: 60, contains: 45 }), 0);
+      score += getFieldScore(folder, term, { exact: 45, prefix: 35, contains: 25 });
+      score += getFieldScore(content, term, { exact: 30, prefix: 22, contains: 12 });
+    });
+
+    if (prompt.pinned) score += 18;
+    score += Math.min(prompt.usageCount || 0, 20) * 2;
+
+    const lastUsedAt = prompt.lastUsedAt || 0;
+    const weekAgo = Date.now() - 7 * 86400000;
+    if (lastUsedAt > weekAgo) score += 16;
+
+    return score;
+  }
+
+  /**
+   * Filter and rank prompt arrays. Used by popup, sidebar, and command palette.
+   */
+  function filterAndRankPrompts(prompts, query, options = {}) {
+    const trimmedQuery = String(query || '').trim();
+    const folders = options.folders || [];
+    const folderMap = folders.reduce((map, folder) => {
+      map[folder.id] = folder.name;
+      return map;
+    }, { default: 'Default' });
+
+    if (!trimmedQuery) return [...prompts];
+
+    const filters = parseSearchQuery(trimmedQuery);
+    return prompts
+      .map(prompt => {
+        const folderLabel = getFolderLabel(prompt, folderMap);
+        if (!promptMatchesFilters(prompt, filters, folderLabel)) return null;
+        return {
+          prompt,
+          score: scorePrompt(prompt, filters, folderLabel),
+        };
+      })
+      .filter(Boolean)
+      .sort((a, b) =>
+        b.score - a.score ||
+        (b.prompt.lastUsedAt || 0) - (a.prompt.lastUsedAt || 0) ||
+        (b.prompt.updatedAt || 0) - (a.prompt.updatedAt || 0)
+      )
+      .map(item => item.prompt);
+  }
+
+  /**
    * Search prompts by query
    */
   async function searchPrompts(query) {
-    const prompts = await getPrompts();
-    const lowerQuery = query.toLowerCase();
-
-    return prompts.filter(p => {
-      return (
-        p.title.toLowerCase().includes(lowerQuery) ||
-        p.content.toLowerCase().includes(lowerQuery) ||
-        (p.tags && p.tags.some(t => t.toLowerCase().includes(lowerQuery))) ||
-        (p.folder && p.folder.toLowerCase().includes(lowerQuery))
-      );
-    });
+    const data = await getAll();
+    return filterAndRankPrompts(data.prompts || [], query, { folders: data.folders || [] });
   }
 
   /**
@@ -377,6 +506,8 @@ const Storage = (() => {
     reorderPrompts,
     recordUsage,
     searchPrompts,
+    filterAndRankPrompts,
+    parseSearchQuery,
     getPromptsByFolder,
     getPromptsByTag,
     getFolders,

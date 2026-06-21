@@ -215,8 +215,28 @@
     // Search
     const searchInput = document.getElementById('search-input');
     searchInput.addEventListener('input', debounce(handleSearch, 300));
+    searchInput.addEventListener('focus', () => renderPrompts());
+    searchInput.addEventListener('blur', () => {
+      setTimeout(() => renderPrompts(), 120);
+    });
     document.getElementById('btn-clear-search').addEventListener('click', () => {
       searchInput.value = '';
+      handleSearch();
+    });
+    document.getElementById('search-context').addEventListener('click', (e) => {
+      const btn = e.target.closest('[data-clear-filter]');
+      if (!btn) return;
+
+      const type = btn.dataset.clearFilter;
+      if (type === 'query') {
+        searchInput.value = '';
+      } else if (type === 'folder') {
+        currentFolderFilter = null;
+        updatePromptsHeader();
+      } else if (type === 'tag') {
+        currentTagFilter = null;
+        updatePromptsHeader();
+      }
       handleSearch();
     });
 
@@ -326,21 +346,30 @@
    * Get currently visible prompts (respecting folder filter and search)
    */
   async function getVisiblePrompts() {
+    let prompts = await getBasePrompts();
+    const folders = await Storage.getFolders();
+    const query = document.getElementById('search-input').value.trim();
+    if (query) {
+      prompts = Storage.filterAndRankPrompts(prompts, query, { folders });
+    }
+    return prompts;
+  }
+
+  async function getBasePrompts() {
     let prompts;
     if (currentFolderFilter) {
       prompts = await Storage.getPromptsByFolder(currentFolderFilter);
     } else {
       prompts = await Storage.getPrompts();
     }
-    const query = document.getElementById('search-input').value.trim();
-    if (query) {
-      const q = query.toLowerCase();
+
+    if (currentTagFilter) {
+      const normalizedTag = currentTagFilter.trim().toLowerCase();
       prompts = prompts.filter(p =>
-        p.title.toLowerCase().includes(q) ||
-        p.content.toLowerCase().includes(q) ||
-        (p.tags && p.tags.some(t => t.toLowerCase().includes(q)))
+        (p.tags || []).some(t => t.trim().toLowerCase() === normalizedTag)
       );
     }
+
     return prompts;
   }
 
@@ -489,12 +518,12 @@
    * @param {string} tabName
    * @param {boolean} preserveFolderFilter - if true, don't reset currentFolderFilter
    */
-  function switchTab(tabName, preserveFolderFilter = false) {
+  function switchTab(tabName, preserveFilter = false) {
     currentTab = tabName;
-    if (!preserveFolderFilter) {
+    if (!preserveFilter) {
       currentFolderFilter = null;
+      currentTagFilter = null;
     }
-    currentTagFilter = null;
 
     // Exit batch mode when switching tabs
     if (isBatchMode) {
@@ -520,14 +549,20 @@
     const wrap = document.getElementById('folder-breadcrumb-wrap');
     if (!wrap) return;
 
-    if (currentFolderFilter) {
+    if (currentFolderFilter || currentTagFilter) {
       const folders = await Storage.getFolders();
-      const folder = folders.find(f => f.id === currentFolderFilter);
-      const folderName = folder && folder.id !== 'default' ? escapeHtml(folder.name) : i18n.t('folder_uncategorized');
-      wrap.innerHTML = `<span class="folder-breadcrumb" data-folder-id="${currentFolderFilter}" title="${i18n.t('back_to_all') || 'Back to all'}">&#9664; ${folderName}</span>`;
+      let label = '';
+      if (currentFolderFilter) {
+        const folder = folders.find(f => f.id === currentFolderFilter);
+        label = folder && folder.id !== 'default' ? escapeHtml(folder.name) : i18n.t('folder_uncategorized');
+      } else {
+        label = `${i18n.t('label_tags')}: ${escapeHtml(currentTagFilter)}`;
+      }
+      wrap.innerHTML = `<span class="folder-breadcrumb" title="${i18n.t('back_to_all') || 'Back to all'}">&#9664; ${label}</span>`;
       // Click breadcrumb to go back to all prompts
       wrap.querySelector('.folder-breadcrumb').addEventListener('click', () => {
         currentFolderFilter = null;
+        currentTagFilter = null;
         updatePromptsHeader();
         renderPrompts();
       });
@@ -545,8 +580,7 @@
     clearBtn.classList.toggle('hidden', !query);
 
     if (query) {
-      const results = await Storage.searchPrompts(query);
-      renderPrompts(results);
+      renderPrompts();
       // Hide recent usage section when searching
       const section = document.getElementById('recent-usage-section');
       if (section) section.classList.add('hidden');
@@ -568,66 +602,176 @@
     ]);
   }
 
+  function getSearchTerms(query) {
+    if (!query) return [];
+    const filters = Storage.parseSearchQuery(query);
+    return [...filters.terms, ...filters.titleTerms, ...filters.tags, ...filters.folders]
+      .map(term => term.trim())
+      .filter(Boolean)
+      .sort((a, b) => b.length - a.length);
+  }
+
+  function escapeRegExp(value) {
+    return String(value).replace(/[.*+?^${}()|[\]\\]/g, '\\$&');
+  }
+
+  function highlightMatches(text, terms) {
+    const value = String(text || '');
+    if (!terms.length) return escapeHtml(value);
+
+    const pattern = terms.map(escapeRegExp).filter(Boolean).join('|');
+    if (!pattern) return escapeHtml(value);
+
+    return value
+      .split(new RegExp(`(${pattern})`, 'gi'))
+      .map(part => {
+        const isMatch = new RegExp(`^(${pattern})$`, 'i').test(part);
+        return isMatch
+          ? `<mark class="search-highlight">${escapeHtml(part)}</mark>`
+          : escapeHtml(part);
+      })
+      .join('');
+  }
+
+  function buildPromptSnippet(content, terms, maxLength = 150) {
+    const text = String(content || '').replace(/\s+/g, ' ').trim();
+    if (!text || text.length <= maxLength || !terms.length) {
+      return text.length > maxLength ? text.substring(0, maxLength) + '...' : text;
+    }
+
+    const lowerText = text.toLowerCase();
+    const hitIndex = terms
+      .map(term => lowerText.indexOf(term.toLowerCase()))
+      .filter(index => index >= 0)
+      .sort((a, b) => a - b)[0];
+
+    if (hitIndex == null) return text.substring(0, maxLength) + '...';
+
+    const context = Math.floor(maxLength / 2);
+    const start = Math.max(0, hitIndex - context);
+    const end = Math.min(text.length, start + maxLength);
+    const prefix = start > 0 ? '...' : '';
+    const suffix = end < text.length ? '...' : '';
+    return prefix + text.slice(start, end) + suffix;
+  }
+
+  function renderFilterChip(type, label, value) {
+    return `
+      <span class="search-filter-chip" title="${escapeHtml(value)}">
+        <span>${escapeHtml(label)}: ${escapeHtml(value)}</span>
+        <button type="button" data-clear-filter="${type}" title="${i18n.t('clear_filter')}">×</button>
+      </span>
+    `;
+  }
+
+  function updateSearchContext(resultCount, query, folders) {
+    const context = document.getElementById('search-context');
+    if (!context) return;
+
+    const parts = [];
+    if (query || currentFolderFilter || currentTagFilter) {
+      parts.push(`<span class="search-result-count">${i18n.t('search_results_count', resultCount)}</span>`);
+    }
+
+    if (query) parts.push(renderFilterChip('query', i18n.t('filter_search'), query));
+    if (currentFolderFilter) {
+      const folder = folders.find(f => f.id === currentFolderFilter);
+      const folderName = folder && folder.id !== 'default' ? folder.name : i18n.t('folder_uncategorized');
+      parts.push(renderFilterChip('folder', i18n.t('filter_folder'), folderName));
+    }
+    if (currentTagFilter) parts.push(renderFilterChip('tag', i18n.t('filter_tag'), currentTagFilter));
+
+    if (!parts.length && document.activeElement === document.getElementById('search-input')) {
+      parts.push(`
+        <span class="search-tip">
+          ${i18n.t('search_syntax_tip')}
+        </span>
+      `);
+    }
+
+    context.innerHTML = parts.join('');
+    context.classList.toggle('hidden', parts.length === 0);
+  }
+
   /**
    * Render prompts list
    */
   async function renderPrompts(prompts = null) {
     const container = document.getElementById('prompts-list');
     const emptyState = document.getElementById('prompts-empty');
+    const query = document.getElementById('search-input').value.trim();
+    const folders = await Storage.getFolders();
+    const searchTerms = getSearchTerms(query);
 
     if (!prompts) {
-      if (currentFolderFilter) {
-        prompts = await Storage.getPromptsByFolder(currentFolderFilter);
-      } else {
-        prompts = await Storage.getPrompts();
-      }
+      prompts = await getBasePrompts();
+    }
+
+    if (query) {
+      prompts = Storage.filterAndRankPrompts(prompts, query, { folders });
     }
 
     // Delegate to grouped renderer if in grouped mode
-    if (displayMode === 'grouped' && !currentFolderFilter && !currentTagFilter) {
+    if (displayMode === 'grouped' && !query && !currentFolderFilter && !currentTagFilter) {
+      updateSearchContext(prompts.length, query, folders);
       await renderPromptsGrouped(container, emptyState, prompts);
       return;
     }
 
+    updateSearchContext(prompts.length, query, folders);
+
     if (prompts.length === 0) {
       container.innerHTML = '';
       emptyState.classList.remove('hidden');
-      emptyState.querySelector('p').textContent = i18n.t('empty_no_prompts');
-      emptyState.querySelector('.empty-hint').textContent = i18n.t('empty_prompts_hint');
+      if (query) {
+        emptyState.querySelector('p').textContent = i18n.t('empty_no_search_results');
+        emptyState.querySelector('.empty-hint').textContent = i18n.t('empty_search_hint');
+      } else if (currentFolderFilter || currentTagFilter) {
+        emptyState.querySelector('p').textContent = i18n.t('empty_no_filtered_prompts');
+        emptyState.querySelector('.empty-hint').textContent = i18n.t('empty_filter_hint');
+      } else {
+        emptyState.querySelector('p').textContent = i18n.t('empty_no_prompts');
+        emptyState.querySelector('.empty-hint').textContent = i18n.t('empty_prompts_hint');
+      }
       document.getElementById('batch-actions-bar').classList.add('hidden');
       return;
     }
 
-    // Sort: pinned first, then by current sort mode
-    prompts.sort((a, b) => {
-      if (a.pinned !== b.pinned) return b.pinned ? 1 : -1;
-      switch (currentSortMode) {
-        case 'updatedAt':
-          return (b.updatedAt || 0) - (a.updatedAt || 0);
-        case 'createdAt':
-          return (b.createdAt || 0) - (a.createdAt || 0);
-        case 'title':
-          return (a.title || '').localeCompare(b.title || '', i18n.getLocale());
-        case 'usageCount':
-          return (b.usageCount || 0) - (a.usageCount || 0);
-        case 'custom': {
-          const aOrder = a.sortOrder != null ? a.sortOrder : 999999;
-          const bOrder = b.sortOrder != null ? b.sortOrder : 999999;
-          return aOrder - bOrder;
+    // Sort normally when browsing. Search results keep relevance order from Storage.filterAndRankPrompts.
+    if (!query) {
+      prompts.sort((a, b) => {
+        if (a.pinned !== b.pinned) return b.pinned ? 1 : -1;
+        switch (currentSortMode) {
+          case 'updatedAt':
+            return (b.updatedAt || 0) - (a.updatedAt || 0);
+          case 'createdAt':
+            return (b.createdAt || 0) - (a.createdAt || 0);
+          case 'title':
+            return (a.title || '').localeCompare(b.title || '', i18n.getLocale());
+          case 'usageCount':
+            return (b.usageCount || 0) - (a.usageCount || 0);
+          case 'custom': {
+            const aOrder = a.sortOrder != null ? a.sortOrder : 999999;
+            const bOrder = b.sortOrder != null ? b.sortOrder : 999999;
+            return aOrder - bOrder;
+          }
+          default:
+            return (b.updatedAt || 0) - (a.updatedAt || 0);
         }
-        default:
-          return (b.updatedAt || 0) - (a.updatedAt || 0);
-      }
-    });
+      });
+    }
 
     emptyState.classList.add('hidden');
-    const folders = await Storage.getFolders();
-
     container.innerHTML = prompts.map(prompt => {
       const folder = folders.find(f => f.id === prompt.folder);
       const folderName = folder && folder.id !== 'default' ? escapeHtml(folder.name) : i18n.t('folder_uncategorized');
       const folderColor = folder ? folder.color : '#808080';
       const isSelected = selectedPromptIds.has(prompt.id);
+      const titleHtml = highlightMatches(prompt.title, searchTerms);
+      const snippetHtml = highlightMatches(buildPromptSnippet(prompt.content, searchTerms), searchTerms);
+      const tagsHtml = (prompt.tags || [])
+        .map(tag => `<span class="prompt-card-tag">${highlightMatches(tag, searchTerms)}</span>`)
+        .join('');
 
       if (isBatchMode) {
         return `
@@ -637,12 +781,12 @@
             </div>
             <div class="prompt-card-content">
               <div class="prompt-card-header">
-                <div class="prompt-card-title">${escapeHtml(prompt.title)}</div>
+                <div class="prompt-card-title">${titleHtml}</div>
               </div>
-              <div class="prompt-card-preview">${escapeHtml((prompt.content || '').substring(0, 150))}${(prompt.content || '').length > 150 ? '...' : ''}</div>
+              <div class="prompt-card-preview">${snippetHtml}</div>
               <div class="prompt-card-meta">
                 <span class="prompt-card-folder" style="border-left: 3px solid ${folderColor}">${escapeHtml(folderName)}</span>
-                ${(prompt.tags || []).map(tag => `<span class="prompt-card-tag">${escapeHtml(tag)}</span>`).join('')}
+                ${tagsHtml}
               </div>
             </div>
           </div>
@@ -651,7 +795,7 @@
         return `
           <div class="prompt-card" data-id="${prompt.id}">
             <div class="prompt-card-header">
-              <div class="prompt-card-title">${escapeHtml(prompt.title)}</div>
+              <div class="prompt-card-title">${titleHtml}</div>
               <div class="prompt-card-actions">
                 <button class="prompt-card-action edit" title="${i18n.t('btn_edit')}" data-id="${prompt.id}">
                   <svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2">
@@ -673,10 +817,10 @@
                 </button>
               </div>
             </div>
-            <div class="prompt-card-preview">${escapeHtml((prompt.content || '').substring(0, 150))}${(prompt.content || '').length > 150 ? '...' : ''}</div>
+            <div class="prompt-card-preview">${snippetHtml}</div>
             <div class="prompt-card-meta">
               <span class="prompt-card-folder" style="border-left: 3px solid ${folderColor}">${escapeHtml(folderName)}</span>
-              ${(prompt.tags || []).map(tag => `<span class="prompt-card-tag">${escapeHtml(tag)}</span>`).join('')}
+              ${tagsHtml}
               ${prompt.usageCount > 0 ? `<span class="prompt-card-usage">${i18n.t('usage_stats', prompt.usageCount, formatRelativeTime(prompt.lastUsedAt))}</span>` : ''}
             </div>
           </div>
@@ -1127,7 +1271,8 @@
       item.addEventListener('click', (e) => {
         if (!e.target.classList.contains('tag-item-delete')) {
           currentTagFilter = item.dataset.tag;
-          switchTab('prompts');
+          currentFolderFilter = null;
+          switchTab('prompts', true);
         }
       });
     });

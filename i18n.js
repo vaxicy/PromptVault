@@ -66,6 +66,16 @@ const i18n = (() => {
       // Empty states
       empty_no_prompts: '暂无提示词',
       empty_prompts_hint: '创建你的第一个提示词开始使用',
+      empty_no_search_results: '没有找到匹配的提示词',
+      empty_search_hint: '试试更短的关键词，或使用 tag: / folder: 精准筛选',
+      empty_no_filtered_prompts: '当前筛选下没有提示词',
+      empty_filter_hint: '返回全部提示词或换一个标签/文件夹',
+      search_results_count: '找到 {0} 个结果',
+      filter_search: '搜索',
+      filter_tag: '标签',
+      filter_folder: '文件夹',
+      clear_filter: '清除筛选',
+      search_syntax_tip: '支持按关键词、标签、文件夹搜索',
       empty_shortcut_hint: '提示',
 
       // Shortcut
@@ -296,6 +306,16 @@ const i18n = (() => {
       // Empty states
       empty_no_prompts: 'No prompts yet',
       empty_prompts_hint: 'Create your first prompt to get started',
+      empty_no_search_results: 'No matching prompts found',
+      empty_search_hint: 'Try a shorter keyword, or use tag: / folder: filters',
+      empty_no_filtered_prompts: 'No prompts in this filter',
+      empty_filter_hint: 'Go back to all prompts or choose another tag/folder',
+      search_results_count: '{0} results found',
+      filter_search: 'Search',
+      filter_tag: 'Tag',
+      filter_folder: 'Folder',
+      clear_filter: 'Clear filter',
+      search_syntax_tip: 'Search by keyword, tag, or folder',
       empty_shortcut_hint: 'Tip',
 
       // Shortcut

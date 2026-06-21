@@ -10,6 +10,7 @@
   const PALETTE_ID = 'pv-command-palette';
   let isOpen = false;
   let allPrompts = [];
+  let allFolders = [];
   let filteredPrompts = [];
   let selectedIndex = 0;
   let paletteColors = null;
@@ -104,12 +105,14 @@
     if (typeof Storage !== 'undefined') {
       Storage.getAll().then((data) => {
         allPrompts = data.prompts || [];
+        allFolders = data.folders || [];
         if (callback) callback();
       });
     } else {
       chrome.storage.local.get('promptvault_data', (data) => {
         const store = data.promptvault_data || {};
         allPrompts = store.prompts || [];
+        allFolders = store.folders || [];
         if (callback) callback();
       });
     }
@@ -322,18 +325,18 @@
 
     // Filter by search query
     if (query) {
-      const q = query.toLowerCase();
-      result = result.filter(
-        (p) =>
-          p.title.toLowerCase().includes(q) ||
-          p.content.toLowerCase().includes(q) ||
-          (p.tags && p.tags.some((t) => t.toLowerCase().includes(q)))
-      );
-    }
-
-    // Smart sort for search results (optimization 7)
-    if (query) {
-      result = sortPromptsSmart(result);
+      if (typeof Storage !== 'undefined' && Storage.filterAndRankPrompts) {
+        result = Storage.filterAndRankPrompts(result, query, { folders: allFolders });
+      } else {
+        const q = query.toLowerCase();
+        result = result.filter(
+          (p) =>
+            p.title.toLowerCase().includes(q) ||
+            p.content.toLowerCase().includes(q) ||
+            (p.tags && p.tags.some((t) => t.toLowerCase().includes(q)))
+        );
+        result = sortPromptsSmart(result);
+      }
     }
 
     filteredPrompts = result;

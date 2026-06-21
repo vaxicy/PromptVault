@@ -549,13 +549,17 @@
 
     // Filter by search
     if (searchQuery) {
-      const q = searchQuery.toLowerCase();
-      result = result.filter(
-        (p) =>
-          p.title.toLowerCase().includes(q) ||
-          p.content.toLowerCase().includes(q) ||
-          (p.tags && p.tags.some((t) => t.toLowerCase().includes(q)))
-      );
+      if (typeof Storage !== 'undefined' && Storage.filterAndRankPrompts) {
+        result = Storage.filterAndRankPrompts(result, searchQuery, { folders });
+      } else {
+        const q = searchQuery.toLowerCase();
+        result = result.filter(
+          (p) =>
+            p.title.toLowerCase().includes(q) ||
+            p.content.toLowerCase().includes(q) ||
+            (p.tags && p.tags.some((t) => t.toLowerCase().includes(q)))
+        );
+      }
     }
 
     return result;
