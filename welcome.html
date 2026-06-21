@@ -1,0 +1,51 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+  <meta charset="UTF-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1.0">
+  <title>Welcome - PromptVault</title>
+  <link rel="stylesheet" href="welcome.css">
+</head>
+<body>
+  <div class="pv-welcome-overlay">
+    <div class="pv-welcome-modal">
+      <button class="pv-welcome-close" id="welcome-close">&times;</button>
+
+      <div class="pv-welcome-icon">
+        <svg width="48" height="48" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.5">
+          <path d="M14 2H6a2 2 0 0 0-2 2v16a2 2 0 0 0 2 2h12a2 2 0 0 0 2-2V8z"></path>
+          <polyline points="14 2 14 8 20 8"></polyline>
+        </svg>
+      </div>
+
+      <h1 class="pv-welcome-title" data-i18n="welcome_title">欢迎使用 PromptVault</h1>
+      <p class="pv-welcome-subtitle" data-i18n="welcome_subtitle">在任何网页中按以下快捷键快速打开</p>
+
+      <div class="pv-welcome-shortcut">
+        <kbd id="welcome-shortcut-kbd">Ctrl + Shift + P</kbd>
+      </div>
+
+      <p class="pv-welcome-hint" data-i18n="welcome_hint">即可快速打开 PromptVault</p>
+
+      <div class="pv-welcome-sites">
+        <span class="pv-site-tag">ChatGPT</span>
+        <span class="pv-site-tag">Claude</span>
+        <span class="pv-site-tag">Gemini</span>
+        <span class="pv-site-tag">Gmail</span>
+        <span class="pv-site-tag">LinkedIn</span>
+        <span class="pv-site-tag">Notion</span>
+        <span class="pv-site-tag">Google Docs</span>
+        <span class="pv-site-tag" data-i18n="welcome_any_page">任何网页输入框</span>
+      </div>
+
+      <div class="pv-welcome-actions">
+        <button class="pv-welcome-btn-secondary" id="welcome-later" data-i18n="welcome_later">稍后查看</button>
+        <button class="pv-welcome-btn-primary" id="welcome-get-started" data-i18n="welcome_get_started">开始体验</button>
+      </div>
+    </div>
+  </div>
+
+  <script src="i18n.js"></script>
+  <script src="welcome.js"></script>
+</body>
+</html>

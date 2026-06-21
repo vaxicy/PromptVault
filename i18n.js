@@ -65,6 +65,21 @@ const i18n = (() => {
       // Empty states
       empty_no_prompts: '暂无提示词',
       empty_prompts_hint: '创建你的第一个提示词开始使用',
+      empty_shortcut_hint: '提示',
+
+      // Shortcut
+      shortcut_label: '快捷键',
+      shortcut_copy: '复制',
+      shortcut_toast_title: '快捷键已启用',
+      shortcut_toast_body: '以后在任何网页按：',
+
+      // Welcome
+      welcome_title: '欢迎使用 PromptVault',
+      welcome_subtitle: '在任何网页中按以下快捷键快速打开',
+      welcome_hint: '即可快速打开 PromptVault',
+      welcome_any_page: '任何网页输入框',
+      welcome_later: '稍后查看',
+      welcome_get_started: '开始体验',
       empty_no_favorites: '暂无收藏',
       empty_favorites_hint: '将提示词标记为收藏后显示在这里',
       empty_no_tags: '暂无标签',
@@ -228,6 +243,21 @@ const i18n = (() => {
       // Empty states
       empty_no_prompts: 'No prompts yet',
       empty_prompts_hint: 'Create your first prompt to get started',
+      empty_shortcut_hint: 'Tip',
+
+      // Shortcut
+      shortcut_label: 'Shortcut',
+      shortcut_copy: 'Copy',
+      shortcut_toast_title: 'Shortcut enabled',
+      shortcut_toast_body: 'Press on any page to open PromptVault: ',
+
+      // Welcome
+      welcome_title: 'Welcome to PromptVault',
+      welcome_subtitle: 'Press the shortcut below to open instantly on any webpage',
+      welcome_hint: 'to quickly open PromptVault',
+      welcome_any_page: 'Any webpage input',
+      welcome_later: 'Maybe Later',
+      welcome_get_started: 'Get Started',
       empty_no_favorites: 'No favorites yet',
       empty_favorites_hint: 'Mark prompts as favorite to see them here',
       empty_no_tags: 'No tags yet',

@@ -181,6 +181,20 @@
    * Initialize all event listeners
    */
   function initEventListeners() {
+    // Shortcut copy buttons
+    document.querySelectorAll('.shortcut-copy-btn').forEach(btn => {
+      btn.addEventListener('click', () => {
+        const shortcut = btn.dataset.shortcut;
+        if (shortcut) {
+          navigator.clipboard.writeText(shortcut).then(() => {
+            const originalText = btn.textContent;
+            btn.textContent = '✅';
+            setTimeout(() => { btn.textContent = originalText; }, 1500);
+          });
+        }
+      });
+    });
+
     // Navigation tabs
     document.querySelectorAll('.nav-tab').forEach(tab => {
       tab.addEventListener('click', () => switchTab(tab.dataset.tab));

@@ -251,20 +251,25 @@
               : `Used ${stats.count} time${stats.count > 1 ? 's' : ''}${lastUsedText ? ' · ' + lastUsedText : ''}`)
             : '';
 
-          // Check if batch mode is active
-          const isBatchMode = document.getElementById('pv-sidebar')?.classList.contains('pv-batch-mode');
+          // Resolve & translate folder name
+          let folderDisplay = '';
+          if (prompt.folder) {
+            const matchedFolder = folders.find(f => f.id === prompt.folder);
+            folderDisplay = (matchedFolder && matchedFolder.id !== 'default')
+              ? escapeHtml(matchedFolder.name)
+              : i18n.t('folder_uncategorized');
+          }
 
           return `
       <div class="pv-card" data-prompt-id="${prompt.id}">
-        ${isBatchMode ? `<input type="checkbox" class="pv-batch-checkbox" data-prompt-id="${prompt.id}">` : ''}
         <div class="pv-card-title">
           <span>${escapeHtml(prompt.title)}</span>
-          ${isBatchMode ? '' : `<div class="pv-card-actions">
+          <div class="pv-card-actions">
             <button class="pv-card-action-btn pv-copy-btn" data-prompt-id="${prompt.id}" title="${i18n.t('btn_copy')}">📋</button>
             <button class="pv-card-action-btn pv-edit-btn" data-prompt-id="${prompt.id}" title="${i18n.t('btn_edit')}">✏️</button>
             <button class="pv-card-action-btn pv-fav-btn ${prompt.favorite ? 'pv-favorited' : ''}" data-prompt-id="${prompt.id}" title="${i18n.t('btn_favorite')}">⭐</button>
             <button class="pv-card-action-btn pv-del-btn" data-prompt-id="${prompt.id}" title="${i18n.t('btn_delete')}">🗑️</button>
-          </div>`}
+          </div>
         </div>
         ${
           prompt.tags && prompt.tags.length > 0
@@ -273,7 +278,7 @@
         }
         <div class="pv-card-content">${escapeHtml(prompt.content)}</div>
         <div class="pv-card-meta">
-          ${prompt.folder ? `<span class="pv-card-folder">${escapeHtml(prompt.folder)}</span>` : ''}
+          ${folderDisplay ? `<span class="pv-card-folder">${folderDisplay}</span>` : ''}
           ${usageText ? `<span class="pv-card-usage">${usageText}</span>` : ''}
         </div>
       </div>
@@ -337,65 +342,6 @@
   }
 
   // ========== New Prompt Form ==========
-  function showNewPromptForm() {
-    const listEl = document.querySelector('#pv-sidebar .pv-list');
-    if (!listEl) return;
-
-    // Insert form at top of list
-    const formEl = document.createElement('div');
-    formEl.className = 'pv-card pv-editing';
-    formEl.id = 'pv-new-prompt-form';
-    formEl.innerHTML = `
-      <div class="pv-edit-form">
-        <div class="pv-edit-row">
-          <input type="text" class="pv-edit-title" value="" placeholder="${i18n.t('placeholder_title')}">
-        </div>
-        <div class="pv-edit-row">
-          <textarea class="pv-edit-content" placeholder="${i18n.t('placeholder_content')}"></textarea>
-        </div>
-        <div class="pv-edit-actions">
-          <button class="pv-edit-cancel-btn">${i18n.t('btn_cancel')}</button>
-          <button class="pv-edit-save-btn">${i18n.t('btn_save')}</button>
-        </div>
-      </div>
-    `;
-
-    listEl.insertBefore(formEl, listEl.firstChild);
-
-    // Cancel
-    formEl.querySelector('.pv-edit-cancel-btn').addEventListener('click', () => {
-      formEl.remove();
-    });
-
-    // Save
-    formEl.querySelector('.pv-edit-save-btn').addEventListener('click', () => {
-      const title = formEl.querySelector('.pv-edit-title').value.trim();
-      const content = formEl.querySelector('.pv-edit-content').value.trim();
-      if (!title) { showToast(i18n.t('placeholder_title') + ' ' + i18n.t('toast_error_folder_name'), 'error'); return; }
-      if (!content) { showToast(i18n.t('placeholder_content') + ' ' + i18n.t('toast_error_folder_name'), 'error'); return; }
-
-      chrome.storage.local.get('promptvault_data', (data) => {
-        const store = data.promptvault_data || {};
-        if (!store.prompts) store.prompts = [];
-        store.prompts.push({
-          id: generateId(),
-          title,
-          content,
-          tags: [],
-          favorite: false,
-          folder: '',
-          createdAt: Date.now(),
-          updatedAt: Date.now(),
-        });
-        chrome.storage.local.set({ promptvault_data: store }, () => {
-          formEl.remove();
-          loadData(() => renderSidebar());
-          showToast(i18n.t('toast_created') || '已创建');
-        });
-      });
-    });
-  }
-
   // ========== Edit Form ==========
   function showEditForm(promptId) {
     const prompt = prompts.find((p) => p.id === promptId);
@@ -584,11 +530,33 @@
     return result;
   }
 
+  // ========== Empty State ==========
   function renderEmptyState() {
+    const isMac = navigator.platform.toUpperCase().indexOf('MAC') >= 0;
+    const shortcut = isMac ? '⌘ + Shift + P' : 'Ctrl + Shift + P';
+
+    // Helper: safe translate with fallback
+    const _t = (key, fallback) => {
+      const text = i18n.t(key);
+      return (text && text !== key) ? text : fallback;
+    };
+
     const messages = {
-      all: { title: '暂无提示词', hint: '在扩展中创建你的第一个提示词' },
-      recent: { title: '暂无最近使用', hint: '使用提示词后会显示在这里' },
-      favorites: { title: '暂无收藏', hint: '收藏常用提示词方便快速访问' },
+      all: {
+        title: _t('empty_no_prompts', '暂无提示词'),
+        hint: _t('empty_prompts_hint', '在扩展中创建你的第一个提示词'),
+        showShortcut: true,
+      },
+      recent: {
+        title: _t('sidebar_no_recent', '暂无最近使用'),
+        hint: _t('sidebar_no_recent_hint', '使用提示词后会显示在这里'),
+        showShortcut: false,
+      },
+      favorites: {
+        title: _t('empty_no_favorites', '暂无收藏'),
+        hint: _t('empty_favorites_hint', '收藏常用提示词方便快速访问'),
+        showShortcut: false,
+      },
     };
 
     const msg = messages[currentTab] || messages.all;
@@ -601,6 +569,12 @@
         </svg>
         <p>${msg.title}</p>
         <p class="pv-empty-hint">${msg.hint}</p>
+        ${msg.showShortcut ? `
+        <div class="pv-empty-shortcut">
+          <span class="pv-empty-shortcut-icon">💡</span>
+          <span>${i18n.t('empty_shortcut_hint') || '提示'}：</span>
+          <code>${shortcut}</code>
+        </div>` : ''}
       </div>
     `;
   }
@@ -657,12 +631,12 @@
           <span class="pv-logo">PromptVault</span>
         </div>
         <div class="pv-header-actions">
-          <button class="pv-icon-btn" id="pv-theme-toggle" title="切换主题">
+          <button class="pv-icon-btn" id="pv-theme-toggle" title="${i18n.t('toggle_theme')}">
             <svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2">
               <path d="M21 12.79A9 9 0 1 1 11.21 3 7 7 0 0 0 21 12.79z"></path>
             </svg>
           </button>
-          <button class="pv-icon-btn" id="pv-close-sidebar" title="关闭">
+          <button class="pv-icon-btn" id="pv-close-sidebar" title="${i18n.t('btn_close')}">
             <svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2">
               <line x1="18" y1="6" x2="6" y2="18"></line>
               <line x1="6" y1="6" x2="18" y2="18"></line>
@@ -687,16 +661,21 @@
           <button class="pv-tab" data-tab="recent">${i18n.t('sidebar_recent')}</button>
           <button class="pv-tab" data-tab="favorites">${i18n.t('sidebar_favorites')}</button>
         </div>
-        <div class="pv-tabs-actions">
-          <button class="pv-action-btn pv-batch-btn" id="pv-batch-btn">${i18n.t('btn_batch') || '批量'}</button>
-          <button class="pv-action-btn pv-add-btn" id="pv-add-btn">+ ${i18n.t('btn_new_prompt')}</button>
-        </div>
       </div>
 
       <div class="pv-list">
         <div class="pv-loading">
           <div class="pv-spinner"></div>
-          加载中...
+          ${i18n.t('sidebar_loading')}
+        </div>
+      </div>
+
+      <div class="pv-sidebar-footer">
+        <div class="pv-footer-shortcut">
+          <span class="pv-footer-icon">⌨</span>
+          <span class="pv-footer-label">${i18n.t('shortcut_label') || '快捷键'}</span>
+          <code class="pv-footer-kbd" id="pv-footer-kbd">Ctrl + Shift + P</code>
+          <button class="pv-footer-copy" id="pv-copy-shortcut" title="${i18n.t('shortcut_copy') || '复制'}">📋</button>
         </div>
       </div>
     `;
@@ -755,24 +734,26 @@
       closeBtn.addEventListener('click', toggleSidebar);
     }
 
-    // Batch mode toggle
-    const batchBtn = document.getElementById('pv-batch-btn');
-    if (batchBtn) {
-      batchBtn.addEventListener('click', () => {
-        const list = document.getElementById('pv-sidebar');
-        if (!list) return;
-        const isBatch = list.classList.toggle('pv-batch-mode');
-        batchBtn.classList.toggle('pv-active', isBatch);
-        renderSidebar();
+    // Footer shortcut copy
+    const copyBtn = document.getElementById('pv-copy-shortcut');
+    if (copyBtn) {
+      copyBtn.addEventListener('click', () => {
+        const kbd = document.getElementById('pv-footer-kbd');
+        if (kbd) {
+          navigator.clipboard.writeText(kbd.textContent).then(() => {
+            const originalText = copyBtn.textContent;
+            copyBtn.textContent = '✅';
+            setTimeout(() => { copyBtn.textContent = originalText; }, 1500);
+          });
+        }
       });
     }
 
-    // Add new prompt
-    const addBtn = document.getElementById('pv-add-btn');
-    if (addBtn) {
-      addBtn.addEventListener('click', () => {
-        showNewPromptForm();
-      });
+    // Update shortcut text based on platform
+    const footerKbd = document.getElementById('pv-footer-kbd');
+    if (footerKbd) {
+      const isMac = navigator.platform.toUpperCase().indexOf('MAC') >= 0;
+      footerKbd.textContent = isMac ? '⌘ + Shift + P' : 'Ctrl + Shift + P';
     }
   }
 

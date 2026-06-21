@@ -217,16 +217,8 @@
   border-bottom-color: var(--pv-accent);
 }
 
-/* Tabs Right Actions */
-#pv-sidebar .pv-tabs-actions {
-  display: flex;
-  align-items: center;
-  gap: 8px;
-  flex-shrink: 0;
-}
-
 #pv-sidebar .pv-action-btn {
-  height: 30px;
+  height: 32px;
   padding: 0 12px;
   border-radius: 6px;
   font-size: 12px;
@@ -247,39 +239,6 @@
 
 #pv-sidebar .pv-action-btn:hover {
   background: var(--pv-hover);
-}
-
-#pv-sidebar .pv-batch-btn.pv-active {
-  background: var(--pv-accent);
-  color: #fff;
-  border-color: var(--pv-accent);
-}
-
-#pv-sidebar .pv-add-btn {
-  background: var(--pv-accent);
-  color: #fff;
-  border-color: var(--pv-accent);
-}
-
-#pv-sidebar .pv-add-btn:hover {
-  opacity: 0.9;
-  box-shadow: 0 2px 8px rgba(74, 144, 226, 0.3);
-}
-
-/* Batch Mode */
-#pv-sidebar.pv-batch-mode .pv-card {
-  display: flex;
-  align-items: flex-start;
-  gap: 8px;
-}
-
-#pv-sidebar .pv-batch-checkbox {
-  margin-top: 14px;
-  flex-shrink: 0;
-  accent-color: var(--pv-accent);
-  width: 16px;
-  height: 16px;
-  cursor: pointer;
 }
 
 /* Prompt List */
@@ -766,4 +725,80 @@
   #pv-sidebar .pv-confirm-dialog {
     width: 90vw;
   }
+}
+
+/* Sidebar Footer - Shortcut Hint */
+#pv-sidebar .pv-sidebar-footer {
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  padding: 10px 16px;
+  border-top: 1px solid var(--pv-border);
+  flex-shrink: 0;
+  background: var(--pv-bg);
+}
+
+#pv-sidebar .pv-footer-shortcut {
+  display: flex;
+  align-items: center;
+  gap: 6px;
+  font-size: 11px;
+  color: var(--pv-text-secondary);
+}
+
+#pv-sidebar .pv-footer-icon {
+  font-size: 13px;
+}
+
+#pv-sidebar .pv-footer-label {
+  font-weight: 500;
+}
+
+#pv-sidebar .pv-footer-kbd {
+  background: var(--pv-bg-secondary);
+  border: 1px solid var(--pv-border);
+  border-radius: 4px;
+  padding: 1px 6px;
+  font-size: 11px;
+  font-family: -apple-system, BlinkMacSystemFont, 'Segoe UI', Roboto, sans-serif;
+  color: var(--pv-text);
+  font-weight: 500;
+}
+
+#pv-sidebar .pv-footer-copy {
+  background: none;
+  border: none;
+  cursor: pointer;
+  font-size: 12px;
+  padding: 2px 4px;
+  border-radius: 4px;
+  transition: background 0.15s ease;
+  line-height: 1;
+}
+#pv-sidebar .pv-footer-copy:hover {
+  background: var(--pv-hover);
+}
+
+/* Empty State Shortcut Hint */
+#pv-sidebar .pv-empty-shortcut {
+  display: flex;
+  align-items: center;
+  gap: 6px;
+  margin-top: 12px;
+  font-size: 12px;
+  color: var(--pv-text-secondary);
+  background: var(--pv-accent-light);
+  padding: 8px 12px;
+  border-radius: 8px;
+  justify-content: center;
+}
+
+#pv-sidebar .pv-empty-shortcut code {
+  background: var(--pv-bg);
+  border: 1px solid var(--pv-border);
+  border-radius: 4px;
+  padding: 1px 6px;
+  font-size: 11px;
+  font-weight: 500;
+  color: var(--pv-accent);
 }

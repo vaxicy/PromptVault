@@ -14,6 +14,63 @@
   let selectedIndex = 0;
   let paletteColors = null;
 
+  // ========== Inject Styles ==========
+  function injectStyles() {
+    if (document.getElementById('pv-cmd-toast-style')) return;
+    const style = document.createElement('style');
+    style.id = 'pv-cmd-toast-style';
+    style.textContent = `
+      .pv-cmd-toast {
+        position: fixed;
+        bottom: 24px;
+        left: 50%;
+        transform: translateX(-50%) translateY(20px);
+        background: #1a1a2e;
+        color: #e0e0e0;
+        padding: 12px 20px;
+        border-radius: 10px;
+        box-shadow: 0 8px 24px rgba(0,0,0,0.25);
+        display: flex;
+        align-items: center;
+        gap: 10px;
+        font-size: 13px;
+        font-family: -apple-system, BlinkMacSystemFont, 'Segoe UI', Roboto, sans-serif;
+        z-index: 2147483647;
+        opacity: 0;
+        transition: all 0.25s ease;
+        pointer-events: none;
+      }
+      .pv-cmd-toast-show {
+        opacity: 1;
+        transform: translateX(-50%) translateY(0);
+      }
+      .pv-cmd-toast-icon {
+        font-size: 18px;
+      }
+      .pv-cmd-toast-body {
+        display: flex;
+        flex-direction: column;
+        gap: 2px;
+      }
+      .pv-cmd-toast-title {
+        font-weight: 600;
+        color: #ffffff;
+      }
+      .pv-cmd-toast-text {
+        font-size: 12px;
+        color: #a0a0a0;
+      }
+      .pv-cmd-toast-text code {
+        background: rgba(255,255,255,0.12);
+        padding: 1px 6px;
+        border-radius: 4px;
+        font-size: 11px;
+        font-weight: 500;
+      }
+    `;
+    document.head.appendChild(style);
+  }
+
   // ========== Theme Detection ==========
   function getThemeColors() {
     const isDark = window.matchMedia && window.matchMedia('(prefers-color-scheme: dark)').matches;
@@ -384,6 +441,38 @@
       const list = document.querySelector(`#${PALETTE_ID} .pv-palette-list`);
       if (list) renderList(list);
     });
+
+    // Show shortcut toast on first open
+    const hasSeenToast = localStorage.getItem('pv_cmd_palette_toast_seen');
+    if (!hasSeenToast) {
+      setTimeout(() => {
+        showShortcutToast();
+        localStorage.setItem('pv_cmd_palette_toast_seen', 'true');
+      }, 500);
+    }
+  }
+
+  // ========== Show Shortcut Toast ==========
+  function showShortcutToast() {
+    const isMac = navigator.platform.toUpperCase().indexOf('MAC') >= 0;
+    const shortcut = isMac ? '⌘ + Shift + P' : 'Ctrl + Shift + P';
+
+    const toast = document.createElement('div');
+    toast.className = 'pv-cmd-toast';
+    toast.innerHTML = `
+      <div class="pv-cmd-toast-icon">🎉</div>
+      <div class="pv-cmd-toast-body">
+        <div class="pv-cmd-toast-title">${i18n.t('shortcut_toast_title') || '快捷键已启用'}</div>
+        <div class="pv-cmd-toast-text">${(i18n.t('shortcut_toast_body') || '以后在任何网页按：')}<code>${shortcut}</code></div>
+      </div>
+    `;
+    document.body.appendChild(toast);
+
+    setTimeout(() => toast.classList.add('pv-cmd-toast-show'), 10);
+    setTimeout(() => {
+      toast.classList.remove('pv-cmd-toast-show');
+      setTimeout(() => toast.remove(), 300);
+    }, 3000);
   }
 
   function closePalette() {
@@ -421,6 +510,9 @@
       openPalette();
     }
   });
+
+  // Inject Toast styles
+  injectStyles();
 
   // Expose global API
   window.PromptVaultCommandPalette = {

@@ -14,6 +14,13 @@ chrome.runtime.onInstalled.addListener(async (details) => {
   if (details.reason === 'install') {
     console.log('PromptVault installed');
     await initializeStorage();
+
+    // Open welcome page
+    chrome.tabs.create({
+      url: chrome.runtime.getURL('welcome.html')
+    });
+    // Mark as not seen welcome (redundant but safe)
+    chrome.storage.local.set({ promptvault_hasSeenWelcome: false });
   } else if (details.reason === 'update') {
     console.log('PromptVault updated to version', chrome.runtime.getManifest().version);
   }
