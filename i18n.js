@@ -15,13 +15,13 @@ const i18n = (() => {
       tab_prompts: '提示词',
       tab_folders: '文件夹',
       tab_tags: '标签',
-      tab_favorites: '收藏夹',
+      tab_pinned: '置顶',
 
       // Section headings
       heading_all_prompts: '所有提示词',
       heading_folders: '文件夹',
       heading_tags: '标签',
-      heading_favorites: '收藏夹',
+      heading_pinned: '置顶',
 
       // Search
       search_placeholder: '搜索提示词...',
@@ -40,7 +40,7 @@ const i18n = (() => {
       btn_clear_data: '清除所有数据',
       btn_use: '使用',
       btn_edit: '编辑',
-      btn_favorite: '收藏',
+      btn_pin: '置顶',
       btn_delete: '删除',
       btn_close: '关闭',
 
@@ -80,8 +80,8 @@ const i18n = (() => {
       welcome_any_page: '任何网页输入框',
       welcome_later: '稍后查看',
       welcome_get_started: '开始体验',
-      empty_no_favorites: '暂无收藏',
-      empty_favorites_hint: '将提示词标记为收藏后显示在这里',
+      empty_no_pinned: '暂无置顶',
+      empty_pinned_hint: '将提示词置顶后显示在这里',
       empty_no_tags: '暂无标签',
 
       // Modal titles
@@ -143,14 +143,14 @@ const i18n = (() => {
       // Sidebar
       sidebar_all: '全部',
       sidebar_recent: '最近',
-      sidebar_favorites: '收藏',
+      sidebar_pinned: '置顶',
       sidebar_search_placeholder: '搜索提示词...',
       sidebar_no_prompts: '暂无提示词',
       sidebar_no_prompts_hint: '在扩展中创建你的第一个提示词',
       sidebar_no_recent: '暂无最近使用',
       sidebar_no_recent_hint: '使用提示词后会显示在这里',
-      sidebar_no_favorites: '暂无收藏',
-      sidebar_no_favorites_hint: '收藏常用提示词方便快速访问',
+      sidebar_no_pinned: '暂无置顶',
+      sidebar_no_pinned_hint: '将提示词置顶方便快速访问',
       sidebar_loading: '加载中...',
       sidebar_copied: '已复制到剪贴板',
       sidebar_inserted: '已插入提示词',
@@ -170,7 +170,7 @@ const i18n = (() => {
       // Command Palette
       cmd_search_placeholder: '搜索提示词...',
       cmd_all: '所有',
-      cmd_favorites: '收藏',
+      cmd_favorites: '置顶',
       cmd_recent: '最近',
       cmd_no_prompts: '暂无提示词',
       cmd_nav: '↑↓ 导航',
@@ -180,8 +180,24 @@ const i18n = (() => {
       // Context menu
       ctx_save_as_prompt: '保存为提示词',
       ctx_insert_prompt: '插入提示词',
-      ctx_favorite: '加入收藏',
+      ctx_pin: '置顶',
       default_prompt_title: '网页提示词',
+
+      // Pinned tab heading
+      heading_pinned_prompts: '置顶提示词',
+
+      // Batch mode - select all
+      btn_select_all: '全选',
+      btn_deselect_all: '取消全选',
+
+      // Settings
+      label_enable_sidebar: '启用侧边栏',
+      label_show_badge: '显示角标',
+      settings_enable_sidebar_hint: '在网页中显示 PromptVault 侧边栏',
+      settings_show_badge_hint: '在扩展图标上显示提示词数量',
+      back_to_all: '返回全部',
+      btn_apply: '应用',
+      toast_settings_applied: '设置已应用',
     },
     en: {
       // Header
@@ -193,13 +209,13 @@ const i18n = (() => {
       tab_prompts: 'Prompts',
       tab_folders: 'Folders',
       tab_tags: 'Tags',
-      tab_favorites: 'Favorites',
+      tab_pinned: 'Pinned',
 
       // Section headings
       heading_all_prompts: 'All Prompts',
       heading_folders: 'Folders',
       heading_tags: 'Tags',
-      heading_favorites: 'Favorites',
+      heading_pinned: 'Pinned',
 
       // Search
       search_placeholder: 'Search prompts...',
@@ -218,7 +234,7 @@ const i18n = (() => {
       btn_clear_data: 'Clear All Data',
       btn_use: 'Use',
       btn_edit: 'Edit',
-      btn_favorite: 'Favorite',
+      btn_pin: 'Pin',
       btn_delete: 'Delete',
       btn_close: 'Close',
 
@@ -258,8 +274,8 @@ const i18n = (() => {
       welcome_any_page: 'Any webpage input',
       welcome_later: 'Maybe Later',
       welcome_get_started: 'Get Started',
-      empty_no_favorites: 'No favorites yet',
-      empty_favorites_hint: 'Mark prompts as favorite to see them here',
+      empty_no_pinned: 'No pinned prompts',
+      empty_pinned_hint: 'Pin prompts for quick access',
       empty_no_tags: 'No tags yet',
 
       // Modal titles
@@ -321,14 +337,14 @@ const i18n = (() => {
       // Sidebar
       sidebar_all: 'All',
       sidebar_recent: 'Recent',
-      sidebar_favorites: 'Favorites',
+      sidebar_pinned: 'Pinned',
       sidebar_search_placeholder: 'Search prompts...',
       sidebar_no_prompts: 'No prompts yet',
       sidebar_no_prompts_hint: 'Create your first prompt in the extension',
       sidebar_no_recent: 'No recent usage',
       sidebar_no_recent_hint: 'Prompts you use will appear here',
-      sidebar_no_favorites: 'No favorites',
-      sidebar_no_favorites_hint: 'Favorite prompts for quick access',
+      sidebar_no_pinned: 'No pinned',
+      sidebar_no_pinned_hint: 'Pin prompts for quick access',
       sidebar_loading: 'Loading...',
       sidebar_copied: 'Copied to clipboard',
       sidebar_inserted: 'Prompt inserted',
@@ -348,7 +364,7 @@ const i18n = (() => {
       // Command Palette
       cmd_search_placeholder: 'Search prompts...',
       cmd_all: 'All',
-      cmd_favorites: 'Favorites',
+      cmd_favorites: 'Pinned',
       cmd_recent: 'Recent',
       cmd_no_prompts: 'No prompts',
       cmd_nav: '↑↓ Nav',
@@ -358,8 +374,24 @@ const i18n = (() => {
       // Context menu
       ctx_save_as_prompt: 'Save as Prompt',
       ctx_insert_prompt: 'Insert Prompt',
-      ctx_favorite: 'Add to Favorites',
+      ctx_pin: 'Pin',
       default_prompt_title: 'Web Prompt',
+
+      // Pinned tab heading
+      heading_pinned_prompts: 'Pinned Prompts',
+
+      // Batch mode - select all
+      btn_select_all: 'Select All',
+      btn_deselect_all: 'Deselect All',
+
+      // Settings
+      label_enable_sidebar: 'Enable Sidebar',
+      label_show_badge: 'Show Badge',
+      settings_enable_sidebar_hint: 'Show PromptVault sidebar on web pages',
+      settings_show_badge_hint: 'Show prompt count on extension icon',
+      back_to_all: 'Back to all',
+      btn_apply: 'Apply',
+      toast_settings_applied: 'Settings applied',
     },
   };
 

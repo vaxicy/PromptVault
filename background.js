@@ -77,6 +77,11 @@ chrome.runtime.onMessage.addListener((message, sender, sendResponse) => {
     return true;
   }
 
+  if (message.action === 'updateBadge') {
+    updateBadge();
+    sendResponse({ success: true });
+  }
+
   return true;
 });
 
@@ -90,7 +95,7 @@ async function initializeStorage() {
       { id: 'default', name: 'Default', color: '#808080' }
     ],
     tags: [],
-    settings: { darkMode: true, defaultFolder: 'default' }
+    settings: { darkMode: true, defaultFolder: 'default', locale: 'zh', enableSidebar: true, showBadge: true }
   };
 
   await chrome.storage.local.set({ promptvault_data: defaultData });
@@ -106,7 +111,7 @@ async function savePromptFromPage(promptData) {
       prompts: [],
       folders: [{ id: 'default', name: 'Default', color: '#808080' }],
       tags: [],
-      settings: { darkMode: true, defaultFolder: 'default' }
+      settings: { darkMode: true, defaultFolder: 'default', locale: 'zh', enableSidebar: true, showBadge: true }
     };
 
     const prompt = {
@@ -115,7 +120,8 @@ async function savePromptFromPage(promptData) {
       content: promptData.content,
       folder: promptData.folder || 'default',
       tags: promptData.tags || [],
-      favorite: false,
+      pinned: false,
+      usageCount: 0,
       createdAt: Date.now(),
       updatedAt: Date.now()
     };
@@ -160,7 +166,7 @@ if (chrome.contextMenus && chrome.contextMenus.onClicked) {
           prompts: [],
           folders: [{ id: 'default', name: 'Default', color: '#808080' }],
           tags: [],
-          settings: { darkMode: true, defaultFolder: 'default' }
+          settings: { darkMode: true, defaultFolder: 'default', locale: 'zh', enableSidebar: true, showBadge: true }
         };
 
         const prompt = {
@@ -169,7 +175,8 @@ if (chrome.contextMenus && chrome.contextMenus.onClicked) {
           content: selectedText,
           folder: 'default',
           tags: [],
-          favorite: false,
+          pinned: false,
+          usageCount: 0,
           createdAt: Date.now(),
           updatedAt: Date.now()
         };
@@ -223,6 +230,13 @@ if (chrome.commands) {
 async function updateBadge() {
   const data = await chrome.storage.local.get('promptvault_data');
   const store = data.promptvault_data;
+
+  // Check showBadge setting (default true if not set)
+  const showBadge = store && store.settings ? store.settings.showBadge !== false : true;
+  if (!showBadge) {
+    chrome.action.setBadgeText({ text: '' });
+    return;
+  }
 
   if (store && store.prompts) {
     const count = store.prompts.length;

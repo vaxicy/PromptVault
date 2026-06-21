@@ -83,7 +83,7 @@
         textMuted: '#6c7086',
         accentColor: '#89b4fa',
         selectedBg: '#313244',
-        favoriteColor: '#f9e2af',
+        pinColor: '#f9e2af',
       };
     } else {
       return {
@@ -94,7 +94,7 @@
         textMuted: '#6e6e73',
         accentColor: '#4A90E2',
         selectedBg: '#f0f0f5',
-        favoriteColor: '#f59e0b',
+        pinColor: '#f59e0b',
       };
     }
   }
@@ -189,7 +189,7 @@
             border-bottom: 2px solid ${c.accentColor};
             outline: none;
           ">${i18n.t('cmd_all') || '所有'}</button>
-          <button class="pv-palette-tab" data-tab="favorites" style="
+          <button class="pv-palette-tab" data-tab="pinned" style="
             padding: 8px 12px;
             background: none;
             border: none;
@@ -198,7 +198,7 @@
             cursor: pointer;
             border-bottom: 2px solid transparent;
             outline: none;
-          ">${i18n.t('cmd_favorites') || '收藏'}</button>
+          ">📌 ${i18n.t('tab_pinned') || 'Pinned'}</button>
           <button class="pv-palette-tab" data-tab="recent" style="
             padding: 8px 12px;
             background: none;
@@ -313,8 +313,8 @@
     let result = [...allPrompts];
 
     // Filter by tab
-    if (tab === 'favorites') {
-      result = result.filter((p) => p.favorite);
+    if (tab === 'pinned') {
+      result = result.filter((p) => p.pinned);
     } else if (tab === 'recent') {
       // Sort by updatedAt
       result = result.sort((a, b) => (b.updatedAt || 0) - (a.updatedAt || 0));
@@ -331,7 +331,31 @@
       );
     }
 
+    // Smart sort for search results (optimization 7)
+    if (query) {
+      result = sortPromptsSmart(result);
+    }
+
     filteredPrompts = result;
+  }
+
+  // ========== Smart Sort ==========
+  function sortPromptsSmart(prompts) {
+    const now = Date.now();
+    const weekAgo = now - 7 * 86400000;
+
+    return prompts.sort((a, b) => {
+      // 1. Pinned first
+      if (a.pinned !== b.pinned) return a.pinned ? -1 : 1;
+      // 2. Recently used (within 7 days)
+      const aRecent = (a.lastUsedAt || 0) > weekAgo ? 1 : 0;
+      const bRecent = (b.lastUsedAt || 0) > weekAgo ? 1 : 0;
+      if (aRecent !== bRecent) return bRecent - aRecent;
+      // 3. Most used
+      if ((b.usageCount || 0) !== (a.usageCount || 0)) return (b.usageCount || 0) - (a.usageCount || 0);
+      // 4. Most recently updated
+      return (b.updatedAt || 0) - (a.updatedAt || 0);
+    });
   }
 
   // ========== Render List ==========
@@ -368,7 +392,7 @@
           </div>
         </div>
         <div style="display: flex; gap: 4px; margin-left: 8px;">
-          ${prompt.favorite ? '<span style="color: ' + c.favoriteColor + '; font-size: 14px;">⭐</span>' : ''}
+          ${prompt.pinned ? '<span style="color: ' + c.pinColor + '; font-size: 14px;">📌</span>' : ''}
         </div>
       </div>
     `

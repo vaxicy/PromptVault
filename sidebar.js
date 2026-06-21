@@ -20,7 +20,7 @@
   let folders = [];
   let tags = [];
   let recentUsage = [];
-  let currentTab = 'all'; // 'all' | 'recent' | 'favorites'
+  let currentTab = 'all'; // 'all' | 'recent' | 'pinned'
   let searchQuery = '';
   let isDarkMode = false;
   let sidebarVisible = true;
@@ -173,12 +173,24 @@
       recentUsage.unshift(usage);
       recentUsage = recentUsage.slice(0, 20); // Keep last 20
 
-      chrome.storage.local.get('promptvault_data', (data) => {
-        const store = data.promptvault_data || {};
-        if (!store.recentUsage) store.recentUsage = [];
-        store.recentUsage = recentUsage;
-        chrome.storage.local.set({ promptvault_data: store });
-      });
+      // Update storage (recentUsage + usageCount + lastUsedAt)
+      if (typeof Storage !== 'undefined' && Storage.addRecentUsage) {
+        Storage.addRecentUsage(promptId);
+      } else {
+        // Fallback: direct storage write
+        chrome.storage.local.get('promptvault_data', (data) => {
+          const store = data.promptvault_data || {};
+          if (!store.recentUsage) store.recentUsage = [];
+          store.recentUsage = recentUsage;
+          // Update prompt usageCount
+          const prompt = store.prompts?.find(p => p.id === promptId);
+          if (prompt) {
+            prompt.usageCount = (prompt.usageCount || 0) + 1;
+            prompt.lastUsedAt = Date.now();
+          }
+          chrome.storage.local.set({ promptvault_data: store });
+        });
+      }
     } catch (e) {
       console.warn('[PromptVault] Failed to record usage:', e);
     }
@@ -228,8 +240,18 @@
       return;
     }
 
-    // Calculate usage stats for each prompt
+    // Calculate usage stats for each prompt (from recentUsage + prompt.usageCount)
     const usageStats = {};
+    // First, use stored usageCount/lastUsedAt
+    prompts.forEach(p => {
+      if (p.usageCount > 0 || p.lastUsedAt > 0) {
+        usageStats[p.id] = {
+          count: p.usageCount || 0,
+          lastUsed: p.lastUsedAt || 0
+        };
+      }
+    });
+    // Then, augment with recentUsage for backward compatibility
     recentUsage.forEach(usage => {
       if (!usageStats[usage.promptId]) {
         usageStats[usage.promptId] = { count: 0, lastUsed: 0 };
@@ -267,7 +289,7 @@
           <div class="pv-card-actions">
             <button class="pv-card-action-btn pv-copy-btn" data-prompt-id="${prompt.id}" title="${i18n.t('btn_copy')}">📋</button>
             <button class="pv-card-action-btn pv-edit-btn" data-prompt-id="${prompt.id}" title="${i18n.t('btn_edit')}">✏️</button>
-            <button class="pv-card-action-btn pv-fav-btn ${prompt.favorite ? 'pv-favorited' : ''}" data-prompt-id="${prompt.id}" title="${i18n.t('btn_favorite')}">⭐</button>
+            <button class="pv-card-action-btn pv-pin-btn ${prompt.pinned ? 'pv-pinned' : ''}" data-prompt-id="${prompt.id}" title="${i18n.t('btn_pin')}">📌</button>
             <button class="pv-card-action-btn pv-del-btn" data-prompt-id="${prompt.id}" title="${i18n.t('btn_delete')}">🗑️</button>
           </div>
         </div>
@@ -306,8 +328,17 @@
         const promptId = btn.dataset.promptId;
         const prompt = prompts.find((p) => p.id === promptId);
         if (prompt) {
-          navigator.clipboard.writeText(prompt.content);
-          showToast(i18n.t('sidebar_copied'));
+          navigator.clipboard.writeText(prompt.content).then(() => {
+            // Copy feedback: icon changes to ✓ for 1s
+            const originalHTML = btn.innerHTML;
+            btn.innerHTML = '✓';
+            btn.style.color = '#22c55e';
+            setTimeout(() => {
+              btn.innerHTML = originalHTML;
+              btn.style.color = '';
+            }, 1000);
+            showToast(i18n.t('sidebar_copied'));
+          });
         }
       });
     });
@@ -320,11 +351,11 @@
       });
     });
 
-    listEl.querySelectorAll('.pv-fav-btn').forEach((btn) => {
+    listEl.querySelectorAll('.pv-pin-btn').forEach((btn) => {
       btn.addEventListener('click', (e) => {
         e.stopPropagation();
         const promptId = btn.dataset.promptId;
-        toggleFavorite(promptId);
+        togglePin(promptId);
       });
     });
 
@@ -504,8 +535,8 @@
     let result = [...prompts];
 
     // Filter by tab
-    if (currentTab === 'favorites') {
-      result = result.filter((p) => p.favorite);
+    if (currentTab === 'pinned') {
+      result = result.filter((p) => p.pinned);
     } else if (currentTab === 'recent') {
       const recentIds = [...new Set(recentUsage.map((u) => u.promptId))];
       result = result.filter((p) => recentIds.includes(p.id));
@@ -552,9 +583,9 @@
         hint: _t('sidebar_no_recent_hint', '使用提示词后会显示在这里'),
         showShortcut: false,
       },
-      favorites: {
-        title: _t('empty_no_favorites', '暂无收藏'),
-        hint: _t('empty_favorites_hint', '收藏常用提示词方便快速访问'),
+      pinned: {
+        title: _t('empty_no_pinned', '暂无置顶'),
+        hint: _t('empty_pinned_hint', '将提示词置顶方便快速访问'),
         showShortcut: false,
       },
     };
@@ -568,24 +599,27 @@
           <polyline points="14 2 14 8 20 8"></polyline>
         </svg>
         <p>${msg.title}</p>
-        <p class="pv-empty-hint">${msg.hint}</p>
         ${msg.showShortcut ? `
         <div class="pv-empty-shortcut">
-          <span class="pv-empty-shortcut-icon">💡</span>
-          <span>${i18n.t('empty_shortcut_hint') || '提示'}：</span>
-          <code>${shortcut}</code>
-        </div>` : ''}
+          <p class="pv-empty-hint">${msg.hint}</p>
+          <div class="pv-empty-tip">
+            <span>💡 ${i18n.getLocale() === 'zh' ? '小技巧' : 'Tip'}：</span>
+            <span>${i18n.getLocale() === 'zh' ? '在任何网页按' : 'Press on any page'}：</span>
+            <code>${shortcut}</code>
+            <span>${i18n.getLocale() === 'zh' ? '即可快速打开' : 'to open PromptVault'}</span>
+          </div>
+        </div>` : `<p class="pv-empty-hint">${msg.hint}</p>`}
       </div>
     `;
   }
 
-  // ========== Toggle Favorite ==========
-  function toggleFavorite(promptId) {
+  // ========== Toggle Pin ==========
+  function togglePin(promptId) {
     chrome.storage.local.get('promptvault_data', (data) => {
       const store = data.promptvault_data || {};
       const prompt = store.prompts?.find((p) => p.id === promptId);
       if (prompt) {
-        prompt.favorite = !prompt.favorite;
+        prompt.pinned = !prompt.pinned;
         chrome.storage.local.set({ promptvault_data: store }, () => {
           loadData(() => renderSidebar());
         });
@@ -659,7 +693,7 @@
         <div class="pv-tabs-left">
           <button class="pv-tab pv-active" data-tab="all">${i18n.t('sidebar_all')}</button>
           <button class="pv-tab" data-tab="recent">${i18n.t('sidebar_recent')}</button>
-          <button class="pv-tab" data-tab="favorites">${i18n.t('sidebar_favorites')}</button>
+          <button class="pv-tab" data-tab="pinned">📌 ${i18n.t('tab_pinned') || '置顶'}</button>
         </div>
       </div>
 
@@ -671,11 +705,10 @@
       </div>
 
       <div class="pv-sidebar-footer">
-        <div class="pv-footer-shortcut">
-          <span class="pv-footer-icon">⌨</span>
-          <span class="pv-footer-label">${i18n.t('shortcut_label') || '快捷键'}</span>
+        <div class="pv-footer-shortcut" id="pv-footer-shortcut">
+          <span class="pv-footer-hint">${i18n.getLocale() === 'zh' ? '快捷键打开' : 'Shortcut'}</span>
           <code class="pv-footer-kbd" id="pv-footer-kbd">Ctrl + Shift + P</code>
-          <button class="pv-footer-copy" id="pv-copy-shortcut" title="${i18n.t('shortcut_copy') || '复制'}">📋</button>
+          <button class="pv-footer-copy" id="pv-copy-shortcut" title="${i18n.t('shortcut_copy') || 'Copy'}">📋</button>
         </div>
       </div>
     `;
@@ -795,6 +828,16 @@
       await i18n.loadLocale();
     }
 
+    // Check enableSidebar setting
+    const data = await new Promise(resolve => {
+      chrome.storage.local.get('promptvault_data', (d) => resolve(d));
+    });
+    const settings = (data.promptvault_data || {}).settings || {};
+    if (settings.enableSidebar === false) {
+      console.log('[PromptVault] Sidebar disabled by setting');
+      return;
+    }
+
     // Load CSS
     const link = document.createElement('link');
     link.rel = 'stylesheet';
@@ -816,8 +859,23 @@
       }
     });
 
-    // Listen for storage changes
-    setupStorageListener();
+    // Listen for storage changes (e.g., enableSidebar toggled)
+    chrome.storage.onChanged.addListener((changes) => {
+      if (changes.promptvault_data) {
+        const newSettings = (changes.promptvault_data.newValue || {}).settings || {};
+        const oldSettings = (changes.promptvault_data.oldValue || {}).settings || {};
+        if (newSettings.enableSidebar !== oldSettings.enableSidebar) {
+          // Reload page to apply sidebar setting change
+          if (newSettings.enableSidebar === false) {
+            const sidebar = document.getElementById('pv-sidebar');
+            const toggle = document.getElementById('pv-sidebar-toggle');
+            if (sidebar) sidebar.remove();
+            if (toggle) toggle.remove();
+          }
+        }
+        loadData(() => renderSidebar());
+      }
+    });
   }
 
   // Wait for DOM ready

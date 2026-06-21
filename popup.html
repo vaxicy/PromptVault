@@ -62,11 +62,12 @@
         </svg>
         Tags
       </button>
-      <button class="nav-tab" data-tab="favorites">
+      <button class="nav-tab" data-tab="pinned">
         <svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2">
-          <path d="M20.84 4.61a5.5 5.5 0 0 0-7.78 0L12 5.67l-1.06-1.06a5.5 5.5 0 0 0-7.78 7.78l1.06 1.06L12 21.23l7.78-7.78 1.06-1.06a5.5 5.5 0 0 0 0-7.78z"></path>
+          <line x1="12" y1="17" x2="12" y2="22"></line>
+          <path d="M5 17h14v-1.76a2 2 0 0 0-1.11-1.79l-1.78-.9A2 2 0 0 1 15 10.76V6h1a2 2 0 0 0 0-4H8a2 2 0 0 0 0 4h1v4.76a2 2 0 0 1-1.11 1.79l-1.78.9A2 2 0 0 0 5 15.24z"></path>
         </svg>
-        Favorites
+        Pinned
       </button>
     </nav>
 
@@ -108,6 +109,7 @@
         <div id="batch-actions-bar" class="batch-actions-bar hidden">
           <span id="batch-selected-count">0 selected</span>
           <div class="batch-actions-right">
+            <button id="btn-batch-select-all" class="secondary-btn"></button>
             <select id="batch-folder-select">
               <option value="">Move to folder...</option>
             </select>
@@ -147,18 +149,19 @@
         <div id="tags-list" class="tags-cloud"></div>
       </div>
 
-      <!-- Favorites Tab -->
-      <div id="tab-favorites" class="tab-content">
+      <!-- Pinned Tab -->
+        <div id="tab-pinned" class="tab-content">
         <div class="tab-header">
-          <h2>Favorite Prompts</h2>
+          <h2 id="heading-pinned">Pinned Prompts</h2>
         </div>
-        <div id="favorites-list" class="items-list"></div>
-        <div id="favorites-empty" class="empty-state hidden">
+        <div id="pinned-list" class="items-list"></div>
+        <div id="pinned-empty" class="empty-state hidden">
           <svg width="48" height="48" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1">
-            <path d="M20.84 4.61a5.5 5.5 0 0 0-7.78 0L12 5.67l-1.06-1.06a5.5 5.5 0 0 0-7.78 7.78l1.06 1.06L12 21.23l7.78-7.78 1.06-1.06a5.5 5.5 0 0 0 0-7.78z"></path>
+            <line x1="12" y1="17" x2="12" y2="22"></line>
+            <path d="M5 17h14v-1.76a2 2 0 0 0-1.11-1.79l-1.78-.9A2 2 0 0 1 15 10.76V6h1a2 2 0 0 0 0-4H8a2 2 0 0 0 0 4h1v4.76a2 2 0 0 1-1.11 1.79l-1.78.9A2 2 0 0 0 5 15.24z"></path>
           </svg>
-          <p>No favorites yet</p>
-          <p class="empty-hint">Mark prompts as favorite to see them here</p>
+          <p>No pinned prompts yet</p>
+          <p class="empty-hint">Pin prompts for quick access</p>
         </div>
       </div>
     </div>
@@ -258,6 +261,20 @@
           </select>
         </div>
         <div class="form-group">
+          <label class="checkbox-label">
+            <input type="checkbox" id="setting-enable-sidebar">
+            <span data-i18n="label_enable_sidebar">启用侧边栏</span>
+          </label>
+          <p class="setting-hint" data-i18n="settings_enable_sidebar_hint">在网页中显示 PromptVault 侧边栏</p>
+        </div>
+        <div class="form-group">
+          <label class="checkbox-label">
+            <input type="checkbox" id="setting-show-badge">
+            <span data-i18n="label_show_badge">显示角标</span>
+          </label>
+          <p class="setting-hint" data-i18n="settings_show_badge_hint">在扩展图标上显示提示词数量</p>
+        </div>
+        <div class="form-group">
           <button id="btn-clear-data" class="danger-btn">Clear All Data</button>
         </div>
         <div class="settings-section">
@@ -297,8 +314,9 @@
           </div>
         </div>
       </div>
-      <div class="modal-footer">
-        <button class="secondary-btn modal-cancel">Close</button>
+      <div class="modal-footer settings-footer">
+        <button class="secondary-btn" id="btn-settings-cancel" data-i18n="btn_cancel">取消</button>
+        <button class="primary-btn" id="btn-settings-apply" data-i18n="btn_apply">应用</button>
       </div>
     </div>
   </div>

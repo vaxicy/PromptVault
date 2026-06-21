@@ -15,7 +15,9 @@ const Storage = (() => {
     settings: {
       darkMode: true,
       defaultFolder: 'default',
-      locale: 'zh'
+      locale: 'zh',
+      enableSidebar: true,
+      showBadge: true
     }
   };
 
@@ -92,14 +94,28 @@ const Storage = (() => {
   }
 
   /**
-   * Toggle favorite status of a prompt
+   * Toggle pin status of a prompt
    */
-  async function toggleFavorite(id) {
+  async function togglePin(id) {
     const data = await getAll();
     const prompt = data.prompts.find(p => p.id === id);
     if (prompt) {
-      prompt.favorite = !prompt.favorite;
+      prompt.pinned = !prompt.pinned;
       prompt.updatedAt = Date.now();
+      await saveAll(data);
+    }
+    return prompt;
+  }
+
+  /**
+   * Record prompt usage (increment count and update lastUsedAt)
+   */
+  async function recordUsage(id) {
+    const data = await getAll();
+    const prompt = data.prompts.find(p => p.id === id);
+    if (prompt) {
+      prompt.usageCount = (prompt.usageCount || 0) + 1;
+      prompt.lastUsedAt = Date.now();
       await saveAll(data);
     }
     return prompt;
@@ -325,6 +341,14 @@ const Storage = (() => {
 
     data.recentUsage.unshift(usage);
     data.recentUsage = data.recentUsage.slice(0, 20);
+
+    // Also update prompt usageCount and lastUsedAt
+    const prompt = data.prompts.find(p => p.id === promptId);
+    if (prompt) {
+      prompt.usageCount = (prompt.usageCount || 0) + 1;
+      prompt.lastUsedAt = Date.now();
+    }
+
     await saveAll(data);
   }
 
@@ -336,7 +360,8 @@ const Storage = (() => {
     getPrompt,
     savePrompt,
     deletePrompt,
-    toggleFavorite,
+    togglePin,
+    recordUsage,
     searchPrompts,
     getPromptsByFolder,
     getPromptsByTag,

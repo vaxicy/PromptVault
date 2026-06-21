@@ -14,6 +14,17 @@
   let isBatchMode = false;
   let selectedPromptIds = new Set();
 
+  // Settings snapshot (for Apply/Cancel)
+  let settingsSnapshot = null;
+  function snapshotSettings() {
+    return {
+      language: document.getElementById('setting-language').value,
+      enableSidebar: document.getElementById('setting-enable-sidebar').checked,
+      showBadge: document.getElementById('setting-show-badge').checked,
+      defaultFolder: document.getElementById('setting-default-folder').value,
+    };
+  }
+
   // Initialize
   await i18n.loadLocale();
   applyTranslations();
@@ -39,7 +50,7 @@
       'prompts': i18n.t('tab_prompts'),
       'folders': i18n.t('tab_folders'),
       'tags': i18n.t('tab_tags'),
-      'favorites': i18n.t('tab_favorites'),
+      'pinned': i18n.t('tab_pinned'),
     };
     document.querySelectorAll('.nav-tab').forEach(tab => {
       const key = tab.dataset.tab;
@@ -110,8 +121,8 @@
     if (h2Folders) h2Folders.textContent = i18n.t('heading_folders');
     const h2Tags = document.querySelector('#tab-tags .tab-header h2');
     if (h2Tags) h2Tags.textContent = i18n.t('heading_tags');
-    const h2Favorites = document.querySelector('#tab-favorites .tab-header h2');
-    if (h2Favorites) h2Favorites.textContent = i18n.t('heading_favorites');
+    const h2Pinned = document.getElementById('heading-pinned');
+    if (h2Pinned) h2Pinned.textContent = i18n.t('heading_pinned_prompts');
 
     // Button tooltips
     const btnSettings = document.getElementById('btn-settings');
@@ -216,6 +227,7 @@
     document.getElementById('btn-batch-cancel').addEventListener('click', exitBatchMode);
     document.getElementById('btn-batch-move').addEventListener('click', batchMoveToFolder);
     document.getElementById('batch-folder-select').addEventListener('change', updateBatchMoveButton);
+    document.getElementById('btn-batch-select-all').addEventListener('click', toggleSelectAll);
 
     // New folder button
     document.getElementById('btn-new-folder').addEventListener('click', () => openFolderModal());
@@ -233,26 +245,24 @@
     document.getElementById('btn-import').addEventListener('click', importData);
     document.getElementById('btn-export').addEventListener('click', exportData);
 
-    // Settings
-    document.getElementById('btn-settings').addEventListener('click', () => {
+    // Settings - open modal (load values + snapshot)
+    document.getElementById('btn-settings').addEventListener('click', async () => {
       openModal('settings-modal');
-      const langSelect = document.getElementById('setting-language');
-      if (langSelect) langSelect.value = i18n.getLocale();
+      await loadSettings();
+      settingsSnapshot = snapshotSettings();
     });
     document.getElementById('btn-clear-data').addEventListener('click', clearAllData);
 
-    // Language selector
-    const langSelect = document.getElementById('setting-language');
-    if (langSelect) {
-      langSelect.addEventListener('change', async () => {
-        await i18n.setLocale(langSelect.value);
-        applyTranslations();
-        await renderAll();
-      });
-    }
-
     // Theme toggle
     document.getElementById('btn-theme').addEventListener('click', toggleDarkMode);
+
+    // Settings - Apply
+    document.getElementById('btn-settings-apply').addEventListener('click', applySettings);
+
+    // Settings - Cancel
+    document.getElementById('btn-settings-cancel').addEventListener('click', () => {
+      closeAllModals();
+    });
 
     // Modal close buttons
     document.querySelectorAll('.modal-close').forEach(btn => {
@@ -280,6 +290,45 @@
         tagInput.value = '';
       }
     });
+  }
+
+  /**
+   * Get currently visible prompts (respecting folder filter and search)
+   */
+  async function getVisiblePrompts() {
+    let prompts;
+    if (currentFolderFilter) {
+      prompts = await Storage.getPromptsByFolder(currentFolderFilter);
+    } else {
+      prompts = await Storage.getPrompts();
+    }
+    const query = document.getElementById('search-input').value.trim();
+    if (query) {
+      const q = query.toLowerCase();
+      prompts = prompts.filter(p =>
+        p.title.toLowerCase().includes(q) ||
+        p.content.toLowerCase().includes(q) ||
+        (p.tags && p.tags.some(t => t.toLowerCase().includes(q)))
+      );
+    }
+    return prompts;
+  }
+
+  /**
+   * Toggle select all / deselect all
+   */
+  async function toggleSelectAll() {
+    const prompts = await getVisiblePrompts();
+    const allSelected = prompts.length > 0 && prompts.every(p => selectedPromptIds.has(p.id));
+
+    if (allSelected) {
+      selectedPromptIds.clear();
+    } else {
+      prompts.forEach(p => selectedPromptIds.add(p.id));
+    }
+
+    updateBatchActionsBar();
+    renderPrompts();
   }
 
   /**
@@ -338,14 +387,21 @@
   /**
    * Update batch actions bar visibility and count
    */
-  function updateBatchActionsBar() {
+  async function updateBatchActionsBar() {
     const bar = document.getElementById('batch-actions-bar');
     const countEl = document.getElementById('batch-selected-count');
     const moveBtn = document.getElementById('btn-batch-move');
+    const selectAllBtn = document.getElementById('btn-batch-select-all');
 
-    if (selectedPromptIds.size > 0) {
+    if (isBatchMode) {
       bar.classList.remove('hidden');
       countEl.textContent = i18n.t('batch_selected_count', selectedPromptIds.size);
+
+      // Update select all button text
+      const prompts = await getVisiblePrompts();
+      const allSelected = prompts.length > 0 && prompts.every(p => selectedPromptIds.has(p.id));
+      selectAllBtn.textContent = i18n.t(allSelected ? 'btn_deselect_all' : 'btn_select_all');
+
       // Update folder select options
       updateBatchFolderSelect();
     } else {
@@ -404,10 +460,14 @@
 
   /**
    * Switch active tab
+   * @param {string} tabName
+   * @param {boolean} preserveFolderFilter - if true, don't reset currentFolderFilter
    */
-  function switchTab(tabName) {
+  function switchTab(tabName, preserveFolderFilter = false) {
     currentTab = tabName;
-    currentFolderFilter = null;
+    if (!preserveFolderFilter) {
+      currentFolderFilter = null;
+    }
     currentTagFilter = null;
 
     // Exit batch mode when switching tabs
@@ -423,7 +483,31 @@
       content.classList.toggle('active', content.id === `tab-${tabName}`);
     });
 
+    updatePromptsHeader();
     renderAll();
+  }
+
+  /**
+   * Update prompts tab header to show folder filter breadcrumb
+   */
+  async function updatePromptsHeader() {
+    const h2 = document.querySelector('#tab-prompts .tab-header h2');
+    if (!h2) return;
+
+    if (currentFolderFilter) {
+      const folders = await Storage.getFolders();
+      const folder = folders.find(f => f.id === currentFolderFilter);
+      const folderName = folder && folder.id !== 'default' ? escapeHtml(folder.name) : i18n.t('folder_uncategorized');
+      h2.innerHTML = `<span class="folder-breadcrumb" data-folder-id="${currentFolderFilter}" title="${i18n.t('back_to_all') || 'Back to all'}">&#9664; ${folderName}</span>`;
+      // Click breadcrumb to go back to all prompts
+      h2.querySelector('.folder-breadcrumb').addEventListener('click', () => {
+        currentFolderFilter = null;
+        updatePromptsHeader();
+        renderPrompts();
+      });
+    } else {
+      h2.textContent = i18n.t('heading_all_prompts');
+    }
   }
 
   /**
@@ -450,7 +534,7 @@
       renderPrompts(),
       renderFolders(),
       renderTags(),
-      renderFavorites()
+      renderPinned()
     ]);
   }
 
@@ -477,6 +561,12 @@
       document.getElementById('batch-actions-bar').classList.add('hidden');
       return;
     }
+
+    // Sort: pinned first, then by updatedAt descending
+    prompts.sort((a, b) => {
+      if (a.pinned !== b.pinned) return b.pinned ? 1 : -1;
+      return (b.updatedAt || 0) - (a.updatedAt || 0);
+    });
 
     emptyState.classList.add('hidden');
     const folders = await Storage.getFolders();
@@ -528,9 +618,10 @@
                     <path d="M18.5 2.5a2.121 2.121 0 0 1 3 3L12 15l-4 1 1-4 9.5-9.5z"></path>
                   </svg>
                 </button>
-                <button class="prompt-card-action favorite ${prompt.favorite ? 'active' : ''}" title="${i18n.t('btn_favorite')}" data-id="${prompt.id}">
-                  <svg width="16" height="16" viewBox="0 0 24 24" fill="${prompt.favorite ? 'currentColor' : 'none'}" stroke="currentColor" stroke-width="2">
-                    <path d="M20.84 4.61a5.5 5.5 0 0 0-7.78 0L12 5.67l-1.06-1.06a5.5 5.5 0 0 0-7.78 7.78l1.06 1.06L12 21.23l7.78-7.78 1.06-1.06a5.5 5.5 0 0 0 0-7.78z"></path>
+                <button class="prompt-card-action pin ${prompt.pinned ? 'active' : ''}" title="${i18n.t('btn_pin')}" data-id="${prompt.id}">
+                  <svg width="16" height="16" viewBox="0 0 24 24" fill="${prompt.pinned ? 'currentColor' : 'none'}" stroke="currentColor" stroke-width="2">
+                    <line x1="12" y1="17" x2="12" y2="22"></line>
+                    <path d="M5 17h14v-1.76a2 2 0 0 0-1.11-1.79l-1.78-.9A2 2 0 0 1 15 10.76V6h1a2 2 0 0 0 0-4H8a2 2 0 0 0 0 4h1v4.76a2 2 0 0 1-1.11 1.79l-1.78.9A2 2 0 0 0 5 15.24z"></path>
                   </svg>
                 </button>
                 <button class="prompt-card-action delete" title="${i18n.t('btn_delete')}" data-id="${prompt.id}">
@@ -592,10 +683,10 @@
         });
       });
 
-      container.querySelectorAll('.prompt-card-action.favorite').forEach(btn => {
+      container.querySelectorAll('.prompt-card-action.pin').forEach(btn => {
         btn.addEventListener('click', async (e) => {
           e.stopPropagation();
-          await Storage.toggleFavorite(btn.dataset.id);
+          await Storage.togglePin(btn.dataset.id);
           renderAll();
         });
       });
@@ -657,7 +748,7 @@
       card.addEventListener('click', (e) => {
         if (!e.target.closest('.prompt-card-action')) {
           currentFolderFilter = card.dataset.id;
-          switchTab('prompts');
+          switchTab('prompts', true);
         }
       });
     });
@@ -729,24 +820,108 @@
   }
 
   /**
-   * Render favorites list
+   * Render pinned list (only pinned prompts)
    */
-  async function renderFavorites() {
-    const container = document.getElementById('favorites-list');
-    const emptyState = document.getElementById('favorites-empty');
+  async function renderPinned() {
+    const container = document.getElementById('pinned-list');
+    const emptyState = document.getElementById('pinned-empty');
     const prompts = await Storage.getPrompts();
-    const favorites = prompts.filter(p => p.favorite);
+    const pinned = prompts.filter(p => p.pinned);
 
-    if (favorites.length === 0) {
+    if (pinned.length === 0) {
       container.innerHTML = '';
       emptyState.classList.remove('hidden');
-      emptyState.querySelector('p').textContent = i18n.t('empty_no_favorites');
-      emptyState.querySelector('.empty-hint').textContent = i18n.t('empty_favorites_hint');
+      emptyState.querySelector('p').textContent = i18n.t('empty_no_pinned');
+      emptyState.querySelector('.empty-hint').textContent = i18n.t('empty_pinned_hint');
       return;
     }
 
     emptyState.classList.add('hidden');
-    await renderPrompts(favorites);
+    const folders = await Storage.getFolders();
+
+    // Sort pinned by updatedAt descending
+    pinned.sort((a, b) => (b.updatedAt || 0) - (a.updatedAt || 0));
+
+    container.innerHTML = pinned.map(prompt => {
+      const folder = folders.find(f => f.id === prompt.folder);
+      const folderName = folder && folder.id !== 'default' ? escapeHtml(folder.name) : i18n.t('folder_uncategorized');
+      const folderColor = folder ? folder.color : '#808080';
+
+      return `
+        <div class="prompt-card" data-id="${prompt.id}">
+          <div class="prompt-card-header">
+            <div class="prompt-card-title">${escapeHtml(prompt.title)}</div>
+            <div class="prompt-card-actions">
+              <button class="prompt-card-action copy" title="${i18n.t('btn_copy')}" data-id="${prompt.id}">
+                <svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2">
+                  <rect x="9" y="9" width="13" height="13" rx="2" ry="2"></rect>
+                  <path d="M5 15H4a2 2 0 0 1-2-2V4a2 2 0 0 1 2-2h9a2 2 0 0 1 2 2v1"></path>
+                </svg>
+              </button>
+              <button class="prompt-card-action use" title="${i18n.t('btn_use')}" data-id="${prompt.id}">
+                <svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2">
+                  <path d="M21 15a2 2 0 0 1-2 2H7l-4 4V5a2 2 0 0 1 2-2h14a2 2 0 0 1 2 2z"></path>
+                </svg>
+              </button>
+              <button class="prompt-card-action edit" title="${i18n.t('btn_edit')}" data-id="${prompt.id}">
+                <svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2">
+                  <path d="M11 4H4a2 2 0 0 0-2 2v14a2 2 0 0 0 2 2h14a2 2 0 0 0 2-2v-7"></path>
+                  <path d="M18.5 2.5a2.121 2.121 0 0 1 3 3L12 15l-4 1 1-4 9.5-9.5z"></path>
+                </svg>
+              </button>
+              <button class="prompt-card-action pin active" title="${i18n.t('btn_pin')}" data-id="${prompt.id}">
+                <svg width="16" height="16" viewBox="0 0 24 24" fill="currentColor" stroke="currentColor" stroke-width="2">
+                  <line x1="12" y1="17" x2="12" y2="22"></line>
+                  <path d="M5 17h14v-1.76a2 2 0 0 0-1.11-1.79l-1.78-.9A2 2 0 0 1 15 10.76V6h1a2 2 0 0 0 0-4H8a2 2 0 0 0 0 4h1v4.76a2 2 0 0 1-1.11 1.79l-1.78.9A2 2 0 0 0 5 15.24z"></path>
+                </svg>
+              </button>
+              <button class="prompt-card-action delete" title="${i18n.t('btn_delete')}" data-id="${prompt.id}">
+                <svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2">
+                  <polyline points="3 6 5 6 21 6"></polyline>
+                  <path d="M19 6v14a2 2 0 0 1-2 2H7a2 2 0 0 1-2-2V6m3 0V4a2 2 0 0 1 2-2h4a2 2 0 0 1 2 2v2"></path>
+                </svg>
+              </button>
+            </div>
+          </div>
+          <div class="prompt-card-preview">${escapeHtml((prompt.content || '').substring(0, 150))}${(prompt.content || '').length > 150 ? '...' : ''}</div>
+          <div class="prompt-card-meta">
+            <span class="prompt-card-folder" style="border-left: 3px solid ${folderColor}">${escapeHtml(folderName)}</span>
+            ${(prompt.tags || []).map(tag => `<span class="prompt-card-tag">${escapeHtml(tag)}</span>`).join('')}
+          </div>
+        </div>
+      `;
+    }).join('');
+
+    // Attach event listeners for pinned-list cards
+    container.querySelectorAll('.prompt-card').forEach(card => {
+      card.addEventListener('click', (e) => {
+        if (!e.target.closest('.prompt-card-action')) {
+          copyPromptToClipboard(card.dataset.id);
+        }
+      });
+    });
+    container.querySelectorAll('.prompt-card-action.copy').forEach(btn => {
+      btn.addEventListener('click', (e) => { e.stopPropagation(); copyPromptToClipboard(btn.dataset.id); });
+    });
+    container.querySelectorAll('.prompt-card-action.use').forEach(btn => {
+      btn.addEventListener('click', (e) => { e.stopPropagation(); copyPromptToClipboard(btn.dataset.id); });
+    });
+    container.querySelectorAll('.prompt-card-action.edit').forEach(btn => {
+      btn.addEventListener('click', (e) => { e.stopPropagation(); openPromptModal(btn.dataset.id); });
+    });
+    container.querySelectorAll('.prompt-card-action.pin').forEach(btn => {
+      btn.addEventListener('click', async (e) => {
+        e.stopPropagation();
+        await Storage.togglePin(btn.dataset.id);
+        renderAll();
+      });
+    });
+    container.querySelectorAll('.prompt-card-action.delete').forEach(btn => {
+      btn.addEventListener('click', (e) => {
+        e.stopPropagation();
+        confirmDelete('prompt', btn.dataset.id);
+      });
+    });
   }
 
   /**
@@ -920,14 +1095,17 @@
       content,
       folder,
       tags,
-      favorite: false,
+      pinned: false,
+      usageCount: 0,
       createdAt: Date.now(),
       updatedAt: Date.now()
     };
 
     if (editingPromptId) {
       const existing = await Storage.getPrompt(editingPromptId);
-      prompt.favorite = existing.favorite;
+      prompt.pinned = existing.pinned || false;
+      prompt.usageCount = existing.usageCount || 0;
+      prompt.lastUsedAt = existing.lastUsedAt || 0;
       prompt.createdAt = existing.createdAt;
     }
 
@@ -1172,6 +1350,59 @@
 
     const langSelect = document.getElementById('setting-language');
     if (langSelect) langSelect.value = i18n.getLocale();
+
+    const sidebarCheckbox = document.getElementById('setting-enable-sidebar');
+    if (sidebarCheckbox) sidebarCheckbox.checked = settings.enableSidebar !== false;
+
+    const badgeCheckbox = document.getElementById('setting-show-badge');
+    if (badgeCheckbox) badgeCheckbox.checked = settings.showBadge !== false;
+
+    // Also populate and select default folder
+    await updateFolderSelects(await Storage.getFolders());
+    const defaultFolderSelect = document.getElementById('setting-default-folder');
+    if (defaultFolderSelect) defaultFolderSelect.value = settings.defaultFolder || 'default';
+  }
+
+  /**
+   * Apply settings from form (called by Apply button)
+   */
+  async function applySettings() {
+    const settings = await Storage.getSettings();
+
+    const newLang = document.getElementById('setting-language').value;
+    const newEnableSidebar = document.getElementById('setting-enable-sidebar').checked;
+    const newShowBadge = document.getElementById('setting-show-badge').checked;
+    const newDefaultFolder = document.getElementById('setting-default-folder').value;
+
+    // Detect what changed
+    const langChanged = newLang !== settings.locale;
+    const badgeChanged = newShowBadge !== (settings.showBadge !== false);
+
+    // Update settings object
+    settings.locale = newLang;
+    settings.enableSidebar = newEnableSidebar;
+    settings.showBadge = newShowBadge;
+    settings.defaultFolder = newDefaultFolder;
+
+    await Storage.saveSettings(settings);
+
+    // Apply language change immediately
+    if (langChanged) {
+      await i18n.setLocale(newLang);
+      applyTranslations();
+      await renderAll();
+    }
+
+    // Update badge (explicitly wait for background to process)
+    if (badgeChanged || true) {
+      chrome.runtime.sendMessage({ action: 'updateBadge' });
+    }
+
+    // Update snapshot
+    settingsSnapshot = snapshotSettings();
+
+    closeAllModals();
+    showToast(i18n.t('toast_settings_applied'), 'success');
   }
 
   function clearAllData() {

@@ -406,7 +406,7 @@ body {
   color: var(--text-primary);
 }
 
-.prompt-card-action.favorite.active {
+.prompt-card-action.pin.active {
   color: var(--warning);
 }
 
@@ -1106,6 +1106,62 @@ body {
   font-weight: 600;
   color: var(--text-primary);
   margin-bottom: 12px;
+}
+
+/* Settings - Footer (Apply/Cancel) */
+.settings-footer {
+  display: flex;
+  justify-content: flex-end;
+  gap: 8px;
+}
+
+/* Settings - Hint Text */
+.setting-hint {
+  font-size: 11px;
+  color: var(--text-muted);
+  margin-top: 4px;
+  margin-left: 24px;
+}
+
+/* Folder breadcrumb (compact back link) */
+.folder-breadcrumb {
+  cursor: pointer;
+  color: var(--accent-primary);
+  font-size: 13px;
+  font-weight: 500;
+  display: inline-flex;
+  align-items: center;
+  gap: 4px;
+  padding: 2px 8px;
+  border-radius: var(--radius-sm);
+  transition: var(--transition);
+  white-space: nowrap;
+  overflow: hidden;
+  text-overflow: ellipsis;
+  max-width: 160px;
+}
+
+.folder-breadcrumb:hover {
+  background: var(--bg-hover);
+  color: var(--accent-secondary);
+}
+
+/* Settings - Checkbox */
+.checkbox-label {
+  display: flex !important;
+  align-items: center;
+  gap: 8px;
+  cursor: pointer;
+  color: var(--text-primary) !important;
+  font-size: 13px;
+  font-weight: 500;
+}
+
+.checkbox-label input[type="checkbox"] {
+  width: 16px;
+  height: 16px;
+  cursor: pointer;
+  accent-color: var(--accent-primary);
 }
 
 /* Settings - Shortcut Info */
