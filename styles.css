@@ -732,6 +732,25 @@ body {
   color: var(--text-muted);
 }
 
+.empty-action-btn {
+  margin-top: 12px;
+  border: 1px solid var(--border-color);
+  background: var(--bg-secondary);
+  color: var(--text-primary);
+  padding: 7px 12px;
+  border-radius: var(--radius);
+  font-size: 12px;
+  font-weight: 500;
+  cursor: pointer;
+  transition: var(--transition);
+}
+
+.empty-action-btn:hover {
+  border-color: var(--accent-primary);
+  color: var(--accent-primary);
+  background: var(--bg-hover);
+}
+
 /* Modal */
 .modal {
   position: fixed;
@@ -1498,18 +1517,36 @@ body {
   background: var(--text-muted);
 }
 
-/* Settings - Data Management Section */
+/* Settings Sections */
 .settings-section {
-  margin-top: 24px;
-  padding-top: 20px;
+  margin-top: 18px;
+  padding-top: 16px;
   border-top: 1px solid var(--border-color);
 }
 
+.settings-section:first-child {
+  margin-top: 0;
+  padding-top: 0;
+  border-top: none;
+}
+
 .settings-section h3 {
-  font-size: 14px;
+  font-size: 12px;
   font-weight: 600;
-  color: var(--text-primary);
+  color: var(--text-secondary);
+  text-transform: uppercase;
+  letter-spacing: 0.04em;
   margin-bottom: 12px;
+}
+
+.settings-section .form-group:last-child {
+  margin-bottom: 0;
+}
+
+.settings-danger-btn {
+  width: 100%;
+  justify-content: center;
+  margin-top: 12px;
 }
 
 /* Settings - Footer (Apply/Cancel) */

@@ -97,10 +97,19 @@
     // Settings modal - data management section
     const dataMgmtHeading = document.querySelector('[data-i18n="data_management"]');
     if (dataMgmtHeading) dataMgmtHeading.textContent = i18n.t('data_management');
+    const preferencesHeading = document.querySelector('[data-i18n="settings_preferences"]');
+    if (preferencesHeading) preferencesHeading.textContent = i18n.t('settings_preferences');
+    const shortcutHeading = document.querySelector('[data-i18n="shortcut_title"]');
+    if (shortcutHeading) shortcutHeading.textContent = i18n.t('shortcut_title');
     const importBtnText = document.querySelector('#btn-import span[data-i18n]');
     if (importBtnText) importBtnText.textContent = i18n.t('btn_import');
     const exportBtnText = document.querySelector('#btn-export span[data-i18n]');
     if (exportBtnText) exportBtnText.textContent = i18n.t('btn_export');
+    document.querySelectorAll('[data-i18n]').forEach(el => {
+      const key = el.dataset.i18n;
+      const text = i18n.t(key);
+      if (text && text !== key) el.textContent = text;
+    });
 
     // Confirm dialog defaults
     document.getElementById('confirm-ok').textContent = i18n.t('btn_confirm');
@@ -151,6 +160,10 @@
     // Batch actions bar
     document.getElementById('batch-selected-count').textContent =
       i18n.t('batch_selected_count', 0);
+    const emptyNewPromptBtn = document.getElementById('btn-empty-new-prompt');
+    if (emptyNewPromptBtn) emptyNewPromptBtn.textContent = i18n.t('empty_action_new_prompt');
+    const emptyViewAllBtn = document.getElementById('btn-empty-view-all');
+    if (emptyViewAllBtn) emptyViewAllBtn.textContent = i18n.t('empty_action_view_all');
     const batchMoveOpt = document.querySelector('#batch-folder-select option[value=""]');
     if (batchMoveOpt) batchMoveOpt.textContent = i18n.t('batch_move_to_folder');
     const btnBatchMove = document.getElementById('btn-batch-move');
@@ -200,7 +213,7 @@
         if (shortcut) {
           navigator.clipboard.writeText(shortcut).then(() => {
             const originalText = btn.textContent;
-            btn.textContent = '✅';
+            btn.textContent = i18n.getLocale() === 'zh' ? '已复制' : 'Copied';
             setTimeout(() => { btn.textContent = originalText; }, 1500);
           });
         }
@@ -242,6 +255,26 @@
 
     // New prompt button
     document.getElementById('btn-new-prompt').addEventListener('click', () => openPromptModal());
+    document.getElementById('btn-empty-new-prompt')?.addEventListener('click', () => {
+      const query = document.getElementById('search-input').value.trim();
+      if (query) {
+        document.getElementById('search-input').value = '';
+        handleSearch();
+      } else if (currentFolderFilter || currentTagFilter) {
+        currentFolderFilter = null;
+        currentTagFilter = null;
+        updatePromptsHeader();
+        renderPrompts();
+      } else {
+        openPromptModal();
+      }
+    });
+    document.getElementById('btn-empty-view-all')?.addEventListener('click', () => {
+      document.getElementById('search-input').value = '';
+      currentFolderFilter = null;
+      currentTagFilter = null;
+      switchTab('prompts');
+    });
 
     // Batch manage button
     document.getElementById('btn-batch-manage').addEventListener('click', toggleBatchMode);
@@ -723,15 +756,19 @@
     if (prompts.length === 0) {
       container.innerHTML = '';
       emptyState.classList.remove('hidden');
+      const emptyActionBtn = document.getElementById('btn-empty-new-prompt');
       if (query) {
         emptyState.querySelector('p').textContent = i18n.t('empty_no_search_results');
         emptyState.querySelector('.empty-hint').textContent = i18n.t('empty_search_hint');
+        if (emptyActionBtn) emptyActionBtn.textContent = i18n.t('empty_action_clear_search');
       } else if (currentFolderFilter || currentTagFilter) {
         emptyState.querySelector('p').textContent = i18n.t('empty_no_filtered_prompts');
         emptyState.querySelector('.empty-hint').textContent = i18n.t('empty_filter_hint');
+        if (emptyActionBtn) emptyActionBtn.textContent = i18n.t('empty_action_view_all');
       } else {
         emptyState.querySelector('p').textContent = i18n.t('empty_no_prompts');
         emptyState.querySelector('.empty-hint').textContent = i18n.t('empty_prompts_hint');
+        if (emptyActionBtn) emptyActionBtn.textContent = i18n.t('empty_action_new_prompt');
       }
       document.getElementById('batch-actions-bar').classList.add('hidden');
       return;
@@ -904,6 +941,8 @@
       emptyState.classList.remove('hidden');
       emptyState.querySelector('p').textContent = i18n.t('empty_no_prompts');
       emptyState.querySelector('.empty-hint').textContent = i18n.t('empty_prompts_hint');
+      const emptyActionBtn = document.getElementById('btn-empty-new-prompt');
+      if (emptyActionBtn) emptyActionBtn.textContent = i18n.t('empty_action_new_prompt');
       return;
     }
 
@@ -1772,9 +1811,9 @@
     const tagInputLabel = document.getElementById('tag-input-label');
 
     // Set i18n text
-    tagModalTitle.textContent = i18n.t('modal_new_tag') || 'New Tag';
-    tagInputLabel.textContent = i18n.t('label_name') || 'Name';
-    tagInput.placeholder = i18n.t('placeholder_tag') || 'Enter tag name...';
+    tagModalTitle.textContent = i18n.t('modal_new_tag') || '新建标签';
+    tagInputLabel.textContent = i18n.t('label_name') || '名称';
+    tagInput.placeholder = i18n.t('placeholder_tag') || '输入标签名称...';
 
     // Show modal
     tagModal.classList.remove('hidden');

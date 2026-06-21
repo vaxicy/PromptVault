@@ -1,5 +1,5 @@
 <!DOCTYPE html>
-<html lang="en">
+<html lang="zh-CN">
 <head>
   <meta charset="UTF-8">
   <meta name="viewport" content="width=device-width, initial-scale=1.0">
@@ -14,13 +14,13 @@
         <h1 class="logo">PromptVault</h1>
       </div>
       <div class="header-right">
-        <button id="btn-settings" class="icon-btn" title="Settings">
+        <button id="btn-settings" class="icon-btn" title="设置">
           <svg width="20" height="20" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2">
             <circle cx="12" cy="12" r="3"></circle>
             <path d="M19.4 15a1.65 1.65 0 0 0 .33 1.82l.06.06a2 2 0 0 1 0 2.83 2 2 0 0 1-2.83 0l-.06-.06a1.65 1.65 0 0 0-1.82-.33 1.65 1.65 0 0 0-1 1.51V21a2 2 0 0 1-2 2 2 2 0 0 1-2-2v-.09A1.65 1.65 0 0 0 9 19.4a1.65 1.65 0 0 0-1.82.33l-.06.06a2 2 0 0 1-2.83 0 2 2 0 0 1 0-2.83l.06-.06A1.65 1.65 0 0 0 4.68 15a1.65 1.65 0 0 0-1.51-1H3a2 2 0 0 1-2-2 2 2 0 0 1 2-2h.09A1.65 1.65 0 0 0 4.6 9a1.65 1.65 0 0 0-.33-1.82l-.06-.06a2 2 0 0 1 0-2.83 2 2 0 0 1 2.83 0l.06.06A1.65 1.65 0 0 0 9 4.68a1.65 1.65 0 0 0 1-1.51V3a2 2 0 0 1 2-2 2 2 0 0 1 2 2v.09a1.65 1.65 0 0 0 1 1.51 1.65 1.65 0 0 0 1.82-.33l.06-.06a2 2 0 0 1 2.83 0 2 2 0 0 1 0 2.83l-.06.06A1.65 1.65 0 0 0 19.4 9a1.65 1.65 0 0 0 1.51 1H21a2 2 0 0 1 2 2 2 2 0 0 1-2 2h-.09a1.65 1.65 0 0 0-1.51 1z"></path>
           </svg>
         </button>
-        <button id="btn-theme" class="icon-btn" title="Toggle Theme">
+        <button id="btn-theme" class="icon-btn" title="切换主题">
           <svg width="20" height="20" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2">
             <path d="M21 12.79A9 9 0 1 1 11.21 3 7 7 0 0 0 21 12.79z"></path>
           </svg>
@@ -35,7 +35,7 @@
           <circle cx="11" cy="11" r="8"></circle>
           <line x1="21" y1="21" x2="16.65" y2="16.65"></line>
         </svg>
-        <input type="text" id="search-input" placeholder="Search prompts..." autocomplete="off">
+        <input type="text" id="search-input" placeholder="搜索提示词..." autocomplete="off">
         <button id="btn-clear-search" class="clear-btn hidden">×</button>
       </div>
       <div id="search-context" class="search-context hidden"></div>
@@ -48,27 +48,27 @@
           <path d="M14 2H6a2 2 0 0 0-2 2v16a2 2 0 0 0 2 2h12a2 2 0 0 0 2-2V8z"></path>
           <polyline points="14 2 14 8 20 8"></polyline>
         </svg>
-        Prompts
+        提示词
       </button>
       <button class="nav-tab" data-tab="folders">
         <svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2">
           <path d="M22 19a2 2 0 0 1-2 2H4a2 2 0 0 1-2-2V5a2 2 0 0 1 2-2h5l2 3h9a2 2 0 0 1 2 2z"></path>
         </svg>
-        Folders
+        文件夹
       </button>
       <button class="nav-tab" data-tab="tags">
         <svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2">
           <path d="M20.59 13.41l-7.17 7.17a2 2 0 0 1-2.83 0L2 12V2h10l8.59 8.59a2 2 0 0 1 0 2.82z"></path>
           <line x1="7" y1="7" x2="7.01" y2="7"></line>
         </svg>
-        Tags
+        标签
       </button>
       <button class="nav-tab" data-tab="pinned">
         <svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2">
           <line x1="12" y1="17" x2="12" y2="22"></line>
           <path d="M5 17h14v-1.76a2 2 0 0 0-1.11-1.79l-1.78-.9A2 2 0 0 1 15 10.76V6h1a2 2 0 0 0 0-4H8a2 2 0 0 0 0 4h1v4.76a2 2 0 0 1-1.11 1.79l-1.78.9A2 2 0 0 0 5 15.24z"></path>
         </svg>
-        Pinned
+        置顶
       </button>
     </nav>
 
@@ -88,13 +88,13 @@
             <span id="folder-breadcrumb-wrap"></span>
           </div>
           <div class="tab-header-right">
-            <button id="btn-batch-manage" class="secondary-btn compact" title="Batch Manage">
+            <button id="btn-batch-manage" class="secondary-btn compact" title="批量管理">
               <svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2">
                 <polyline points="9 11 12 14 22 4"></polyline>
                 <path d="M21 12v7a2 2 0 0 1-2 2H5a2 2 0 0 1-2-2V5a2 2 0 0 1 2-2h11"></path>
               </svg>
             </button>
-            <button id="btn-new-prompt" class="icon-btn-primary" title="New Prompt">
+            <button id="btn-new-prompt" class="icon-btn-primary" title="新建提示词">
               <svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.5">
                 <line x1="12" y1="5" x2="12" y2="19"></line>
                 <line x1="5" y1="12" x2="19" y2="12"></line>
@@ -119,19 +119,20 @@
             <line x1="16" y1="13" x2="8" y2="13"></line>
             <line x1="16" y1="17" x2="8" y2="17"></line>
           </svg>
-          <p>No prompts yet</p>
-          <p class="empty-hint">Create your first prompt to get started</p>
+          <p>暂无提示词</p>
+          <p class="empty-hint">创建你的第一个提示词开始使用</p>
+          <button id="btn-empty-new-prompt" class="empty-action-btn" type="button">新建提示词</button>
         </div>
         <!-- Batch Actions Bar -->
         <div id="batch-actions-bar" class="batch-actions-bar hidden">
-          <span id="batch-selected-count">0 selected</span>
+          <span id="batch-selected-count">0 已选</span>
           <div class="batch-actions-right">
             <button id="btn-batch-select-all" class="secondary-btn"></button>
             <select id="batch-folder-select">
-              <option value="">Move to folder...</option>
+              <option value="">移动到文件夹...</option>
             </select>
-            <button id="btn-batch-move" class="primary-btn" disabled>Move</button>
-            <button id="btn-batch-cancel" class="secondary-btn">Cancel</button>
+            <button id="btn-batch-move" class="primary-btn" disabled>移动</button>
+            <button id="btn-batch-cancel" class="secondary-btn">取消</button>
           </div>
         </div>
       </div>
@@ -139,13 +140,13 @@
       <!-- Folders Tab -->
       <div id="tab-folders" class="tab-content">
         <div class="tab-header">
-          <h2>Folders</h2>
+          <h2>文件夹</h2>
           <button id="btn-new-folder" class="primary-btn">
             <svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2">
               <line x1="12" y1="5" x2="12" y2="19"></line>
               <line x1="5" y1="12" x2="19" y2="12"></line>
             </svg>
-            New Folder
+            新建文件夹
           </button>
         </div>
         <div id="folders-list" class="items-list"></div>
@@ -154,13 +155,13 @@
       <!-- Tags Tab -->
       <div id="tab-tags" class="tab-content">
         <div class="tab-header">
-          <h2>Tags</h2>
+          <h2>标签</h2>
           <button id="btn-new-tag" class="primary-btn">
             <svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2">
               <line x1="12" y1="5" x2="12" y2="19"></line>
               <line x1="5" y1="12" x2="19" y2="12"></line>
             </svg>
-            New Tag
+            新建标签
           </button>
         </div>
         <div id="tags-list" class="tags-cloud"></div>
@@ -169,7 +170,7 @@
       <!-- Pinned Tab -->
         <div id="tab-pinned" class="tab-content">
         <div class="tab-header">
-          <h2 id="heading-pinned">Pinned Prompts</h2>
+          <h2 id="heading-pinned">置顶提示词</h2>
         </div>
         <div id="pinned-list" class="items-list"></div>
         <div id="pinned-empty" class="empty-state hidden">
@@ -177,8 +178,9 @@
             <line x1="12" y1="17" x2="12" y2="22"></line>
             <path d="M5 17h14v-1.76a2 2 0 0 0-1.11-1.79l-1.78-.9A2 2 0 0 1 15 10.76V6h1a2 2 0 0 0 0-4H8a2 2 0 0 0 0 4h1v4.76a2 2 0 0 1-1.11 1.79l-1.78.9A2 2 0 0 0 5 15.24z"></path>
           </svg>
-          <p>No pinned prompts yet</p>
-          <p class="empty-hint">Pin prompts for quick access</p>
+          <p>暂无置顶提示词</p>
+          <p class="empty-hint">将提示词置顶后显示在这里</p>
+          <button id="btn-empty-view-all" class="empty-action-btn" type="button">查看全部提示词</button>
         </div>
       </div>
     </div>
@@ -188,36 +190,36 @@
   <div id="prompt-modal" class="modal hidden">
     <div class="modal-content large">
       <div class="modal-header">
-        <h2 id="prompt-modal-title">New Prompt</h2>
+        <h2 id="prompt-modal-title">新建提示词</h2>
         <button class="modal-close">&times;</button>
       </div>
       <div class="modal-body">
         <div class="form-group">
-          <label for="prompt-title">Prompt Name</label>
-          <input type="text" id="prompt-title" placeholder="Enter prompt name..." maxlength="100">
+          <label for="prompt-title">提示词名称</label>
+          <input type="text" id="prompt-title" placeholder="输入提示词名称..." maxlength="100">
         </div>
         <div class="form-group">
-          <label for="prompt-content">Prompt Content</label>
-          <textarea id="prompt-content" placeholder="Enter your prompt content..." rows="8"></textarea>
+          <label for="prompt-content">提示词内容</label>
+          <textarea id="prompt-content" placeholder="输入提示词内容..." rows="8"></textarea>
         </div>
         <div class="form-group">
-          <label for="prompt-folder">Folder</label>
+          <label for="prompt-folder">文件夹</label>
           <select id="prompt-folder">
-            <option value="default">Default</option>
+            <option value="default">默认</option>
           </select>
         </div>
         <div class="form-group">
-          <label>Tags</label>
+          <label>标签</label>
           <div id="tag-suggestions" class="tag-suggestions"></div>
           <div class="tags-input-container">
             <div id="prompt-tags" class="tags-list"></div>
-            <input type="text" id="prompt-tag-input" placeholder="Add tag..." maxlength="30">
+            <input type="text" id="prompt-tag-input" placeholder="添加标签..." maxlength="30">
           </div>
         </div>
       </div>
       <div class="modal-footer">
-        <button class="secondary-btn modal-cancel">Cancel</button>
-        <button id="btn-save-prompt" class="primary-btn">Save</button>
+        <button class="secondary-btn modal-cancel">取消</button>
+        <button id="btn-save-prompt" class="primary-btn">保存</button>
       </div>
     </div>
   </div>
@@ -226,16 +228,16 @@
   <div id="folder-modal" class="modal hidden">
     <div class="modal-content">
       <div class="modal-header">
-        <h2 id="folder-modal-title">New Folder</h2>
+        <h2 id="folder-modal-title">新建文件夹</h2>
         <button class="modal-close">&times;</button>
       </div>
       <div class="modal-body">
         <div class="form-group">
-          <label for="folder-name">Name</label>
-          <input type="text" id="folder-name" placeholder="Enter folder name..." maxlength="50">
+          <label for="folder-name">名称</label>
+          <input type="text" id="folder-name" placeholder="输入文件夹名称..." maxlength="50">
         </div>
         <div class="form-group">
-          <label for="folder-color">Color</label>
+          <label for="folder-color">颜色</label>
           <div class="color-picker">
             <input type="color" id="folder-color" value="#4A90E2">
             <div class="color-presets">
@@ -246,7 +248,7 @@
               <button class="color-preset" data-color="#9B59B6" style="background:#9B59B6"></button>
               <button class="color-preset" data-color="#1ABC9C" style="background:#1ABC9C"></button>
               <button class="color-preset" data-color="#808080" style="background:#808080"></button>
-              <button class="color-preset custom-color-btn" id="custom-color-btn" title="Custom color">
+              <button class="color-preset custom-color-btn" id="custom-color-btn" title="自定义颜色">
                 <svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2">
                   <circle cx="12" cy="12" r="10"></circle>
                   <line x1="12" y1="8" x2="12" y2="16"></line>
@@ -259,8 +261,8 @@
         </div>
       </div>
       <div class="modal-footer">
-        <button class="secondary-btn modal-cancel">Cancel</button>
-        <button id="btn-save-folder" class="primary-btn">Save Folder</button>
+        <button class="secondary-btn modal-cancel">取消</button>
+        <button id="btn-save-folder" class="primary-btn">保存文件夹</button>
       </div>
     </div>
   </div>
@@ -269,53 +271,53 @@
   <div id="settings-modal" class="modal hidden">
     <div class="modal-content">
       <div class="modal-header">
-        <h2>Settings</h2>
+        <h2>设置</h2>
         <button class="modal-close">&times;</button>
       </div>
       <div class="modal-body">
-        <div class="form-group">
-          <label for="setting-default-folder">Default Folder</label>
-          <select id="setting-default-folder">
-            <option value="default">Default</option>
-          </select>
-        </div>
-        <div class="form-group">
-          <label for="setting-language">Language</label>
-          <select id="setting-language">
-            <option value="zh">中文</option>
-            <option value="en">English</option>
-          </select>
-        </div>
-        <div class="form-group">
-          <label class="checkbox-label">
-            <input type="checkbox" id="setting-enable-sidebar">
-            <span data-i18n="label_enable_sidebar">启用侧边栏</span>
-          </label>
-          <p class="setting-hint" data-i18n="settings_enable_sidebar_hint">在网页中显示 PromptVault 侧边栏</p>
-        </div>
-        <div class="form-group">
-          <label class="checkbox-label">
-            <input type="checkbox" id="setting-show-badge">
-            <span data-i18n="label_show_badge">显示角标</span>
-          </label>
-          <p class="setting-hint" data-i18n="settings_show_badge_hint">在扩展图标上显示提示词数量</p>
-        </div>
-        <div class="form-group">
-          <label class="checkbox-label">
-            <input type="checkbox" id="setting-show-recent">
-            <span data-i18n="label_show_recent">显示最近使用</span>
-          </label>
-          <p class="setting-hint" data-i18n="settings_show_recent_hint">在首页显示最近使用的提示词</p>
-        </div>
-        <div class="form-group">
-          <label for="setting-display-mode" data-i18n="label_display_mode">显示模式</label>
-          <select id="setting-display-mode">
-            <option value="list" data-i18n="display_mode_list">列表</option>
-            <option value="grouped" data-i18n="display_mode_grouped">按文件夹分组</option>
-          </select>
-        </div>
-        <div class="form-group">
-          <button id="btn-clear-data" class="danger-btn">Clear All Data</button>
+        <div class="settings-section">
+          <h3 data-i18n="settings_preferences">偏好设置</h3>
+          <div class="form-group">
+            <label for="setting-default-folder">默认文件夹</label>
+            <select id="setting-default-folder">
+              <option value="default">默认</option>
+            </select>
+          </div>
+          <div class="form-group">
+            <label for="setting-language">语言</label>
+            <select id="setting-language">
+              <option value="zh">中文</option>
+              <option value="en">English</option>
+            </select>
+          </div>
+          <div class="form-group">
+            <label class="checkbox-label">
+              <input type="checkbox" id="setting-enable-sidebar">
+              <span data-i18n="label_enable_sidebar">启用侧边栏</span>
+            </label>
+            <p class="setting-hint" data-i18n="settings_enable_sidebar_hint">在网页中显示 PromptVault 侧边栏</p>
+          </div>
+          <div class="form-group">
+            <label class="checkbox-label">
+              <input type="checkbox" id="setting-show-badge">
+              <span data-i18n="label_show_badge">显示角标</span>
+            </label>
+            <p class="setting-hint" data-i18n="settings_show_badge_hint">在扩展图标上显示提示词数量</p>
+          </div>
+          <div class="form-group">
+            <label class="checkbox-label">
+              <input type="checkbox" id="setting-show-recent">
+              <span data-i18n="label_show_recent">显示最近使用</span>
+            </label>
+            <p class="setting-hint" data-i18n="settings_show_recent_hint">在首页显示最近使用的提示词</p>
+          </div>
+          <div class="form-group">
+            <label for="setting-display-mode" data-i18n="label_display_mode">显示模式</label>
+            <select id="setting-display-mode">
+              <option value="list" data-i18n="display_mode_list">列表</option>
+              <option value="grouped" data-i18n="display_mode_grouped">按文件夹分组</option>
+            </select>
+          </div>
         </div>
         <div class="settings-section">
           <h3 data-i18n="shortcut_title">快捷键</h3>
@@ -323,17 +325,17 @@
             <div class="shortcut-row">
               <span data-i18n="shortcut_windows">Windows</span>
               <code>Ctrl + Shift + P</code>
-              <button class="shortcut-copy-btn" data-shortcut="Ctrl + Shift + P">📋</button>
+              <button class="shortcut-copy-btn" data-shortcut="Ctrl + Shift + P" title="复制快捷键" data-i18n="shortcut_copy">复制</button>
             </div>
             <div class="shortcut-row">
               <span data-i18n="shortcut_mac">Mac</span>
               <code>⌘ + Shift + P</code>
-              <button class="shortcut-copy-btn" data-shortcut="⌘ + Shift + P">📋</button>
+              <button class="shortcut-copy-btn" data-shortcut="⌘ + Shift + P" title="复制快捷键" data-i18n="shortcut_copy">复制</button>
             </div>
           </div>
         </div>
         <div class="settings-section">
-          <h3 data-i18n="data_management">Data Management</h3>
+          <h3 data-i18n="data_management">数据管理</h3>
           <div class="data-actions">
             <button id="btn-import" class="secondary-btn">
               <svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2">
@@ -341,7 +343,7 @@
                 <polyline points="7 10 12 15 17 10"></polyline>
                 <line x1="12" y1="15" x2="12" y2="3"></line>
               </svg>
-              <span data-i18n="btn_import">Import</span>
+              <span data-i18n="btn_import">导入</span>
             </button>
             <button id="btn-export" class="secondary-btn">
               <svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2">
@@ -349,9 +351,10 @@
                 <polyline points="17 8 12 3 7 8"></polyline>
                 <line x1="12" y1="3" x2="12" y2="15"></line>
               </svg>
-              <span data-i18n="btn_export">Export</span>
+              <span data-i18n="btn_export">导出</span>
             </button>
           </div>
+          <button id="btn-clear-data" class="danger-btn settings-danger-btn">清除所有数据</button>
         </div>
       </div>
       <div class="modal-footer settings-footer">
@@ -365,15 +368,15 @@
   <div id="confirm-dialog" class="modal hidden">
     <div class="modal-content small">
       <div class="modal-header">
-        <h2 id="confirm-title">Confirm</h2>
+        <h2 id="confirm-title">确认</h2>
         <button class="modal-close">&times;</button>
       </div>
       <div class="modal-body">
-        <p id="confirm-message">Are you sure?</p>
+        <p id="confirm-message">确定要继续吗？</p>
       </div>
       <div class="modal-footer">
-        <button class="secondary-btn modal-cancel">Cancel</button>
-        <button id="confirm-ok" class="danger-btn">Confirm</button>
+        <button class="secondary-btn modal-cancel">取消</button>
+        <button id="confirm-ok" class="danger-btn">确认</button>
       </div>
     </div>
   </div>
@@ -382,18 +385,18 @@
   <div id="tag-modal" class="modal hidden">
     <div class="modal-content small">
       <div class="modal-header">
-        <h2 id="tag-modal-title">New Tag</h2>
+        <h2 id="tag-modal-title">新建标签</h2>
         <button class="modal-close">&times;</button>
       </div>
       <div class="modal-body">
         <div class="form-group">
-          <label for="tag-input" id="tag-input-label">Tag Name</label>
-          <input type="text" id="tag-input" placeholder="Enter tag name..." maxlength="30" autocomplete="off">
+          <label for="tag-input" id="tag-input-label">标签名称</label>
+          <input type="text" id="tag-input" placeholder="输入标签名称..." maxlength="30" autocomplete="off">
         </div>
       </div>
       <div class="modal-footer">
-        <button class="secondary-btn modal-cancel">Cancel</button>
-        <button id="btn-save-tag" class="primary-btn">Create</button>
+        <button class="secondary-btn modal-cancel">取消</button>
+        <button id="btn-save-tag" class="primary-btn">创建</button>
       </div>
     </div>
   </div>

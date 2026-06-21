@@ -9,6 +9,13 @@
   // ========== Config ==========
   const SIDEBAR_WIDTH = 360;
   const TOAST_DURATION = 2000;
+  const ICONS = {
+    copy: '<svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><rect x="9" y="9" width="13" height="13" rx="2"></rect><path d="M5 15H4a2 2 0 0 1-2-2V4a2 2 0 0 1 2-2h9a2 2 0 0 1 2 2v1"></path></svg>',
+    edit: '<svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><path d="M11 4H4a2 2 0 0 0-2 2v14a2 2 0 0 0 2 2h14a2 2 0 0 0 2-2v-7"></path><path d="M18.5 2.5a2.121 2.121 0 0 1 3 3L12 15l-4 1 1-4 9.5-9.5z"></path></svg>',
+    pin: '<svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><line x1="12" y1="17" x2="12" y2="22"></line><path d="M5 17h14v-1.76a2 2 0 0 0-1.11-1.79l-1.78-.9A2 2 0 0 1 15 10.76V6h1a2 2 0 0 0 0-4H8a2 2 0 0 0 0 4h1v4.76a2 2 0 0 1-1.11 1.79l-1.78.9A2 2 0 0 0 5 15.24z"></path></svg>',
+    trash: '<svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><polyline points="3 6 5 6 21 6"></polyline><path d="M19 6v14a2 2 0 0 1-2 2H7a2 2 0 0 1-2-2V6m3 0V4a2 2 0 0 1 2-2h4a2 2 0 0 1 2 2v2"></path></svg>',
+    check: '<svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.5"><polyline points="20 6 9 17 4 12"></polyline></svg>',
+  };
 
   // ========== Helpers ==========
   function generateId() {
@@ -287,10 +294,10 @@
         <div class="pv-card-title">
           <span>${escapeHtml(prompt.title)}</span>
           <div class="pv-card-actions">
-            <button class="pv-card-action-btn pv-copy-btn" data-prompt-id="${prompt.id}" title="${i18n.t('btn_copy')}">📋</button>
-            <button class="pv-card-action-btn pv-edit-btn" data-prompt-id="${prompt.id}" title="${i18n.t('btn_edit')}">✏️</button>
-            <button class="pv-card-action-btn pv-pin-btn ${prompt.pinned ? 'pv-pinned' : ''}" data-prompt-id="${prompt.id}" title="${i18n.t('btn_pin')}">📌</button>
-            <button class="pv-card-action-btn pv-del-btn" data-prompt-id="${prompt.id}" title="${i18n.t('btn_delete')}">🗑️</button>
+            <button class="pv-card-action-btn pv-copy-btn" data-prompt-id="${prompt.id}" title="${i18n.t('btn_copy')}">${ICONS.copy}</button>
+            <button class="pv-card-action-btn pv-edit-btn" data-prompt-id="${prompt.id}" title="${i18n.t('btn_edit')}">${ICONS.edit}</button>
+            <button class="pv-card-action-btn pv-pin-btn ${prompt.pinned ? 'pv-pinned' : ''}" data-prompt-id="${prompt.id}" title="${i18n.t('btn_pin')}">${ICONS.pin}</button>
+            <button class="pv-card-action-btn pv-del-btn" data-prompt-id="${prompt.id}" title="${i18n.t('btn_delete')}">${ICONS.trash}</button>
           </div>
         </div>
         ${
@@ -329,9 +336,9 @@
         const prompt = prompts.find((p) => p.id === promptId);
         if (prompt) {
           navigator.clipboard.writeText(prompt.content).then(() => {
-            // Copy feedback: icon changes to ✓ for 1s
+            // Copy feedback: icon changes to check mark for 1s
             const originalHTML = btn.innerHTML;
-            btn.innerHTML = '✓';
+            btn.innerHTML = ICONS.check;
             btn.style.color = '#22c55e';
             setTimeout(() => {
               btn.innerHTML = originalHTML;
@@ -697,7 +704,7 @@
         <div class="pv-tabs-left">
           <button class="pv-tab pv-active" data-tab="all">${i18n.t('sidebar_all')}</button>
           <button class="pv-tab" data-tab="recent">${i18n.t('sidebar_recent')}</button>
-          <button class="pv-tab" data-tab="pinned">📌 ${i18n.t('tab_pinned') || '置顶'}</button>
+          <button class="pv-tab" data-tab="pinned"><span class="pv-tab-icon">${ICONS.pin}</span>${i18n.t('tab_pinned') || '置顶'}</button>
         </div>
       </div>
 
@@ -712,7 +719,7 @@
         <div class="pv-footer-shortcut" id="pv-footer-shortcut">
           <span class="pv-footer-hint">${i18n.getLocale() === 'zh' ? '快捷键打开' : 'Shortcut'}</span>
           <code class="pv-footer-kbd" id="pv-footer-kbd">Ctrl + Shift + P</code>
-          <button class="pv-footer-copy" id="pv-copy-shortcut" title="${i18n.t('shortcut_copy') || 'Copy'}">📋</button>
+          <button class="pv-footer-copy" id="pv-copy-shortcut" title="${i18n.t('shortcut_copy') || 'Copy'}">${ICONS.copy}</button>
         </div>
       </div>
     `;
@@ -778,9 +785,9 @@
         const kbd = document.getElementById('pv-footer-kbd');
         if (kbd) {
           navigator.clipboard.writeText(kbd.textContent).then(() => {
-            const originalText = copyBtn.textContent;
-            copyBtn.textContent = '✅';
-            setTimeout(() => { copyBtn.textContent = originalText; }, 1500);
+            const originalHTML = copyBtn.innerHTML;
+            copyBtn.innerHTML = ICONS.check;
+            setTimeout(() => { copyBtn.innerHTML = originalHTML; }, 1500);
           });
         }
       });

@@ -206,6 +206,9 @@
   border-bottom: 2px solid transparent;
   transition: all 0.15s ease;
   white-space: nowrap;
+  display: inline-flex;
+  align-items: center;
+  gap: 4px;
 }
 
 #pv-sidebar .pv-tab:hover {
@@ -363,10 +366,20 @@
   border: none;
   color: var(--pv-text-secondary);
   cursor: pointer;
-  padding: 4px 6px;
+  padding: 4px;
   border-radius: 4px;
-  font-size: 12px;
   transition: all 0.15s ease;
+  display: inline-flex;
+  align-items: center;
+  justify-content: center;
+}
+
+#pv-sidebar .pv-card-action-btn svg,
+#pv-sidebar .pv-footer-copy svg,
+#pv-sidebar .pv-tab-icon svg {
+  width: 14px;
+  height: 14px;
+  display: block;
 }
 
 #pv-sidebar .pv-card-action-btn:hover {

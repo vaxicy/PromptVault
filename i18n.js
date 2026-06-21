@@ -70,6 +70,9 @@ const i18n = (() => {
       empty_search_hint: '试试更短的关键词，或使用 tag: / folder: 精准筛选',
       empty_no_filtered_prompts: '当前筛选下没有提示词',
       empty_filter_hint: '返回全部提示词或换一个标签/文件夹',
+      empty_action_new_prompt: '新建提示词',
+      empty_action_clear_search: '清空搜索',
+      empty_action_view_all: '查看全部提示词',
       search_results_count: '找到 {0} 个结果',
       filter_search: '搜索',
       filter_tag: '标签',
@@ -80,6 +83,9 @@ const i18n = (() => {
 
       // Shortcut
       shortcut_label: '快捷键',
+      shortcut_title: '快捷键',
+      shortcut_windows: 'Windows',
+      shortcut_mac: 'Mac',
       shortcut_copy: '复制',
       shortcut_toast_title: '快捷键已启用',
       shortcut_toast_body: '以后在任何网页按：',
@@ -148,6 +154,7 @@ const i18n = (() => {
 
       // Data management
       data_management: '数据管理',
+      settings_preferences: '偏好设置',
       btn_import: '导入',
       btn_export: '导出',
 
@@ -310,6 +317,9 @@ const i18n = (() => {
       empty_search_hint: 'Try a shorter keyword, or use tag: / folder: filters',
       empty_no_filtered_prompts: 'No prompts in this filter',
       empty_filter_hint: 'Go back to all prompts or choose another tag/folder',
+      empty_action_new_prompt: 'New Prompt',
+      empty_action_clear_search: 'Clear Search',
+      empty_action_view_all: 'View All Prompts',
       search_results_count: '{0} results found',
       filter_search: 'Search',
       filter_tag: 'Tag',
@@ -320,6 +330,9 @@ const i18n = (() => {
 
       // Shortcut
       shortcut_label: 'Shortcut',
+      shortcut_title: 'Shortcut',
+      shortcut_windows: 'Windows',
+      shortcut_mac: 'Mac',
       shortcut_copy: 'Copy',
       shortcut_toast_title: 'Shortcut enabled',
       shortcut_toast_body: 'Press on any page to open PromptVault: ',
@@ -388,6 +401,7 @@ const i18n = (() => {
 
       // Data management
       data_management: 'Data Management',
+      settings_preferences: 'Preferences',
       btn_import: 'Import',
       btn_export: 'Export',
 

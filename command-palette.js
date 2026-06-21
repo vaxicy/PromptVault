@@ -8,6 +8,8 @@
   'use strict';
 
   const PALETTE_ID = 'pv-command-palette';
+  const PIN_ICON = '<svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" style="width:14px;height:14px;display:block;"><line x1="12" y1="17" x2="12" y2="22"></line><path d="M5 17h14v-1.76a2 2 0 0 0-1.11-1.79l-1.78-.9A2 2 0 0 1 15 10.76V6h1a2 2 0 0 0 0-4H8a2 2 0 0 0 0 4h1v4.76a2 2 0 0 1-1.11 1.79l-1.78.9A2 2 0 0 0 5 15.24z"></path></svg>';
+  const SHORTCUT_ICON = '<svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" style="width:20px;height:20px;display:block;"><rect x="4" y="4" width="16" height="16" rx="3"></rect><path d="M8 9h8"></path><path d="M8 15h8"></path><path d="M9 9v6"></path><path d="M15 9v6"></path></svg>';
   let isOpen = false;
   let allPrompts = [];
   let allFolders = [];
@@ -46,7 +48,8 @@
         transform: translateX(-50%) translateY(0);
       }
       .pv-cmd-toast-icon {
-        font-size: 18px;
+        color: #89b4fa;
+        flex-shrink: 0;
       }
       .pv-cmd-toast-body {
         display: flex;
@@ -201,7 +204,7 @@
             cursor: pointer;
             border-bottom: 2px solid transparent;
             outline: none;
-          ">📌 ${i18n.t('tab_pinned') || 'Pinned'}</button>
+          "><span style="display:inline-flex;vertical-align:-2px;margin-right:4px;">${PIN_ICON}</span>${i18n.t('tab_pinned') || 'Pinned'}</button>
           <button class="pv-palette-tab" data-tab="recent" style="
             padding: 8px 12px;
             background: none;
@@ -395,7 +398,7 @@
           </div>
         </div>
         <div style="display: flex; gap: 4px; margin-left: 8px;">
-          ${prompt.pinned ? '<span style="color: ' + c.pinColor + '; font-size: 14px;">📌</span>' : ''}
+          ${prompt.pinned ? `<span style="color: ${c.pinColor};">${PIN_ICON}</span>` : ''}
         </div>
       </div>
     `
@@ -487,7 +490,7 @@
     const toast = document.createElement('div');
     toast.className = 'pv-cmd-toast';
     toast.innerHTML = `
-      <div class="pv-cmd-toast-icon">🎉</div>
+      <div class="pv-cmd-toast-icon">${SHORTCUT_ICON}</div>
       <div class="pv-cmd-toast-body">
         <div class="pv-cmd-toast-title">${i18n.t('shortcut_toast_title') || '快捷键已启用'}</div>
         <div class="pv-cmd-toast-text">${(i18n.t('shortcut_toast_body') || '以后在任何网页按：')}<code>${shortcut}</code></div>
