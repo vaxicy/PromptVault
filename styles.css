@@ -245,12 +245,20 @@ body {
   display: flex;
   justify-content: space-between;
   align-items: center;
-  margin-bottom: 12px;
+  margin-bottom: 16px;
+  padding-top: 4px;
 }
 
-.tab-header h2 {
-  font-size: 16px;
-  font-weight: 600;
+.tab-header-left {
+  display: flex;
+  align-items: center;
+  gap: 8px;
+}
+
+.tab-header-right {
+  display: flex;
+  align-items: center;
+  gap: 8px;
 }
 
 /* Buttons */
@@ -408,6 +416,49 @@ body {
 
 .prompt-card-action.pin.active {
   color: var(--warning);
+}
+
+/* Drag-and-drop styles */
+.draggable-card {
+  cursor: grab;
+  transition: opacity 0.15s ease, transform 0.15s ease;
+}
+
+.draggable-card:active {
+  cursor: grabbing;
+}
+
+.draggable-card.dragging {
+  opacity: 0.4;
+  transform: scale(0.98);
+}
+
+.draggable-card.drag-over-top::before {
+  content: '';
+  position: absolute;
+  top: -2px;
+  left: 8px;
+  right: 8px;
+  height: 2px;
+  background: var(--accent-primary);
+  border-radius: 1px;
+  z-index: 1;
+}
+
+.draggable-card.drag-over-bottom::after {
+  content: '';
+  position: absolute;
+  bottom: -2px;
+  left: 8px;
+  right: 8px;
+  height: 2px;
+  background: var(--accent-primary);
+  border-radius: 1px;
+  z-index: 1;
+}
+
+.prompt-card {
+  position: relative;
 }
 
 .prompt-card-preview {
@@ -1071,23 +1122,18 @@ body {
   background: var(--accent-primary);
 }
 
-/* Tab header actions */
-.tab-header-actions {
-  display: flex;
-  gap: 8px;
-  align-items: center;
-}
-
+/* Sort select */
 .sort-select {
-  padding: 5px 8px;
+  padding: 4px 8px;
   background: var(--bg-tertiary);
   border: 1px solid var(--border-color);
   border-radius: var(--radius-sm);
   color: var(--text-secondary);
-  font-size: 12px;
+  font-size: 11px;
   cursor: pointer;
   transition: var(--transition);
-  max-width: 120px;
+  max-width: 100px;
+  height: 30px;
 }
 
 .sort-select:hover {
@@ -1097,6 +1143,47 @@ body {
 .sort-select:focus {
   outline: none;
   border-color: var(--accent-primary);
+}
+
+/* Tab header button overrides - compact & aligned */
+.tab-header-right .secondary-btn.compact {
+  padding: 5px 8px;
+  font-size: 12px;
+  font-weight: 400;
+  height: 30px;
+  background: transparent;
+  color: var(--text-secondary);
+  border-color: transparent;
+}
+
+.tab-header-right .secondary-btn.compact:hover {
+  background: var(--bg-hover);
+  border-color: var(--border-color);
+  color: var(--text-primary);
+}
+
+/* Primary icon button (+) */
+.icon-btn-primary {
+  width: 30px;
+  height: 30px;
+  border-radius: var(--radius-sm);
+  background: var(--accent-primary);
+  color: white;
+  border: none;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  cursor: pointer;
+  transition: var(--transition);
+  flex-shrink: 0;
+}
+
+.icon-btn-primary:hover {
+  background: var(--accent-hover);
+}
+
+.icon-btn-primary svg {
+  flex-shrink: 0;
 }
 
 /* Folder group (grouped view) */

@@ -94,6 +94,19 @@ const Storage = (() => {
   }
 
   /**
+   * Reorder prompts by ID array (for custom drag-and-drop sort)
+   * Assigns sortOrder to each prompt based on position in promptIds
+   */
+  async function reorderPrompts(promptIds) {
+    const data = await getAll();
+    promptIds.forEach((id, index) => {
+      const prompt = data.prompts.find(p => p.id === id);
+      if (prompt) prompt.sortOrder = index;
+    });
+    await saveAll(data);
+  }
+
+  /**
    * Toggle pin status of a prompt
    */
   async function togglePin(id) {
@@ -361,6 +374,7 @@ const Storage = (() => {
     savePrompt,
     deletePrompt,
     togglePin,
+    reorderPrompts,
     recordUsage,
     searchPrompts,
     getPromptsByFolder,

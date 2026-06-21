@@ -76,27 +76,28 @@
       <!-- Prompts Tab -->
       <div id="tab-prompts" class="tab-content active">
         <div class="tab-header">
-          <h2>All Prompts</h2>
-          <div class="tab-header-actions">
+          <div class="tab-header-left">
             <select id="sort-select" class="sort-select" title="排序方式">
               <option value="updatedAt" data-i18n="sort_updated">按更新时间</option>
               <option value="createdAt" data-i18n="sort_created">按创建时间</option>
               <option value="title" data-i18n="sort_title">按名称 A-Z</option>
               <option value="usageCount" data-i18n="sort_usage">按使用次数</option>
+              <option value="custom" data-i18n="sort_custom">自定义</option>
             </select>
-            <button id="btn-batch-manage" class="secondary-btn" title="Batch Manage">
+            <span id="folder-breadcrumb-wrap"></span>
+          </div>
+          <div class="tab-header-right">
+            <button id="btn-batch-manage" class="secondary-btn compact" title="Batch Manage">
               <svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2">
                 <polyline points="9 11 12 14 22 4"></polyline>
                 <path d="M21 12v7a2 2 0 0 1-2 2H5a2 2 0 0 1-2-2V5a2 2 0 0 1 2-2h11"></path>
               </svg>
-              Batch
             </button>
-            <button id="btn-new-prompt" class="primary-btn">
-              <svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2">
+            <button id="btn-new-prompt" class="icon-btn-primary" title="New Prompt">
+              <svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.5">
                 <line x1="12" y1="5" x2="12" y2="19"></line>
                 <line x1="5" y1="12" x2="19" y2="12"></line>
               </svg>
-              New Prompt
             </button>
           </div>
         </div>

@@ -218,6 +218,7 @@ const i18n = (() => {
       sort_created: '按创建时间',
       sort_title: '按名称 A-Z',
       sort_usage: '按使用次数',
+      sort_custom: '自定义',
       // Recent usage
       recent_clear: '清空',
       confirm_clear_recent: '清空最近使用',
@@ -447,6 +448,7 @@ const i18n = (() => {
       sort_created: 'By creation time',
       sort_title: 'By name A-Z',
       sort_usage: 'By usage count',
+      sort_custom: 'Custom',
       // Recent usage
       recent_clear: 'Clear',
       confirm_clear_recent: 'Clear recent usage',

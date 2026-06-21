@@ -67,10 +67,10 @@
 
     // Buttons
     document.getElementById('btn-new-prompt').innerHTML =
-      `<svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2">
+      `<svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.5">
         <line x1="12" y1="5" x2="12" y2="19"></line>
         <line x1="5" y1="12" x2="19" y2="12"></line>
-      </svg> ` + i18n.t('btn_new_prompt');
+      </svg>`;
     document.getElementById('btn-new-folder').innerHTML =
       `<svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2">
         <line x1="12" y1="5" x2="12" y2="19"></line>
@@ -120,8 +120,6 @@
     if (settingDefaultOpt) settingDefaultOpt.textContent = i18n.t('folder_uncategorized');
 
     // Tab headings
-    const h2Prompts = document.querySelector('#tab-prompts .tab-header h2');
-    if (h2Prompts) h2Prompts.textContent = i18n.t('heading_all_prompts');
     const h2Folders = document.querySelector('#tab-folders .tab-header h2');
     if (h2Folders) h2Folders.textContent = i18n.t('heading_folders');
     const h2Tags = document.querySelector('#tab-tags .tab-header h2');
@@ -147,9 +145,7 @@
         <svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2">
           <polyline points="9 11 12 14 22 4"></polyline>
           <path d="M21 12v7a2 2 0 0 1-2 2H5a2 2 0 0 1-2-2V5a2 2 0 0 1 2-2h11"></path>
-        </svg>
-        ${i18n.t('btn_batch')}
-      `;
+        </svg>`;
     }
 
     // Batch actions bar
@@ -377,9 +373,7 @@
         <svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2">
           <polyline points="9 11 12 14 22 4"></polyline>
           <path d="M21 12v7a2 2 0 0 1-2 2H5a2 2 0 0 1-2-2V5a2 2 0 0 1 2-2h11"></path>
-        </svg>
-        ${i18n.t('btn_batch_done')}
-      `;
+        </svg>`;
     } else {
       exitBatchMode();
     }
@@ -397,9 +391,7 @@
       <svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2">
         <polyline points="9 11 12 14 22 4"></polyline>
         <path d="M21 12v7a2 2 0 0 1-2 2H5a2 2 0 0 1-2-2V5a2 2 0 0 1 2-2h11"></path>
-      </svg>
-      ${i18n.t('btn_batch')}
-    `;
+      </svg>`;
     document.getElementById('batch-actions-bar').classList.add('hidden');
     renderPrompts();
   }
@@ -525,22 +517,22 @@
    * Update prompts tab header to show folder filter breadcrumb
    */
   async function updatePromptsHeader() {
-    const h2 = document.querySelector('#tab-prompts .tab-header h2');
-    if (!h2) return;
+    const wrap = document.getElementById('folder-breadcrumb-wrap');
+    if (!wrap) return;
 
     if (currentFolderFilter) {
       const folders = await Storage.getFolders();
       const folder = folders.find(f => f.id === currentFolderFilter);
       const folderName = folder && folder.id !== 'default' ? escapeHtml(folder.name) : i18n.t('folder_uncategorized');
-      h2.innerHTML = `<span class="folder-breadcrumb" data-folder-id="${currentFolderFilter}" title="${i18n.t('back_to_all') || 'Back to all'}">&#9664; ${folderName}</span>`;
+      wrap.innerHTML = `<span class="folder-breadcrumb" data-folder-id="${currentFolderFilter}" title="${i18n.t('back_to_all') || 'Back to all'}">&#9664; ${folderName}</span>`;
       // Click breadcrumb to go back to all prompts
-      h2.querySelector('.folder-breadcrumb').addEventListener('click', () => {
+      wrap.querySelector('.folder-breadcrumb').addEventListener('click', () => {
         currentFolderFilter = null;
         updatePromptsHeader();
         renderPrompts();
       });
     } else {
-      h2.textContent = i18n.t('heading_all_prompts');
+      wrap.innerHTML = '';
     }
   }
 
@@ -618,6 +610,11 @@
           return (a.title || '').localeCompare(b.title || '', i18n.getLocale());
         case 'usageCount':
           return (b.usageCount || 0) - (a.usageCount || 0);
+        case 'custom': {
+          const aOrder = a.sortOrder != null ? a.sortOrder : 999999;
+          const bOrder = b.sortOrder != null ? b.sortOrder : 999999;
+          return aOrder - bOrder;
+        }
         default:
           return (b.updatedAt || 0) - (a.updatedAt || 0);
       }
@@ -728,6 +725,9 @@
         });
       });
     }
+
+    // Init drag-and-drop if in custom sort mode
+    initDragAndDrop(container);
   }
 
   /**
@@ -899,6 +899,128 @@
         }
       });
     });
+
+    // Init drag-and-drop if in custom sort mode (per group)
+    container.querySelectorAll('.folder-group-list').forEach(list => {
+      initDragAndDrop(list);
+    });
+  }
+
+  /**
+   * Initialize drag-and-drop for prompt cards (custom sort mode only)
+   */
+  function initDragAndDrop(container) {
+    if (!container) return;
+    // Only enable in custom sort mode and not in batch mode
+    if (currentSortMode !== 'custom' || isBatchMode) {
+      container.querySelectorAll('.prompt-card').forEach(card => {
+        card.removeAttribute('draggable');
+        card.classList.remove('draggable-card');
+      });
+      return;
+    }
+
+    const cards = container.querySelectorAll('.prompt-card');
+    cards.forEach(card => {
+      card.setAttribute('draggable', 'true');
+      card.classList.add('draggable-card');
+
+      card.addEventListener('dragstart', (e) => {
+        card.classList.add('dragging');
+        e.dataTransfer.effectAllowed = 'move';
+        e.dataTransfer.setData('text/plain', card.dataset.id);
+      });
+
+      card.addEventListener('dragend', () => {
+        card.classList.remove('dragging');
+        container.querySelectorAll('.prompt-card').forEach(c => {
+          c.classList.remove('drag-over-top', 'drag-over-bottom');
+        });
+      });
+    });
+
+    container.addEventListener('dragover', (e) => {
+      e.preventDefault();
+      e.dataTransfer.dropEffect = 'move';
+      const afterElement = _getDragAfterElement(container, e.clientY);
+      const draggable = container.querySelector('.dragging');
+      container.querySelectorAll('.prompt-card').forEach(c => {
+        c.classList.remove('drag-over-top', 'drag-over-bottom');
+      });
+      if (afterElement && afterElement.element && afterElement.element !== draggable) {
+        afterElement.element.classList.add(afterElement.position === 'before' ? 'drag-over-top' : 'drag-over-bottom');
+      }
+    });
+
+    container.addEventListener('dragleave', (e) => {
+      if (!container.contains(e.relatedTarget)) {
+        container.querySelectorAll('.prompt-card').forEach(c => {
+          c.classList.remove('drag-over-top', 'drag-over-bottom');
+        });
+      }
+    });
+
+    container.addEventListener('drop', async (e) => {
+      e.preventDefault();
+      const draggedId = e.dataTransfer.getData('text/plain');
+      if (!draggedId) return;
+
+      container.querySelectorAll('.prompt-card').forEach(c => {
+        c.classList.remove('drag-over-top', 'drag-over-bottom');
+      });
+
+      // Move the dragged card in the DOM to the correct position
+      const draggedCard = container.querySelector(`[data-id="${draggedId}"]`);
+      const afterResult = _getDragAfterElement(container, e.clientY);
+      if (draggedCard && afterResult && afterResult.element) {
+        if (afterResult.position === 'before') {
+          container.insertBefore(draggedCard, afterResult.element);
+        } else {
+          container.insertBefore(draggedCard, afterResult.element.nextSibling);
+        }
+      }
+
+      // Collect new order from DOM
+      const orderedIds = [...container.querySelectorAll('.prompt-card')].map(c => c.dataset.id);
+
+      // Save new order
+      await Storage.reorderPrompts(orderedIds);
+      await renderAll();
+    });
+  }
+
+  /**
+   * Helper: find the element to insert before/after based on mouse Y
+   */
+  function _getDragAfterElement(container, y) {
+    const draggableElements = [...container.querySelectorAll('.prompt-card:not(.dragging)')];
+    let closestElement = null;
+    let closestOffset = -Infinity;
+    let closestPosition = 'before';
+
+    for (const element of draggableElements) {
+      const box = element.getBoundingClientRect();
+      const offset = y - box.top - box.height / 2;
+      if (offset < 0 && offset > closestOffset) {
+        closestOffset = offset;
+        closestElement = element;
+        closestPosition = offset < -box.height / 4 ? 'before' : 'after';
+      } else if (offset >= 0 && (closestElement === null || offset < closestOffset || closestOffset < 0)) {
+        if (offset >= 0 && offset < box.height / 2) {
+          closestOffset = offset;
+          closestElement = element;
+          closestPosition = 'after';
+        }
+      }
+    }
+
+    // If no closest found, find the last element
+    if (!closestElement && draggableElements.length > 0) {
+      closestElement = draggableElements[draggableElements.length - 1];
+      closestPosition = 'after';
+    }
+
+    return { element: closestElement, position: closestPosition };
   }
 
   /**
