@@ -264,6 +264,13 @@
     }
   }
 
+  function syncSidebarThemeClass() {
+    const sidebar = document.getElementById('pv-sidebar');
+    const toggle = document.getElementById('pv-sidebar-toggle');
+    if (sidebar) sidebar.classList.toggle('pv-dark', isDarkMode);
+    if (toggle) toggle.classList.toggle('pv-dark', isDarkMode);
+  }
+
   // ========== Toggle Drag ==========
   const SNAP_THRESHOLD = 80; // px from edge to trigger snap
 
@@ -440,6 +447,7 @@
       isDarkMode = store.settings?.darkMode || false;
       sidebarCloseOnOutside = store.settings?.sidebarCloseOnOutside !== false;
       sidebarCardClickAction = store.settings?.sidebarCardClickAction || 'copy';
+      syncSidebarThemeClass();
 
       if (document.getElementById('pv-sidebar') && sidebarVisible) {
         setSidebarVisible(true);
@@ -1015,6 +1023,7 @@
     `;
     toggle.addEventListener('click', toggleSidebar);
     document.body.appendChild(toggle);
+    syncSidebarThemeClass();
 
     // Init toggle drag after append
     initToggleDrag();
@@ -1088,7 +1097,7 @@
     document.body.appendChild(sidebar);
 
     // Apply dark mode
-    if (isDarkMode) sidebar.classList.add('pv-dark');
+    syncSidebarThemeClass();
 
     // Bind events
     bindSidebarEvents();
@@ -1123,7 +1132,7 @@
     if (themeBtn) {
       themeBtn.addEventListener('click', () => {
         isDarkMode = !isDarkMode;
-        sidebar.classList.toggle('pv-dark');
+        syncSidebarThemeClass();
         chrome.storage.local.get('promptvault_data', (data) => {
           const store = data.promptvault_data || {};
           if (!store.settings) store.settings = {};

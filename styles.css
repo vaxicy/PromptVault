@@ -2,18 +2,19 @@
 
 :root {
   /* Dark Theme Colors */
-  --bg-primary: #1a1a2e;
-  --bg-secondary: #16213e;
-  --bg-tertiary: #0f3460;
-  --bg-hover: #1a3a6e;
-  --bg-modal: #1a1a2e;
-  --text-primary: #e0e0e0;
-  --text-secondary: #a0a0a0;
-  --text-muted: #6c6c6c;
-  --border-color: #2a2a4a;
-  --accent-primary: #4a9eff;
-  --accent-secondary: #6bb5ff;
-  --accent-hover: #3585e8;
+  --bg-primary: #111111;
+  --bg-secondary: #1a1a1a;
+  --bg-tertiary: #242424;
+  --bg-hover: #2a2a2a;
+  --bg-modal: #151515;
+  --text-primary: #f3f4f6;
+  --text-secondary: #b6b6b6;
+  --text-muted: #7a7a7a;
+  --border-color: #333333;
+  --accent-primary: #f5f5f5;
+  --accent-secondary: #d4d4d4;
+  --accent-hover: #e5e5e5;
+  --accent-contrast: #111111;
   --danger: #ff4757;
   --danger-hover: #ff6b81;
   --success: #2ed573;
@@ -27,14 +28,18 @@
 /* Light Theme */
 [data-theme="light"] {
   --bg-primary: #ffffff;
-  --bg-secondary: #f5f5f5;
-  --bg-tertiary: #e8e8e8;
-  --bg-hover: #e0e0e0;
+  --bg-secondary: #f7f7f7;
+  --bg-tertiary: #eeeeee;
+  --bg-hover: #f1f1f1;
   --bg-modal: #ffffff;
-  --text-primary: #333333;
+  --text-primary: #171717;
   --text-secondary: #666666;
-  --text-muted: #999999;
-  --border-color: #dddddd;
+  --text-muted: #9a9a9a;
+  --border-color: #dedede;
+  --accent-primary: #171717;
+  --accent-secondary: #555555;
+  --accent-hover: #000000;
+  --accent-contrast: #ffffff;
   --shadow: rgba(0, 0, 0, 0.1);
 }
 
@@ -105,7 +110,7 @@ body {
 .logo {
   font-size: 18px;
   font-weight: 700;
-  color: var(--accent-primary);
+  color: var(--text-primary);
   margin: 0;
 }
 
@@ -165,7 +170,7 @@ body {
 .search-box input:focus {
   outline: none;
   border-color: var(--accent-primary);
-  box-shadow: 0 0 0 3px rgba(74, 158, 255, 0.1);
+  box-shadow: 0 0 0 3px rgba(128, 128, 128, 0.14);
 }
 
 .search-box input::placeholder {
@@ -331,7 +336,7 @@ body {
 /* Buttons */
 .primary-btn {
   background: var(--accent-primary);
-  color: white;
+  color: var(--accent-contrast);
   border: none;
   padding: 8px 16px;
   border-radius: var(--radius);
@@ -410,7 +415,7 @@ body {
 .prompt-card.selected {
   border-color: var(--accent-primary);
   background: var(--bg-hover);
-  box-shadow: 0 0 0 1px var(--accent-primary);
+  box-shadow: 0 0 0 1px rgba(128, 128, 128, 0.35);
 }
 
 .batch-checkbox {
@@ -433,7 +438,7 @@ body {
 }
 
 .prompt-card:hover {
-  border-color: var(--accent-primary);
+  border-color: var(--text-secondary);
   background: var(--bg-hover);
 }
 
@@ -569,9 +574,9 @@ body {
 .prompt-card-tag {
   font-size: 11px;
   padding: 2px 7px;
-  background: rgba(74, 158, 255, 0.12);
+  background: rgba(128, 128, 128, 0.14);
   border-radius: 12px;
-  color: var(--accent-secondary);
+  color: var(--text-secondary);
 }
 
 .prompt-card-status {
@@ -602,7 +607,7 @@ body {
 }
 
 .prompt-card:hover .prompt-card-click-hint {
-  color: var(--accent-primary);
+  color: var(--text-primary);
 }
 
 .prompt-card.copied .prompt-card-click-hint {
@@ -629,11 +634,11 @@ body {
   justify-content: space-between;
   align-items: center;
   gap: 8px;
-  border-left: 3px solid var(--accent-primary);
+  border-left: 3px solid var(--text-muted);
 }
 
 .folder-card:hover {
-  border-color: var(--accent-primary);
+  border-color: var(--text-secondary);
   background: var(--bg-hover);
 }
 
@@ -911,7 +916,7 @@ body {
 .form-group select:focus {
   outline: none;
   border-color: var(--accent-primary);
-  box-shadow: 0 0 0 3px rgba(74, 158, 255, 0.1);
+  box-shadow: 0 0 0 3px rgba(128, 128, 128, 0.14);
 }
 
 .form-group textarea {
@@ -933,7 +938,7 @@ body {
 }
 
 #settings-modal .form-group select:focus {
-  box-shadow: 0 0 0 3px rgba(74, 158, 255, 0.12);
+  box-shadow: 0 0 0 3px rgba(128, 128, 128, 0.14);
 }
 
 /* Checkbox */
@@ -1039,7 +1044,7 @@ body {
 
 .tag-suggestion.selected {
   background: var(--accent-primary);
-  color: white;
+  color: var(--accent-contrast);
   border-color: var(--accent-primary);
 }
 
@@ -1062,7 +1067,7 @@ body {
 
 .tags-input-container:focus-within {
   border-color: var(--accent-primary);
-  box-shadow: 0 0 0 3px rgba(74, 158, 255, 0.1);
+  box-shadow: 0 0 0 3px rgba(128, 128, 128, 0.14);
 }
 
 .tags-list {
@@ -1077,7 +1082,7 @@ body {
   gap: 4px;
   padding: 4px 8px;
   background: var(--accent-primary);
-  color: white;
+  color: var(--accent-contrast);
   border-radius: 12px;
   font-size: 12px;
 }
@@ -1085,7 +1090,7 @@ body {
 .tag-chip-remove {
   background: none;
   border: none;
-  color: white;
+  color: var(--accent-contrast);
   cursor: pointer;
   font-size: 16px;
   line-height: 1;
@@ -1318,7 +1323,7 @@ body {
   height: 30px;
   border-radius: var(--radius-sm);
   background: var(--accent-primary);
-  color: white;
+  color: var(--accent-contrast);
   border: none;
   display: flex;
   align-items: center;
@@ -1495,7 +1500,7 @@ body {
 
 #btn-batch-manage.active {
   background: var(--accent-primary);
-  color: white;
+  color: var(--accent-contrast);
   border-color: var(--accent-primary);
 }
 
@@ -1576,7 +1581,7 @@ body {
   border-radius: var(--radius-sm);
   cursor: pointer;
   transition: var(--transition);
-  border-left: 3px solid var(--accent-primary);
+  border-left: 3px solid var(--text-muted);
   position: relative;
 }
 
@@ -1728,7 +1733,7 @@ body {
 /* Folder breadcrumb (compact back link) */
 .folder-breadcrumb {
   cursor: pointer;
-  color: var(--accent-primary);
+  color: var(--text-primary);
   font-size: 13px;
   font-weight: 500;
   display: inline-flex;
@@ -1745,7 +1750,7 @@ body {
 
 .folder-breadcrumb:hover {
   background: var(--bg-hover);
-  color: var(--accent-secondary);
+  color: var(--text-primary);
 }
 
 /* Settings - Checkbox */

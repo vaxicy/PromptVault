@@ -1980,7 +1980,7 @@
     } else {
       title.textContent = i18n.t('modal_new_folder');
       document.getElementById('folder-name').value = '';
-      document.getElementById('folder-color').value = '#4A90E2';
+      document.getElementById('folder-color').value = '#808080';
     }
 
     openModal('folder-modal');
