@@ -15,6 +15,7 @@
     pin: '<svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><line x1="12" y1="17" x2="12" y2="22"></line><path d="M5 17h14v-1.76a2 2 0 0 0-1.11-1.79l-1.78-.9A2 2 0 0 1 15 10.76V6h1a2 2 0 0 0 0-4H8a2 2 0 0 0 0 4h1v4.76a2 2 0 0 1-1.11 1.79l-1.78.9A2 2 0 0 0 5 15.24z"></path></svg>',
     trash: '<svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><polyline points="3 6 5 6 21 6"></polyline><path d="M19 6v14a2 2 0 0 1-2 2H7a2 2 0 0 1-2-2V6m3 0V4a2 2 0 0 1 2-2h4a2 2 0 0 1 2 2v2"></path></svg>',
     check: '<svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.5"><polyline points="20 6 9 17 4 12"></polyline></svg>',
+    insert: '<svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><path d="M20 5v14"></path><path d="M4 12h12"></path><path d="m9 7-5 5 5 5"></path></svg>',
   };
 
   // ========== Helpers ==========
@@ -30,7 +31,10 @@
   let currentTab = 'all'; // 'all' | 'recent' | 'pinned'
   let searchQuery = '';
   let isDarkMode = false;
-  let sidebarVisible = true;
+  let sidebarVisible = false;
+  let draggedPromptId = null;
+  let isDraggingSort = false;
+  let suppressCardClickUntil = 0;
 
   // ========== Website Detection ==========
   const WEBSITE = detectWebsite();
@@ -182,7 +186,9 @@
 
       // Update storage (recentUsage + usageCount + lastUsedAt)
       if (typeof Storage !== 'undefined' && Storage.addRecentUsage) {
-        Storage.addRecentUsage(promptId);
+        Storage.addRecentUsage(promptId).catch((error) => {
+          console.warn('[PromptVault] Failed to record usage:', error);
+        });
       } else {
         // Fallback: direct storage write
         chrome.storage.local.get('promptvault_data', (data) => {
@@ -203,6 +209,22 @@
     }
   }
 
+  function copyPrompt(prompt, card) {
+    navigator.clipboard.writeText(prompt.content).then(() => {
+      if (card) {
+        card.classList.add('pv-copied');
+        setTimeout(() => {
+          card.classList.remove('pv-copied');
+          if (prompt.id) recordUsage(prompt.id);
+          loadData(() => renderSidebar());
+        }, 900);
+      } else if (prompt.id) {
+        recordUsage(prompt.id);
+      }
+      showToast(i18n.t('sidebar_copied'));
+    });
+  }
+
   // ========== Format Time Ago ==========
   function formatTimeAgo(timestamp) {
     const now = Date.now();
@@ -220,8 +242,7 @@
 
   // ========== Load Data ==========
   function loadData(callback) {
-    chrome.storage.local.get('promptvault_data', (data) => {
-      const store = data.promptvault_data || {};
+    const applyStore = (store) => {
       prompts = store.prompts || [];
       folders = store.folders || [];
       tags = store.tags || [];
@@ -229,7 +250,72 @@
       isDarkMode = store.settings?.darkMode || false;
 
       if (callback) callback();
+    };
+
+    if (typeof Storage !== 'undefined' && Storage.getAll) {
+      Storage.getAll()
+        .then(applyStore)
+        .catch((error) => {
+          console.warn('[PromptVault] Failed to load sidebar data:', error);
+          applyStore({});
+        });
+      return;
+    }
+
+    try {
+      chrome.storage.local.get('promptvault_data', (data) => {
+        applyStore(data.promptvault_data || {});
+      });
+    } catch (error) {
+      console.warn('[PromptVault] Failed to load sidebar data:', error);
+      applyStore({});
+    }
+  }
+
+  function getPromptUsageStats(prompt) {
+    const stats = {
+      count: prompt.usageCount || 0,
+      lastUsed: prompt.lastUsedAt || 0,
+    };
+
+    recentUsage.forEach((usage) => {
+      if (usage.promptId !== prompt.id) return;
+      if (!prompt.usageCount) stats.count += 1;
+      if ((usage.timestamp || 0) > stats.lastUsed) {
+        stats.lastUsed = usage.timestamp;
+      }
     });
+
+    return stats;
+  }
+
+  function compareSmartPrompts(a, b, options = {}) {
+    const pinnedFirst = options.pinnedFirst !== false;
+    const customOrderFirst = options.customOrderFirst === true;
+
+    if (pinnedFirst && Boolean(a.pinned) !== Boolean(b.pinned)) {
+      return a.pinned ? -1 : 1;
+    }
+
+    if (customOrderFirst) {
+      const aHasOrder = Number.isFinite(a.sortOrder);
+      const bHasOrder = Number.isFinite(b.sortOrder);
+      if (aHasOrder && bHasOrder && a.sortOrder !== b.sortOrder) {
+        return a.sortOrder - b.sortOrder;
+      }
+      if (aHasOrder !== bHasOrder) return aHasOrder ? -1 : 1;
+    }
+
+    const aStats = getPromptUsageStats(a);
+    const bStats = getPromptUsageStats(b);
+
+    return (
+      (bStats.lastUsed || 0) - (aStats.lastUsed || 0) ||
+      (bStats.count || 0) - (aStats.count || 0) ||
+      (b.updatedAt || 0) - (a.updatedAt || 0) ||
+      (b.createdAt || 0) - (a.createdAt || 0) ||
+      String(a.title || '').localeCompare(String(b.title || ''), i18n.getLocale())
+    );
   }
 
   // ========== Render Sidebar ==========
@@ -241,38 +327,17 @@
     if (!listEl) return;
 
     let filteredPrompts = getFilteredPrompts();
+    const canDragSort = currentTab === 'all' && !searchQuery.trim();
 
     if (filteredPrompts.length === 0) {
       listEl.innerHTML = renderEmptyState();
       return;
     }
 
-    // Calculate usage stats for each prompt (from recentUsage + prompt.usageCount)
-    const usageStats = {};
-    // First, use stored usageCount/lastUsedAt
-    prompts.forEach(p => {
-      if (p.usageCount > 0 || p.lastUsedAt > 0) {
-        usageStats[p.id] = {
-          count: p.usageCount || 0,
-          lastUsed: p.lastUsedAt || 0
-        };
-      }
-    });
-    // Then, augment with recentUsage for backward compatibility
-    recentUsage.forEach(usage => {
-      if (!usageStats[usage.promptId]) {
-        usageStats[usage.promptId] = { count: 0, lastUsed: 0 };
-      }
-      usageStats[usage.promptId].count++;
-      if (usage.timestamp > usageStats[usage.promptId].lastUsed) {
-        usageStats[usage.promptId].lastUsed = usage.timestamp;
-      }
-    });
-
     listEl.innerHTML = filteredPrompts
       .map(
         (prompt) => {
-          const stats = usageStats[prompt.id] || { count: 0, lastUsed: 0 };
+          const stats = getPromptUsageStats(prompt);
           const lastUsedText = stats.lastUsed > 0 ? formatTimeAgo(stats.lastUsed) : '';
           const usageText = stats.count > 0
             ? (i18n.getLocale() === 'zh'
@@ -290,11 +355,11 @@
           }
 
           return `
-      <div class="pv-card" data-prompt-id="${prompt.id}">
+      <div class="pv-card ${canDragSort ? 'pv-draggable-card' : ''}" data-prompt-id="${prompt.id}" draggable="${canDragSort ? 'true' : 'false'}">
         <div class="pv-card-title">
           <span>${escapeHtml(prompt.title)}</span>
           <div class="pv-card-actions">
-            <button class="pv-card-action-btn pv-copy-btn" data-prompt-id="${prompt.id}" title="${i18n.t('btn_copy')}">${ICONS.copy}</button>
+            <button class="pv-card-action-btn pv-insert-btn" data-prompt-id="${prompt.id}" title="${i18n.t('btn_insert')}">${ICONS.insert}</button>
             <button class="pv-card-action-btn pv-edit-btn" data-prompt-id="${prompt.id}" title="${i18n.t('btn_edit')}">${ICONS.edit}</button>
             <button class="pv-card-action-btn pv-pin-btn ${prompt.pinned ? 'pv-pinned' : ''}" data-prompt-id="${prompt.id}" title="${i18n.t('btn_pin')}">${ICONS.pin}</button>
             <button class="pv-card-action-btn pv-del-btn" data-prompt-id="${prompt.id}" title="${i18n.t('btn_delete')}">${ICONS.trash}</button>
@@ -321,31 +386,22 @@
       card.addEventListener('click', (e) => {
         if (e.target.closest('.pv-card-actions')) return;
         if (card.querySelector('.pv-edit-form')) return; // skip if in edit mode
+        if (isDraggingSort || Date.now() < suppressCardClickUntil) return;
         const promptId = card.dataset.promptId;
         const prompt = prompts.find((p) => p.id === promptId);
         if (prompt) {
-          insertPrompt(prompt.content, prompt.id);
+          copyPrompt(prompt, card);
         }
       });
     });
 
-    listEl.querySelectorAll('.pv-copy-btn').forEach((btn) => {
+    listEl.querySelectorAll('.pv-insert-btn').forEach((btn) => {
       btn.addEventListener('click', (e) => {
         e.stopPropagation();
         const promptId = btn.dataset.promptId;
         const prompt = prompts.find((p) => p.id === promptId);
         if (prompt) {
-          navigator.clipboard.writeText(prompt.content).then(() => {
-            // Copy feedback: icon changes to check mark for 1s
-            const originalHTML = btn.innerHTML;
-            btn.innerHTML = ICONS.check;
-            btn.style.color = '#22c55e';
-            setTimeout(() => {
-              btn.innerHTML = originalHTML;
-              btn.style.color = '';
-            }, 1000);
-            showToast(i18n.t('sidebar_copied'));
-          });
+          insertPrompt(prompt.content, prompt.id);
         }
       });
     });
@@ -377,6 +433,94 @@
         );
       });
     });
+
+    if (canDragSort) {
+      bindDragSort(listEl);
+    }
+  }
+
+  function bindDragSort(listEl) {
+    listEl.querySelectorAll('.pv-draggable-card').forEach((card) => {
+      card.addEventListener('dragstart', (e) => {
+        draggedPromptId = card.dataset.promptId;
+        isDraggingSort = true;
+        suppressCardClickUntil = Date.now() + 500;
+        card.classList.add('pv-dragging');
+        e.dataTransfer.effectAllowed = 'move';
+        e.dataTransfer.setData('text/plain', draggedPromptId);
+      });
+
+      card.addEventListener('dragend', () => {
+        card.classList.remove('pv-dragging');
+        listEl.querySelectorAll('.pv-drag-over-top, .pv-drag-over-bottom').forEach((el) => {
+          el.classList.remove('pv-drag-over-top', 'pv-drag-over-bottom');
+        });
+        draggedPromptId = null;
+        suppressCardClickUntil = Date.now() + 300;
+        setTimeout(() => {
+          isDraggingSort = false;
+        }, 300);
+      });
+
+      card.addEventListener('dragover', (e) => {
+        e.preventDefault();
+        if (!draggedPromptId || card.dataset.promptId === draggedPromptId) return;
+
+        const rect = card.getBoundingClientRect();
+        const isAfter = e.clientY > rect.top + rect.height / 2;
+        card.classList.toggle('pv-drag-over-top', !isAfter);
+        card.classList.toggle('pv-drag-over-bottom', isAfter);
+      });
+
+      card.addEventListener('dragleave', () => {
+        card.classList.remove('pv-drag-over-top', 'pv-drag-over-bottom');
+      });
+
+      card.addEventListener('drop', async (e) => {
+        e.preventDefault();
+        const sourceId = draggedPromptId || e.dataTransfer.getData('text/plain');
+        const targetId = card.dataset.promptId;
+        if (!sourceId || !targetId || sourceId === targetId) return;
+
+        const rect = card.getBoundingClientRect();
+        const dropAfter = e.clientY > rect.top + rect.height / 2;
+        await reorderSidebarPrompts(sourceId, targetId, dropAfter);
+      });
+    });
+  }
+
+  async function reorderSidebarPrompts(sourceId, targetId, dropAfter) {
+    const orderedIds = [...document.querySelectorAll('#pv-sidebar .pv-list .pv-card')]
+      .map((card) => card.dataset.promptId)
+      .filter(Boolean);
+    const fromIndex = orderedIds.indexOf(sourceId);
+    const targetIndex = orderedIds.indexOf(targetId);
+    if (fromIndex === -1 || targetIndex === -1) return;
+
+    orderedIds.splice(fromIndex, 1);
+    const adjustedTargetIndex = orderedIds.indexOf(targetId);
+    orderedIds.splice(dropAfter ? adjustedTargetIndex + 1 : adjustedTargetIndex, 0, sourceId);
+
+    try {
+      if (typeof Storage !== 'undefined' && Storage.reorderPrompts) {
+        await Storage.reorderPrompts(orderedIds);
+      } else {
+        await new Promise((resolve) => {
+          chrome.storage.local.get('promptvault_data', (data) => {
+            const store = data.promptvault_data || {};
+            orderedIds.forEach((id, index) => {
+              const prompt = store.prompts?.find((p) => p.id === id);
+              if (prompt) prompt.sortOrder = index;
+            });
+            chrome.storage.local.set({ promptvault_data: store }, resolve);
+          });
+        });
+      }
+    } catch (error) {
+      console.warn('[PromptVault] Failed to reorder prompts:', error);
+    }
+
+    loadData(() => renderSidebar());
   }
 
   // ========== New Prompt Form ==========
@@ -546,12 +690,7 @@
       result = result.filter((p) => p.pinned);
     } else if (currentTab === 'recent') {
       const recentIds = [...new Set(recentUsage.map((u) => u.promptId))];
-      result = result.filter((p) => recentIds.includes(p.id));
-      result.sort((a, b) => {
-        const aIdx = recentIds.indexOf(a.id);
-        const bIdx = recentIds.indexOf(b.id);
-        return aIdx - bIdx;
-      });
+      result = result.filter((p) => recentIds.includes(p.id) || (p.lastUsedAt || 0) > 0);
     }
 
     // Filter by search
@@ -568,6 +707,11 @@
         );
       }
     }
+
+    result.sort((a, b) => compareSmartPrompts(a, b, {
+      pinnedFirst: currentTab === 'all',
+      customOrderFirst: currentTab === 'all' && !searchQuery.trim(),
+    }));
 
     return result;
   }
@@ -665,6 +809,12 @@
     `;
     toggle.addEventListener('click', toggleSidebar);
     document.body.appendChild(toggle);
+
+    const overlay = document.createElement('div');
+    overlay.id = 'pv-sidebar-overlay';
+    overlay.className = 'pv-hidden';
+    overlay.addEventListener('click', () => setSidebarVisible(false));
+    document.body.appendChild(overlay);
 
     // Sidebar container
     const sidebar = document.createElement('div');
@@ -778,6 +928,9 @@
       closeBtn.addEventListener('click', toggleSidebar);
     }
 
+    document.addEventListener('pointerdown', handleOutsidePointerDown, true);
+    document.addEventListener('keydown', handleSidebarKeydown);
+
     // Footer shortcut copy
     const copyBtn = document.getElementById('pv-copy-shortcut');
     if (copyBtn) {
@@ -801,16 +954,47 @@
     }
   }
 
-  function toggleSidebar() {
+  function setSidebarVisible(visible) {
     const sidebar = document.getElementById('pv-sidebar');
     const toggle = document.getElementById('pv-sidebar-toggle');
+    const overlay = document.getElementById('pv-sidebar-overlay');
     if (!sidebar || !toggle) return;
 
-    sidebarVisible = !sidebarVisible;
-    sidebar.classList.toggle('pv-hidden');
+    sidebarVisible = visible;
+    sidebar.classList.toggle('pv-hidden', !visible);
+    if (overlay) overlay.classList.toggle('pv-hidden', !visible);
 
     // Update toggle button visibility
-    toggle.style.display = sidebarVisible ? 'none' : 'flex';
+    toggle.style.display = visible ? 'none' : 'flex';
+  }
+
+  function toggleSidebar() {
+    setSidebarVisible(!sidebarVisible);
+  }
+
+  function handleSidebarKeydown(e) {
+    if (e.key !== 'Escape' || !sidebarVisible) return;
+    if (document.querySelector('.pv-confirm-overlay')) return;
+    setSidebarVisible(false);
+  }
+
+  function handleOutsidePointerDown(e) {
+    if (!sidebarVisible) return;
+
+    const sidebar = document.getElementById('pv-sidebar');
+    const toggle = document.getElementById('pv-sidebar-toggle');
+    if (!sidebar) return;
+
+    const path = typeof e.composedPath === 'function' ? e.composedPath() : [];
+    const clickedInsideSidebar = path.length ? path.includes(sidebar) : sidebar.contains(e.target);
+    const clickedToggle = toggle && (path.length ? path.includes(toggle) : toggle.contains(e.target));
+    const clickedConfirm = path.some?.((node) => node?.classList?.contains('pv-confirm-overlay'));
+
+    if (clickedInsideSidebar || clickedToggle || clickedConfirm) return;
+
+    e.preventDefault();
+    e.stopPropagation();
+    setSidebarVisible(false);
   }
 
   // ========== Utilities ==========
@@ -840,10 +1024,17 @@
     }
 
     // Check enableSidebar setting
-    const data = await new Promise(resolve => {
-      chrome.storage.local.get('promptvault_data', (d) => resolve(d));
-    });
-    const settings = (data.promptvault_data || {}).settings || {};
+    let settings = {};
+    try {
+      const data = typeof Storage !== 'undefined' && Storage.getAll
+        ? await Storage.getAll()
+        : await new Promise(resolve => {
+            chrome.storage.local.get('promptvault_data', (d) => resolve(d.promptvault_data || {}));
+          });
+      settings = data.settings || {};
+    } catch (error) {
+      console.warn('[PromptVault] Failed to load sidebar settings:', error);
+    }
     if (settings.enableSidebar === false) {
       console.log('[PromptVault] Sidebar disabled by setting');
       return;
@@ -865,7 +1056,7 @@
       if (WEBSITE !== 'generic') {
         setTimeout(() => {
           const sidebar = document.getElementById('pv-sidebar');
-          if (sidebar) sidebar.classList.remove('pv-hidden');
+          if (sidebar) setSidebarVisible(true);
         }, 300);
       }
     });
@@ -880,8 +1071,10 @@
           if (newSettings.enableSidebar === false) {
             const sidebar = document.getElementById('pv-sidebar');
             const toggle = document.getElementById('pv-sidebar-toggle');
+            const overlay = document.getElementById('pv-sidebar-overlay');
             if (sidebar) sidebar.remove();
             if (toggle) toggle.remove();
+            if (overlay) overlay.remove();
           }
         }
         loadData(() => renderSidebar());
@@ -901,22 +1094,10 @@
     toggleSidebar,
     insertPrompt,
     showSidebar: () => {
-      const sidebar = document.getElementById('pv-sidebar');
-      const toggle = document.getElementById('pv-sidebar-toggle');
-      if (sidebar) {
-        sidebar.classList.remove('pv-hidden');
-        sidebarVisible = true;
-      }
-      if (toggle) toggle.style.display = 'none';
+      setSidebarVisible(true);
     },
     hideSidebar: () => {
-      const sidebar = document.getElementById('pv-sidebar');
-      const toggle = document.getElementById('pv-sidebar-toggle');
-      if (sidebar) {
-        sidebar.classList.add('pv-hidden');
-        sidebarVisible = false;
-      }
-      if (toggle) toggle.style.display = 'flex';
+      setSidebarVisible(false);
     },
   };
 })();

@@ -430,6 +430,11 @@ body {
   background: var(--bg-hover);
 }
 
+.prompt-card.copied {
+  border-color: var(--success);
+  box-shadow: 0 0 0 1px rgba(46, 213, 115, 0.35);
+}
+
 .prompt-card-header {
   display: flex;
   justify-content: space-between;
@@ -560,6 +565,42 @@ body {
   background: rgba(74, 158, 255, 0.15);
   border-radius: 12px;
   color: var(--accent-secondary);
+}
+
+.prompt-card-status {
+  font-size: 11px;
+  padding: 2px 8px;
+  border-radius: 999px;
+  font-weight: 500;
+  white-space: nowrap;
+}
+
+.prompt-card-status.variable {
+  background: rgba(255, 165, 2, 0.16);
+  color: var(--warning);
+}
+
+.prompt-card-click-hint {
+  margin-left: auto;
+  font-size: 11px;
+  color: var(--text-muted);
+  opacity: 0;
+  transition: var(--transition);
+  white-space: nowrap;
+}
+
+.prompt-card:hover .prompt-card-click-hint,
+.prompt-card.copied .prompt-card-click-hint {
+  opacity: 1;
+}
+
+.prompt-card:hover .prompt-card-click-hint {
+  color: var(--accent-primary);
+}
+
+.prompt-card.copied .prompt-card-click-hint {
+  color: var(--success);
+  font-weight: 600;
 }
 
 .search-highlight {
@@ -1250,6 +1291,7 @@ body {
 
 /* Primary icon button (+) */
 .icon-btn-primary {
+  position: relative;
   width: 30px;
   height: 30px;
   border-radius: var(--radius-sm);
@@ -1266,6 +1308,82 @@ body {
 
 .icon-btn-primary:hover {
   background: var(--accent-hover);
+}
+
+/* Unified tooltip */
+[data-tooltip] {
+  position: relative;
+}
+
+[data-tooltip]::after {
+  content: attr(data-tooltip);
+  position: absolute;
+  bottom: calc(100% + 8px);
+  left: 50%;
+  z-index: 20;
+  padding: 5px 8px;
+  background: var(--bg-tertiary);
+  color: var(--text-primary);
+  border: 1px solid var(--border-color);
+  border-radius: 6px;
+  box-shadow: 0 8px 20px var(--shadow);
+  font-size: 12px;
+  font-weight: 500;
+  line-height: 1;
+  white-space: nowrap;
+  opacity: 0;
+  transform: translate(-50%, 2px);
+  pointer-events: none;
+  transition: opacity 0.15s ease, transform 0.15s ease;
+}
+
+[data-tooltip]::before {
+  content: '';
+  position: absolute;
+  bottom: calc(100% + 3px);
+  left: 50%;
+  z-index: 21;
+  border: 5px solid transparent;
+  border-top-color: var(--bg-tertiary);
+  opacity: 0;
+  transform: translateX(-50%);
+  pointer-events: none;
+  transition: opacity 0.15s ease;
+}
+
+[data-tooltip][data-tooltip-placement="bottom"]::after {
+  top: calc(100% + 8px);
+  right: 0;
+  bottom: auto;
+  left: auto;
+  transform: translateY(-2px);
+}
+
+[data-tooltip][data-tooltip-placement="bottom"]::before {
+  top: calc(100% + 3px);
+  right: 10px;
+  bottom: auto;
+  left: auto;
+  border-top-color: transparent;
+  border-bottom-color: var(--bg-tertiary);
+  transform: none;
+}
+
+[data-tooltip]:hover::after,
+[data-tooltip]:focus-visible::after,
+[data-tooltip]:hover::before,
+[data-tooltip]:focus-visible::before {
+  opacity: 1;
+}
+
+[data-tooltip]:hover::after,
+[data-tooltip]:focus-visible::after {
+  transform: translate(-50%, 0);
+}
+
+[data-tooltip][data-tooltip-placement="bottom"]:hover::after,
+[data-tooltip][data-tooltip-placement="bottom"]:focus-visible::after {
+  transform: translateY(0);
 }
 
 .icon-btn-primary svg {

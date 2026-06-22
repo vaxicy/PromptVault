@@ -21,14 +21,71 @@ const Storage = (() => {
     }
   };
 
+  let warnedInvalidContext = false;
+
+  function cloneData(data) {
+    return JSON.parse(JSON.stringify(data));
+  }
+
+  function isExtensionContextError(error) {
+    return String(error?.message || error || '').includes('Extension context invalidated');
+  }
+
+  function hasStorageAccess() {
+    try {
+      return Boolean(
+        typeof chrome !== 'undefined' &&
+        chrome.runtime?.id &&
+        chrome.storage?.local
+      );
+    } catch (error) {
+      return false;
+    }
+  }
+
+  function warnInvalidContextOnce(error) {
+    if (warnedInvalidContext) return;
+    warnedInvalidContext = true;
+    console.warn('[PromptVault] Extension context is no longer available. Please refresh the page.', error);
+  }
+
+  async function storageGet(key) {
+    if (!hasStorageAccess()) return {};
+
+    try {
+      return await chrome.storage.local.get(key);
+    } catch (error) {
+      if (isExtensionContextError(error)) {
+        warnInvalidContextOnce(error);
+        return {};
+      }
+      throw error;
+    }
+  }
+
+  async function storageSet(value) {
+    if (!hasStorageAccess()) return false;
+
+    try {
+      await chrome.storage.local.set(value);
+      return true;
+    } catch (error) {
+      if (isExtensionContextError(error)) {
+        warnInvalidContextOnce(error);
+        return false;
+      }
+      throw error;
+    }
+  }
+
   /**
    * Initialize storage with default data if not exists
    */
   async function init() {
-    const data = await chrome.storage.local.get(STORAGE_KEY);
+    const data = await storageGet(STORAGE_KEY);
     if (!data[STORAGE_KEY]) {
-      await chrome.storage.local.set({ [STORAGE_KEY]: defaultData });
-      return defaultData;
+      await storageSet({ [STORAGE_KEY]: cloneData(defaultData) });
+      return cloneData(defaultData);
     }
     return data[STORAGE_KEY];
   }
@@ -37,15 +94,15 @@ const Storage = (() => {
    * Get all data from storage
    */
   async function getAll() {
-    const data = await chrome.storage.local.get(STORAGE_KEY);
-    return data[STORAGE_KEY] || defaultData;
+    const data = await storageGet(STORAGE_KEY);
+    return data[STORAGE_KEY] || cloneData(defaultData);
   }
 
   /**
    * Save all data to storage
    */
   async function saveAll(data) {
-    await chrome.storage.local.set({ [STORAGE_KEY]: data });
+    await storageSet({ [STORAGE_KEY]: data });
   }
 
   /**

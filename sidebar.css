@@ -35,6 +35,19 @@
   color: white;
 }
 
+#pv-sidebar-overlay {
+  position: fixed;
+  inset: 0;
+  background: transparent;
+  z-index: 2147483645;
+  pointer-events: auto;
+}
+
+#pv-sidebar-overlay.pv-hidden {
+  display: none;
+  pointer-events: none;
+}
+
 /* Sidebar Container */
 #pv-sidebar {
   position: fixed;
@@ -279,10 +292,52 @@
   border-color: var(--pv-border);
 }
 
+#pv-sidebar .pv-card.pv-copied {
+  border-color: #22c55e;
+  background: rgba(34, 197, 94, 0.08);
+}
+
 #pv-sidebar .pv-card.pv-editing {
   background: var(--pv-bg-secondary);
   border-color: var(--pv-accent);
   cursor: default;
+}
+
+#pv-sidebar .pv-card.pv-draggable-card {
+  cursor: grab;
+}
+
+#pv-sidebar .pv-card.pv-draggable-card:active {
+  cursor: grabbing;
+}
+
+#pv-sidebar .pv-card.pv-dragging {
+  opacity: 0.45;
+  transform: scale(0.99);
+}
+
+#pv-sidebar .pv-card.pv-drag-over-top,
+#pv-sidebar .pv-card.pv-drag-over-bottom {
+  position: relative;
+}
+
+#pv-sidebar .pv-card.pv-drag-over-top::before,
+#pv-sidebar .pv-card.pv-drag-over-bottom::after {
+  content: '';
+  position: absolute;
+  left: 12px;
+  right: 12px;
+  height: 2px;
+  background: var(--pv-accent);
+  border-radius: 999px;
+}
+
+#pv-sidebar .pv-card.pv-drag-over-top::before {
+  top: -3px;
+}
+
+#pv-sidebar .pv-card.pv-drag-over-bottom::after {
+  bottom: -3px;
 }
 
 #pv-sidebar .pv-card-title {

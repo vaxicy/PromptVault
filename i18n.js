@@ -43,6 +43,9 @@ const i18n = (() => {
       btn_pin: '置顶',
       btn_delete: '删除',
       btn_close: '关闭',
+      card_click_to_copy: '点击复制',
+      card_copied: '已复制',
+      card_has_variables: '含变量',
 
       // Labels
       label_title: '提示词名称',
@@ -87,6 +90,7 @@ const i18n = (() => {
       shortcut_windows: 'Windows',
       shortcut_mac: 'Mac',
       shortcut_copy: '复制',
+      shortcut_copy_tooltip: '复制快捷键',
       shortcut_toast_title: '快捷键已启用',
       shortcut_toast_body: '以后在任何网页按：',
 
@@ -290,6 +294,9 @@ const i18n = (() => {
       btn_pin: 'Pin',
       btn_delete: 'Delete',
       btn_close: 'Close',
+      card_click_to_copy: 'Click to copy',
+      card_copied: 'Copied',
+      card_has_variables: 'Variables',
 
       // Labels
       label_title: 'Prompt Name',
@@ -334,6 +341,7 @@ const i18n = (() => {
       shortcut_windows: 'Windows',
       shortcut_mac: 'Mac',
       shortcut_copy: 'Copy',
+      shortcut_copy_tooltip: 'Copy shortcut',
       shortcut_toast_title: 'Shortcut enabled',
       shortcut_toast_body: 'Press on any page to open PromptVault: ',
 

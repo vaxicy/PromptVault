@@ -14,13 +14,13 @@
         <h1 class="logo">PromptVault</h1>
       </div>
       <div class="header-right">
-        <button id="btn-settings" class="icon-btn" title="设置">
+        <button id="btn-settings" class="icon-btn" title="设置" data-tooltip="设置" data-tooltip-placement="bottom" aria-label="设置">
           <svg width="20" height="20" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2">
             <circle cx="12" cy="12" r="3"></circle>
             <path d="M19.4 15a1.65 1.65 0 0 0 .33 1.82l.06.06a2 2 0 0 1 0 2.83 2 2 0 0 1-2.83 0l-.06-.06a1.65 1.65 0 0 0-1.82-.33 1.65 1.65 0 0 0-1 1.51V21a2 2 0 0 1-2 2 2 2 0 0 1-2-2v-.09A1.65 1.65 0 0 0 9 19.4a1.65 1.65 0 0 0-1.82.33l-.06.06a2 2 0 0 1-2.83 0 2 2 0 0 1 0-2.83l.06-.06A1.65 1.65 0 0 0 4.68 15a1.65 1.65 0 0 0-1.51-1H3a2 2 0 0 1-2-2 2 2 0 0 1 2-2h.09A1.65 1.65 0 0 0 4.6 9a1.65 1.65 0 0 0-.33-1.82l-.06-.06a2 2 0 0 1 0-2.83 2 2 0 0 1 2.83 0l.06.06A1.65 1.65 0 0 0 9 4.68a1.65 1.65 0 0 0 1-1.51V3a2 2 0 0 1 2-2 2 2 0 0 1 2 2v.09a1.65 1.65 0 0 0 1 1.51 1.65 1.65 0 0 0 1.82-.33l.06-.06a2 2 0 0 1 2.83 0 2 2 0 0 1 0 2.83l-.06.06A1.65 1.65 0 0 0 19.4 9a1.65 1.65 0 0 0 1.51 1H21a2 2 0 0 1 2 2 2 2 0 0 1-2 2h-.09a1.65 1.65 0 0 0-1.51 1z"></path>
           </svg>
         </button>
-        <button id="btn-theme" class="icon-btn" title="切换主题">
+        <button id="btn-theme" class="icon-btn" title="切换主题" data-tooltip="切换主题" data-tooltip-placement="bottom" aria-label="切换主题">
           <svg width="20" height="20" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2">
             <path d="M21 12.79A9 9 0 1 1 11.21 3 7 7 0 0 0 21 12.79z"></path>
           </svg>
@@ -88,13 +88,13 @@
             <span id="folder-breadcrumb-wrap"></span>
           </div>
           <div class="tab-header-right">
-            <button id="btn-batch-manage" class="secondary-btn compact" title="批量管理">
+            <button id="btn-batch-manage" class="secondary-btn compact" title="批量管理" data-tooltip="批量管理" data-tooltip-placement="bottom" aria-label="批量管理">
               <svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2">
                 <polyline points="9 11 12 14 22 4"></polyline>
                 <path d="M21 12v7a2 2 0 0 1-2 2H5a2 2 0 0 1-2-2V5a2 2 0 0 1 2-2h11"></path>
               </svg>
             </button>
-            <button id="btn-new-prompt" class="icon-btn-primary" title="新建提示词">
+            <button id="btn-new-prompt" class="icon-btn-primary" title="新建提示词" data-tooltip="新建提示词" data-tooltip-placement="bottom" aria-label="新建提示词">
               <svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.5">
                 <line x1="12" y1="5" x2="12" y2="19"></line>
                 <line x1="5" y1="12" x2="19" y2="12"></line>
@@ -248,7 +248,7 @@
               <button class="color-preset" data-color="#9B59B6" style="background:#9B59B6"></button>
               <button class="color-preset" data-color="#1ABC9C" style="background:#1ABC9C"></button>
               <button class="color-preset" data-color="#808080" style="background:#808080"></button>
-              <button class="color-preset custom-color-btn" id="custom-color-btn" title="自定义颜色">
+              <button class="color-preset custom-color-btn" id="custom-color-btn" title="自定义颜色" data-tooltip="自定义颜色" aria-label="自定义颜色">
                 <svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2">
                   <circle cx="12" cy="12" r="10"></circle>
                   <line x1="12" y1="8" x2="12" y2="16"></line>
@@ -325,12 +325,12 @@
             <div class="shortcut-row">
               <span data-i18n="shortcut_windows">Windows</span>
               <code>Ctrl + Shift + P</code>
-              <button class="shortcut-copy-btn" data-shortcut="Ctrl + Shift + P" title="复制快捷键" data-i18n="shortcut_copy">复制</button>
+              <button class="shortcut-copy-btn" data-shortcut="Ctrl + Shift + P" title="复制快捷键" data-tooltip="复制快捷键" aria-label="复制快捷键" data-i18n="shortcut_copy">复制</button>
             </div>
             <div class="shortcut-row">
               <span data-i18n="shortcut_mac">Mac</span>
               <code>⌘ + Shift + P</code>
-              <button class="shortcut-copy-btn" data-shortcut="⌘ + Shift + P" title="复制快捷键" data-i18n="shortcut_copy">复制</button>
+              <button class="shortcut-copy-btn" data-shortcut="⌘ + Shift + P" title="复制快捷键" data-tooltip="复制快捷键" aria-label="复制快捷键" data-i18n="shortcut_copy">复制</button>
             </div>
           </div>
         </div>

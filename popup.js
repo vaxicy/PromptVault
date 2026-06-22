@@ -30,6 +30,14 @@
     };
   }
 
+  function setTooltip(element, label, placement = 'top') {
+    if (!element || !label) return;
+    element.title = label;
+    element.dataset.tooltip = label;
+    element.dataset.tooltipPlacement = placement;
+    element.setAttribute('aria-label', label);
+  }
+
   // Initialize
   await i18n.loadLocale();
   applyTranslations();
@@ -71,6 +79,8 @@
         <line x1="12" y1="5" x2="12" y2="19"></line>
         <line x1="5" y1="12" x2="19" y2="12"></line>
       </svg>`;
+    const btnNewPrompt = document.getElementById('btn-new-prompt');
+    setTooltip(btnNewPrompt, i18n.t('btn_new_prompt'), 'bottom');
     document.getElementById('btn-new-folder').innerHTML =
       `<svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2">
         <line x1="12" y1="5" x2="12" y2="19"></line>
@@ -110,6 +120,9 @@
       const text = i18n.t(key);
       if (text && text !== key) el.textContent = text;
     });
+    document.querySelectorAll('.shortcut-copy-btn').forEach(btn => {
+      setTooltip(btn, i18n.t('shortcut_copy_tooltip'));
+    });
 
     // Confirm dialog defaults
     document.getElementById('confirm-ok').textContent = i18n.t('btn_confirm');
@@ -138,9 +151,9 @@
 
     // Button tooltips
     const btnSettings = document.getElementById('btn-settings');
-    if (btnSettings) btnSettings.title = i18n.t('settings_title');
+    setTooltip(btnSettings, i18n.t('settings_title'), 'bottom');
     const btnTheme = document.getElementById('btn-theme');
-    if (btnTheme) btnTheme.title = i18n.t('toggle_theme');
+    setTooltip(btnTheme, i18n.t('toggle_theme'), 'bottom');
 
     // Settings modal close button
     const settingsCloseBtn = document.querySelector('#settings-modal .modal-cancel');
@@ -149,7 +162,7 @@
     // Batch manage button
     const btnBatchManage = document.getElementById('btn-batch-manage');
     if (btnBatchManage) {
-      btnBatchManage.title = i18n.t('btn_batch_manage');
+      setTooltip(btnBatchManage, i18n.t('btn_batch_manage'), 'bottom');
       btnBatchManage.innerHTML = `
         <svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2">
           <polyline points="9 11 12 14 22 4"></polyline>
@@ -688,11 +701,43 @@
     return prefix + text.slice(start, end) + suffix;
   }
 
+  function promptHasVariables(prompt) {
+    return /\{\{\s*[^{}]+\s*\}\}/.test(prompt.content || '');
+  }
+
+  function renderPromptStatusChips(prompt) {
+    return promptHasVariables(prompt)
+      ? `<span class="prompt-card-status variable">${i18n.t('card_has_variables')}</span>`
+      : '';
+  }
+
+  function renderClickHint() {
+    return `<span class="prompt-card-click-hint">${i18n.t('card_click_to_copy')}</span>`;
+  }
+
+  function showCardCopiedFeedback(promptId) {
+    document.querySelectorAll('.prompt-card').forEach(card => {
+      if (card.dataset.id !== promptId) return;
+      const hint = card.querySelector('.prompt-card-click-hint');
+      card.classList.add('copied');
+      if (hint) hint.textContent = i18n.t('card_copied');
+      setTimeout(() => {
+        card.classList.remove('copied');
+        if (hint) hint.textContent = i18n.t('card_click_to_copy');
+      }, 1000);
+    });
+  }
+
+  function tooltipAttrs(label, placement = 'top') {
+    const safeLabel = escapeHtml(label);
+    return `title="${safeLabel}" aria-label="${safeLabel}" data-tooltip="${safeLabel}" data-tooltip-placement="${placement}"`;
+  }
+
   function renderFilterChip(type, label, value) {
     return `
       <span class="search-filter-chip" title="${escapeHtml(value)}">
         <span>${escapeHtml(label)}: ${escapeHtml(value)}</span>
-        <button type="button" data-clear-filter="${type}" title="${i18n.t('clear_filter')}">×</button>
+        <button type="button" data-clear-filter="${type}" ${tooltipAttrs(i18n.t('clear_filter'))}>×</button>
       </span>
     `;
   }
@@ -809,6 +854,7 @@
       const tagsHtml = (prompt.tags || [])
         .map(tag => `<span class="prompt-card-tag">${highlightMatches(tag, searchTerms)}</span>`)
         .join('');
+      const statusChipsHtml = renderPromptStatusChips(prompt);
 
       if (isBatchMode) {
         return `
@@ -824,6 +870,7 @@
               <div class="prompt-card-meta">
                 <span class="prompt-card-folder" style="border-left: 3px solid ${folderColor}">${escapeHtml(folderName)}</span>
                 ${tagsHtml}
+                ${statusChipsHtml}
               </div>
             </div>
           </div>
@@ -834,19 +881,19 @@
             <div class="prompt-card-header">
               <div class="prompt-card-title">${titleHtml}</div>
               <div class="prompt-card-actions">
-                <button class="prompt-card-action edit" title="${i18n.t('btn_edit')}" data-id="${prompt.id}">
+                <button class="prompt-card-action edit" ${tooltipAttrs(i18n.t('btn_edit'))} data-id="${prompt.id}">
                   <svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2">
                     <path d="M11 4H4a2 2 0 0 0-2 2v14a2 2 0 0 0 2 2h14a2 2 0 0 0 2-2v-7"></path>
                     <path d="M18.5 2.5a2.121 2.121 0 0 1 3 3L12 15l-4 1 1-4 9.5-9.5z"></path>
                   </svg>
                 </button>
-                <button class="prompt-card-action pin ${prompt.pinned ? 'active' : ''}" title="${i18n.t('btn_pin')}" data-id="${prompt.id}">
+                <button class="prompt-card-action pin ${prompt.pinned ? 'active' : ''}" ${tooltipAttrs(i18n.t('btn_pin'))} data-id="${prompt.id}">
                   <svg width="16" height="16" viewBox="0 0 24 24" fill="${prompt.pinned ? 'currentColor' : 'none'}" stroke="currentColor" stroke-width="2">
                     <line x1="12" y1="17" x2="12" y2="22"></line>
                     <path d="M5 17h14v-1.76a2 2 0 0 0-1.11-1.79l-1.78-.9A2 2 0 0 1 15 10.76V6h1a2 2 0 0 0 0-4H8a2 2 0 0 0 0 4h1v4.76a2 2 0 0 1-1.11 1.79l-1.78.9A2 2 0 0 0 5 15.24z"></path>
                   </svg>
                 </button>
-                <button class="prompt-card-action delete" title="${i18n.t('btn_delete')}" data-id="${prompt.id}">
+                <button class="prompt-card-action delete" ${tooltipAttrs(i18n.t('btn_delete'))} data-id="${prompt.id}">
                   <svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2">
                     <polyline points="3 6 5 6 21 6"></polyline>
                     <path d="M19 6v14a2 2 0 0 1-2 2H7a2 2 0 0 1-2-2V6m3 0V4a2 2 0 0 1 2-2h4a2 2 0 0 1 2 2v2"></path>
@@ -858,7 +905,9 @@
             <div class="prompt-card-meta">
               <span class="prompt-card-folder" style="border-left: 3px solid ${folderColor}">${escapeHtml(folderName)}</span>
               ${tagsHtml}
+              ${statusChipsHtml}
               ${prompt.usageCount > 0 ? `<span class="prompt-card-usage">${i18n.t('usage_stats', prompt.usageCount, formatRelativeTime(prompt.lastUsedAt))}</span>` : ''}
+              ${renderClickHint()}
             </div>
           </div>
         `;
@@ -971,6 +1020,7 @@
                 <div class="prompt-card-preview">${escapeHtml((prompt.content || '').substring(0, 150))}${(prompt.content || '').length > 150 ? '...' : ''}</div>
                 <div class="prompt-card-meta">
                   ${(prompt.tags || []).map(tag => `<span class="prompt-card-tag">${escapeHtml(tag)}</span>`).join('')}
+                  ${renderPromptStatusChips(prompt)}
                 </div>
               </div>
             </div>
@@ -981,19 +1031,19 @@
               <div class="prompt-card-header">
                 <div class="prompt-card-title">${escapeHtml(prompt.title)}</div>
                 <div class="prompt-card-actions">
-                  <button class="prompt-card-action edit" title="${i18n.t('btn_edit')}" data-id="${prompt.id}">
+                  <button class="prompt-card-action edit" ${tooltipAttrs(i18n.t('btn_edit'))} data-id="${prompt.id}">
                     <svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2">
                       <path d="M11 4H4a2 2 0 0 0-2 2v14a2 2 0 0 0 2 2h14a2 2 0 0 0 2-2v-7"></path>
                       <path d="M18.5 2.5a2.121 2.121 0 0 1 3 3L12 15l-4 1 1-4 9.5-9.5z"></path>
                     </svg>
                   </button>
-                  <button class="prompt-card-action pin ${prompt.pinned ? 'active' : ''}" title="${i18n.t('btn_pin')}" data-id="${prompt.id}">
+                  <button class="prompt-card-action pin ${prompt.pinned ? 'active' : ''}" ${tooltipAttrs(i18n.t('btn_pin'))} data-id="${prompt.id}">
                     <svg width="16" height="16" viewBox="0 0 24 24" fill="${prompt.pinned ? 'currentColor' : 'none'}" stroke="currentColor" stroke-width="2">
                       <line x1="12" y1="17" x2="12" y2="22"></line>
                       <path d="M5 17h14v-1.76a2 2 0 0 0-1.11-1.79l-1.78-.9A2 2 0 0 1 15 10.76V6h1a2 2 0 0 0 0-4H8a2 2 0 0 0 0 4h1v4.76a2 2 0 0 1-1.11 1.79l-1.78.9A2 2 0 0 0 5 15.24z"></path>
                     </svg>
                   </button>
-                  <button class="prompt-card-action delete" title="${i18n.t('btn_delete')}" data-id="${prompt.id}">
+                  <button class="prompt-card-action delete" ${tooltipAttrs(i18n.t('btn_delete'))} data-id="${prompt.id}">
                     <svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2">
                       <polyline points="3 6 5 6 21 6"></polyline>
                       <path d="M19 6v14a2 2 0 0 1-2 2H7a2 2 0 0 1-2-2V6m3 0V4a2 2 0 0 1 2-2h4a2 2 0 0 1 2 2v2"></path>
@@ -1004,7 +1054,9 @@
               <div class="prompt-card-preview">${escapeHtml((prompt.content || '').substring(0, 150))}${(prompt.content || '').length > 150 ? '...' : ''}</div>
               <div class="prompt-card-meta">
                 ${(prompt.tags || []).map(tag => `<span class="prompt-card-tag">${escapeHtml(tag)}</span>`).join('')}
+                ${renderPromptStatusChips(prompt)}
                 ${prompt.usageCount > 0 ? `<span class="prompt-card-usage">${i18n.t('usage_stats', prompt.usageCount, formatRelativeTime(prompt.lastUsedAt))}</span>` : ''}
+                ${renderClickHint()}
               </div>
             </div>
           `;
@@ -1231,13 +1283,13 @@
           </div>
           <div class="folder-card-actions">
             ${folder.id !== 'default' ? `
-              <button class="prompt-card-action edit" title="${i18n.t('btn_edit')}" data-id="${folder.id}">
+              <button class="prompt-card-action edit" ${tooltipAttrs(i18n.t('btn_edit'))} data-id="${folder.id}">
                 <svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2">
                   <path d="M11 4H4a2 2 0 0 0-2 2v14a2 2 0 0 0 2 2h14a2 2 0 0 0 2-2v-7"></path>
                   <path d="M18.5 2.5a2.121 2.121 0 0 1 3 3L12 15l-4 1 1-4 9.5-9.5z"></path>
                 </svg>
               </button>
-              <button class="prompt-card-action delete" title="${i18n.t('btn_delete')}" data-id="${folder.id}">
+              <button class="prompt-card-action delete" ${tooltipAttrs(i18n.t('btn_delete'))} data-id="${folder.id}">
                 <svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2">
                   <polyline points="3 6 5 6 21 6"></polyline>
                   <path d="M19 6v14a2 2 0 0 1-2 2H7a2 2 0 0 1-2-2V6m3 0V4a2 2 0 0 1 2-2h4a2 2 0 0 1 2 2v2"></path>
@@ -1301,7 +1353,7 @@
         <div class="tag-item" data-tag="${escapeHtml(tag)}">
           <span>${escapeHtml(tag)}</span>
           <span class="tag-item-count">${count}</span>
-          <button class="tag-item-delete" data-tag="${escapeHtml(tag)}">×</button>
+          <button class="tag-item-delete" data-tag="${escapeHtml(tag)}" ${tooltipAttrs(i18n.t('btn_delete'))}>×</button>
         </div>
       `;
     }).join('');
@@ -1359,30 +1411,30 @@
           <div class="prompt-card-header">
             <div class="prompt-card-title">${escapeHtml(prompt.title)}</div>
             <div class="prompt-card-actions">
-              <button class="prompt-card-action copy" title="${i18n.t('btn_copy')}" data-id="${prompt.id}">
+              <button class="prompt-card-action copy" ${tooltipAttrs(i18n.t('btn_copy'))} data-id="${prompt.id}">
                 <svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2">
                   <rect x="9" y="9" width="13" height="13" rx="2" ry="2"></rect>
                   <path d="M5 15H4a2 2 0 0 1-2-2V4a2 2 0 0 1 2-2h9a2 2 0 0 1 2 2v1"></path>
                 </svg>
               </button>
-              <button class="prompt-card-action use" title="${i18n.t('btn_use')}" data-id="${prompt.id}">
+              <button class="prompt-card-action use" ${tooltipAttrs(i18n.t('btn_use'))} data-id="${prompt.id}">
                 <svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2">
                   <path d="M21 15a2 2 0 0 1-2 2H7l-4 4V5a2 2 0 0 1 2-2h14a2 2 0 0 1 2 2z"></path>
                 </svg>
               </button>
-              <button class="prompt-card-action edit" title="${i18n.t('btn_edit')}" data-id="${prompt.id}">
+              <button class="prompt-card-action edit" ${tooltipAttrs(i18n.t('btn_edit'))} data-id="${prompt.id}">
                 <svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2">
                   <path d="M11 4H4a2 2 0 0 0-2 2v14a2 2 0 0 0 2 2h14a2 2 0 0 0 2-2v-7"></path>
                   <path d="M18.5 2.5a2.121 2.121 0 0 1 3 3L12 15l-4 1 1-4 9.5-9.5z"></path>
                 </svg>
               </button>
-              <button class="prompt-card-action pin active" title="${i18n.t('btn_pin')}" data-id="${prompt.id}">
+              <button class="prompt-card-action pin active" ${tooltipAttrs(i18n.t('btn_pin'))} data-id="${prompt.id}">
                 <svg width="16" height="16" viewBox="0 0 24 24" fill="currentColor" stroke="currentColor" stroke-width="2">
                   <line x1="12" y1="17" x2="12" y2="22"></line>
                   <path d="M5 17h14v-1.76a2 2 0 0 0-1.11-1.79l-1.78-.9A2 2 0 0 1 15 10.76V6h1a2 2 0 0 0 0-4H8a2 2 0 0 0 0 4h1v4.76a2 2 0 0 1-1.11 1.79l-1.78.9A2 2 0 0 0 5 15.24z"></path>
                 </svg>
               </button>
-              <button class="prompt-card-action delete" title="${i18n.t('btn_delete')}" data-id="${prompt.id}">
+              <button class="prompt-card-action delete" ${tooltipAttrs(i18n.t('btn_delete'))} data-id="${prompt.id}">
                 <svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2">
                   <polyline points="3 6 5 6 21 6"></polyline>
                   <path d="M19 6v14a2 2 0 0 1-2 2H7a2 2 0 0 1-2-2V6m3 0V4a2 2 0 0 1 2-2h4a2 2 0 0 1 2 2v2"></path>
@@ -1394,7 +1446,9 @@
           <div class="prompt-card-meta">
             <span class="prompt-card-folder" style="border-left: 3px solid ${folderColor}">${escapeHtml(folderName)}</span>
             ${(prompt.tags || []).map(tag => `<span class="prompt-card-tag">${escapeHtml(tag)}</span>`).join('')}
+            ${renderPromptStatusChips(prompt)}
             ${prompt.usageCount > 0 ? `<span class="prompt-card-usage">${i18n.t('usage_stats', prompt.usageCount, formatRelativeTime(prompt.lastUsedAt))}</span>` : ''}
+            ${renderClickHint()}
           </div>
         </div>
       `;
@@ -1488,7 +1542,7 @@
           <div class="recent-usage-meta">
             <span class="recent-usage-folder" style="border-left: 3px solid ${folderColor}">${folderName}</span>
             <span class="recent-usage-time">${formatRelativeTime(prompt.lastUsedAt)}</span>
-            <button class="recent-item-delete" data-id="${prompt.id}" title="${i18n.t('btn_delete')}">×</button>
+            <button class="recent-item-delete" data-id="${prompt.id}" ${tooltipAttrs(i18n.t('btn_delete'))}>×</button>
           </div>
         </div>
       `;
@@ -1773,7 +1827,7 @@
     const customColorBtn = document.getElementById('custom-color-btn');
     const customColorInput = document.getElementById('custom-color-input');
     if (customColorBtn && customColorInput) {
-      customColorBtn.title = i18n.t('custom_color');
+      setTooltip(customColorBtn, i18n.t('custom_color'));
       customColorBtn.onclick = () => {
         customColorInput.click();
       };
@@ -1869,6 +1923,7 @@
     await navigator.clipboard.writeText(prompt.content);
     // Record usage
     await Storage.recordUsage(promptId);
+    showCardCopiedFeedback(promptId);
     showToast(i18n.t('toast_copied'), 'success');
   }
 

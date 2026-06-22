@@ -106,11 +106,18 @@
   // ========== Load Prompts ==========
   function loadPrompts(callback) {
     if (typeof Storage !== 'undefined') {
-      Storage.getAll().then((data) => {
-        allPrompts = data.prompts || [];
-        allFolders = data.folders || [];
-        if (callback) callback();
-      });
+      Storage.getAll()
+        .then((data) => {
+          allPrompts = data.prompts || [];
+          allFolders = data.folders || [];
+          if (callback) callback();
+        })
+        .catch((error) => {
+          console.warn('[PromptVault] Failed to load prompts:', error);
+          allPrompts = [];
+          allFolders = [];
+          if (callback) callback();
+        });
     } else {
       chrome.storage.local.get('promptvault_data', (data) => {
         const store = data.promptvault_data || {};
@@ -451,7 +458,9 @@
 
     // Record usage
     if (typeof Storage !== 'undefined') {
-      Storage.addRecentUsage(prompt.id);
+      Storage.addRecentUsage(prompt.id).catch((error) => {
+        console.warn('[PromptVault] Failed to record prompt usage:', error);
+      });
     }
 
     closePalette();
