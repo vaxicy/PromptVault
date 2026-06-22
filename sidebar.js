@@ -37,6 +37,7 @@
   let suppressCardClickUntil = 0;
   let sidebarCloseOnOutside = true;
   let sidebarCardClickAction = 'copy';
+  let togglePosition = null; // { x, y } or null (null = default right-middle)
 
   // ========== Website Detection ==========
   const WEBSITE = detectWebsite();
@@ -224,6 +225,163 @@
         resolve(store.settings || {});
       });
     });
+  }
+
+  // ========== Toggle Position Persistence ==========
+  async function saveTogglePosition(pos, mode) {
+    try {
+      return new Promise((resolve) => {
+        chrome.storage.local.get('promptvault_data', (data) => {
+          const store = data.promptvault_data || {};
+          if (!store.settings) store.settings = {};
+          store.settings.togglePosition = { x: pos.x, y: pos.y, mode: mode || 'dock' };
+          chrome.storage.local.set({ promptvault_data: store }, resolve);
+        });
+      });
+    } catch (e) {
+      // Extension context invalidated — silently ignore
+      console.warn('[PromptVault] Failed to save toggle position:', e.message);
+    }
+  }
+
+  async function loadTogglePosition() {
+    try {
+      return new Promise((resolve) => {
+        chrome.storage.local.get('promptvault_data', (data) => {
+          const store = data.promptvault_data || {};
+          const pos = store.settings?.togglePosition;
+          if (pos && typeof pos === 'object' && 'x' in pos && 'y' in pos) {
+            resolve(pos); // { x, y, mode? }
+          } else {
+            resolve(null);
+          }
+        });
+      });
+    } catch (e) {
+      // Extension context invalidated
+      console.warn('[PromptVault] Failed to load toggle position:', e.message);
+      return null;
+    }
+  }
+
+  // ========== Toggle Drag ==========
+  const SNAP_THRESHOLD = 80; // px from edge to trigger snap
+
+  function updateToggleShape(toggle, mode) {
+    // Remove all shape classes first
+    toggle.classList.remove('pv-toggle-float', 'pv-docked-left', 'pv-docked-right');
+    if (mode === 'float') {
+      toggle.classList.add('pv-toggle-float');
+    } else if (mode === 'dock-left') {
+      toggle.classList.add('pv-docked-left');
+    } else {
+      // dock-right (default)
+      toggle.classList.add('pv-docked-right');
+    }
+  }
+
+  function initToggleDrag() {
+    const toggle = document.getElementById('pv-sidebar-toggle');
+    if (!toggle) return;
+
+    let isDragging = false;
+    let hasMoved = false;
+    let startX, startY, origX, origY;
+
+    const onMouseDown = (e) => {
+      if (e.button !== 0) return;
+      isDragging = true;
+      hasMoved = false;
+      startX = e.clientX;
+      startY = e.clientY;
+      const rect = toggle.getBoundingClientRect();
+      origX = rect.left;
+      origY = rect.top;
+      toggle.style.transition = 'none';
+      toggle.style.cursor = 'grabbing';
+      // Immediately switch to floating ball shape while dragging
+      toggle.classList.add('pv-toggle-float');
+      toggle.classList.remove('pv-docked-left', 'pv-docked-right');
+    };
+
+    const onMouseMove = (e) => {
+      if (!isDragging) return;
+      const dx = e.clientX - startX;
+      const dy = e.clientY - startY;
+      if (!hasMoved && Math.abs(dx) < 3 && Math.abs(dy) < 3) return;
+      hasMoved = true;
+
+      let newX = origX + dx;
+      let newY = origY + dy;
+
+      // Clamp to viewport
+      const maxX = window.innerWidth - toggle.offsetWidth;
+      const maxY = window.innerHeight - toggle.offsetHeight;
+      newX = Math.max(0, Math.min(newX, maxX));
+      newY = Math.max(0, Math.min(newY, maxY));
+
+      toggle.style.left = newX + 'px';
+      toggle.style.top = newY + 'px';
+      toggle.style.right = 'auto';
+      toggle.style.transform = 'none';
+    };
+
+    const onMouseUp = async () => {
+      if (!isDragging) return;
+      isDragging = false;
+      toggle.style.transition = '';
+      toggle.style.cursor = 'grab';
+
+      if (!hasMoved) return;
+
+      const rect = toggle.getBoundingClientRect();
+      const cx = rect.left + rect.width / 2; // center x
+
+      // Decide snap: closer to left edge → dock left, closer to right → dock right
+      const distLeft = cx;
+      const distRight = window.innerWidth - cx;
+      let mode;
+      let finalX = rect.left;
+
+      if (distLeft < SNAP_THRESHOLD || distRight < SNAP_THRESHOLD) {
+        // Snap to nearest edge
+        mode = distLeft <= distRight ? 'dock-left' : 'dock-right';
+        // Animate shape + position
+        toggle.style.transition = 'left 0.2s ease, right 0.2s ease, border-radius 0.2s ease, width 0.2s ease, height 0.2s ease';
+        updateToggleShape(toggle, mode);
+        if (mode === 'dock-left') {
+          toggle.style.left = '0px';
+          toggle.style.right = 'auto';
+          finalX = 0;
+        } else {
+          toggle.style.left = 'auto';
+          toggle.style.right = '0px';
+          // Compute x for storage (right edge snapped)
+          finalX = window.innerWidth - rect.width;
+        }
+      } else {
+        mode = 'float';
+        updateToggleShape(toggle, 'float');
+        finalX = rect.left;
+      }
+
+      togglePosition = { x: finalX, y: rect.top };
+      await saveTogglePosition(togglePosition, mode);
+    };
+
+    // Block click if it was a drag
+    const onClick = (e) => {
+      if (hasMoved) {
+        e.preventDefault();
+        e.stopPropagation();
+        hasMoved = false; // reset after blocking
+      }
+    };
+
+    toggle.addEventListener('mousedown', onMouseDown);
+    document.addEventListener('mousemove', onMouseMove);
+    document.addEventListener('mouseup', onMouseUp);
+    toggle.addEventListener('click', onClick, true); // capture phase
   }
 
   function copyPrompt(prompt, card) {
@@ -858,6 +1016,9 @@
     toggle.addEventListener('click', toggleSidebar);
     document.body.appendChild(toggle);
 
+    // Init toggle drag after append
+    initToggleDrag();
+
     const overlay = document.createElement('div');
     overlay.id = 'pv-sidebar-overlay';
     overlay.className = 'pv-hidden';
@@ -1098,6 +1259,32 @@
 
     // Create sidebar (starts hidden)
     createSidebar();
+
+    // Load saved toggle position
+    const savedPos = await loadTogglePosition();
+    const t = document.getElementById('pv-sidebar-toggle');
+    if (savedPos && t) {
+      togglePosition = { x: savedPos.x, y: savedPos.y };
+      const mode = savedPos.mode || 'dock-right'; // default for backward compat
+      updateToggleShape(t, mode);
+      if (mode === 'dock-left') {
+        t.style.left = '0px';
+        t.style.right = 'auto';
+        t.style.top = savedPos.y + 'px';
+        t.style.transform = 'none';
+      } else if (mode === 'dock-right') {
+        t.style.right = '0px';
+        t.style.left = 'auto';
+        t.style.top = savedPos.y + 'px';
+        t.style.transform = 'none';
+      } else {
+        // float mode
+        t.style.left = savedPos.x + 'px';
+        t.style.top = savedPos.y + 'px';
+        t.style.right = 'auto';
+        t.style.transform = 'none';
+      }
+    }
 
     // Load data and render
     loadData(() => {

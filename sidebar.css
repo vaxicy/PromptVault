@@ -15,13 +15,26 @@
   background: linear-gradient(135deg, #4A90E2, #6366F1);
   border: none;
   border-radius: 8px 0 0 8px;
-  cursor: pointer;
+  cursor: grab;
   z-index: 2147483647;
   display: flex;
   align-items: center;
   justify-content: center;
   box-shadow: -2px 0 12px rgba(0, 0, 0, 0.15);
-  transition: all 0.2s ease;
+  transition: width 0.2s ease, height 0.2s ease, border-radius 0.2s ease,
+              left 0.2s ease, right 0.2s ease, box-shadow 0.2s ease, background 0.2s ease;
+  user-select: none;
+}
+
+/* Dock mode explicit size (overrides float size) */
+#pv-sidebar-toggle.pv-docked-left,
+#pv-sidebar-toggle.pv-docked-right {
+  width: 36px;
+  height: 80px;
+}
+
+#pv-sidebar-toggle:active {
+  cursor: grabbing;
 }
 
 #pv-sidebar-toggle:hover {
@@ -33,6 +46,45 @@
   width: 20px;
   height: 20px;
   color: white;
+  transition: width 0.2s ease, height 0.2s ease;
+}
+
+/* Floating Ball Mode */
+#pv-sidebar-toggle.pv-toggle-float {
+  width: 44px;
+  height: 44px;
+  border-radius: 50%;
+  box-shadow: 0 4px 16px rgba(74, 144, 226, 0.35), 0 2px 4px rgba(0, 0, 0, 0.1);
+}
+
+#pv-sidebar-toggle.pv-toggle-float svg {
+  width: 22px;
+  height: 22px;
+}
+
+#pv-sidebar-toggle.pv-toggle-float:hover {
+  width: 48px;
+  height: 48px;
+  background: linear-gradient(135deg, #5BA0F2, #7376FF);
+}
+
+#pv-sidebar-toggle.pv-toggle-float:active {
+  width: 44px;
+  height: 44px;
+}
+
+/* Docked left (snapped to left edge) */
+#pv-sidebar-toggle.pv-docked-left {
+  left: 0 !important;
+  right: auto !important;
+  border-radius: 0 8px 8px 0;
+}
+
+/* Docked right (snapped to right edge) */
+#pv-sidebar-toggle.pv-docked-right {
+  right: 0 !important;
+  left: auto !important;
+  border-radius: 8px 0 0 8px;
 }
 
 #pv-sidebar-overlay {
