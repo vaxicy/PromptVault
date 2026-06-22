@@ -79,6 +79,7 @@
         <div class="tab-header">
           <div class="tab-header-left">
             <select id="sort-select" class="sort-select" title="排序方式">
+              <option value="smart" data-i18n="sort_smart">智能</option>
               <option value="updatedAt" data-i18n="sort_updated">按更新时间</option>
               <option value="createdAt" data-i18n="sort_created">按创建时间</option>
               <option value="title" data-i18n="sort_title">按名称 A-Z</option>
@@ -292,13 +293,6 @@
           </div>
           <div class="form-group">
             <label class="checkbox-label">
-              <input type="checkbox" id="setting-enable-sidebar">
-              <span data-i18n="label_enable_sidebar">启用侧边栏</span>
-            </label>
-            <p class="setting-hint" data-i18n="settings_enable_sidebar_hint">在网页中显示 PromptVault 侧边栏</p>
-          </div>
-          <div class="form-group">
-            <label class="checkbox-label">
               <input type="checkbox" id="setting-show-badge">
               <span data-i18n="label_show_badge">显示角标</span>
             </label>
@@ -317,6 +311,31 @@
               <option value="list" data-i18n="display_mode_list">列表</option>
               <option value="grouped" data-i18n="display_mode_grouped">按文件夹分组</option>
             </select>
+          </div>
+        </div>
+        <div class="settings-section">
+          <h3 data-i18n="settings_sidebar">侧边栏设置</h3>
+          <div class="form-group">
+            <label class="checkbox-label">
+              <input type="checkbox" id="setting-enable-sidebar">
+              <span data-i18n="label_enable_sidebar">启用侧边栏</span>
+            </label>
+            <p class="setting-hint" data-i18n="settings_enable_sidebar_hint">在网页中显示 PromptVault 侧边栏</p>
+          </div>
+          <div class="form-group">
+            <label class="checkbox-label">
+              <input type="checkbox" id="setting-sidebar-close-outside">
+              <span data-i18n="label_sidebar_close_outside">点击空白处关闭侧边栏</span>
+            </label>
+            <p class="setting-hint" data-i18n="settings_sidebar_close_outside_hint">侧边栏打开时，点击网页空白区域会自动收起</p>
+          </div>
+          <div class="form-group">
+            <label for="setting-sidebar-card-click" data-i18n="label_sidebar_card_click">侧边栏卡片点击</label>
+            <select id="setting-sidebar-card-click">
+              <option value="copy" data-i18n="sidebar_card_click_copy">复制到剪贴板</option>
+              <option value="insert" data-i18n="sidebar_card_click_insert">插入页面输入框</option>
+            </select>
+            <p class="setting-hint no-indent" data-i18n="settings_sidebar_card_click_hint">建议保持复制，避免误插入当前页面</p>
           </div>
         </div>
         <div class="settings-section">
@@ -354,6 +373,7 @@
               <span data-i18n="btn_export">导出</span>
             </button>
           </div>
+          <p class="setting-hint no-indent" data-i18n="settings_data_management_hint">导入会合并数据；清除会删除所有提示词、文件夹和标签</p>
           <button id="btn-clear-data" class="danger-btn settings-danger-btn">清除所有数据</button>
         </div>
       </div>

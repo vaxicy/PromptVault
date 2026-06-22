@@ -250,6 +250,13 @@ body {
   color: var(--text-muted);
 }
 
+.sort-drag-tip {
+  padding: 3px 8px;
+  border-radius: 999px;
+  background: var(--bg-secondary);
+  border: 1px dashed var(--border-color);
+}
+
 /* Navigation Tabs */
 .nav-tabs {
   display: flex;
@@ -388,7 +395,7 @@ body {
   background: var(--bg-secondary);
   border: 1px solid var(--border-color);
   border-radius: var(--radius);
-  padding: 10px;
+  padding: 9px 10px;
   cursor: pointer;
   transition: var(--transition);
 }
@@ -439,7 +446,7 @@ body {
   display: flex;
   justify-content: space-between;
   align-items: flex-start;
-  margin-bottom: 8px;
+  margin-bottom: 6px;
 }
 
 .prompt-card-title {
@@ -529,8 +536,8 @@ body {
 .prompt-card-preview {
   font-size: 12px;
   color: var(--text-secondary);
-  line-height: 1.4;
-  margin-bottom: 8px;
+  line-height: 1.35;
+  margin-bottom: 6px;
   display: -webkit-box;
   -webkit-line-clamp: 2;
   line-clamp: 2;
@@ -540,15 +547,15 @@ body {
 
 .prompt-card-meta {
   display: flex;
-  gap: 8px;
+  gap: 6px;
   flex-wrap: wrap;
   align-items: center;
 }
 
 .prompt-card-folder {
   font-size: 11px;
-  padding: 2px 8px;
-  background: var(--bg-tertiary);
+  padding: 2px 7px;
+  background: rgba(128, 128, 128, 0.12);
   border-radius: 12px;
   color: var(--text-secondary);
 }
@@ -561,8 +568,8 @@ body {
 
 .prompt-card-tag {
   font-size: 11px;
-  padding: 2px 8px;
-  background: rgba(74, 158, 255, 0.15);
+  padding: 2px 7px;
+  background: rgba(74, 158, 255, 0.12);
   border-radius: 12px;
   color: var(--accent-secondary);
 }
@@ -914,6 +921,19 @@ body {
 
 .form-group select {
   cursor: pointer;
+}
+
+#settings-modal .form-group select {
+  min-height: 44px;
+  padding: 10px 40px 10px 12px;
+  line-height: 1.35;
+  border-radius: 7px;
+  background-color: var(--bg-secondary);
+  background-position: right 12px center;
+}
+
+#settings-modal .form-group select:focus {
+  box-shadow: 0 0 0 3px rgba(74, 158, 255, 0.12);
 }
 
 /* Checkbox */
@@ -1392,15 +1412,15 @@ body {
 
 /* Folder group (grouped view) */
 .folder-group {
-  margin-bottom: 8px;
+  margin-bottom: 12px;
 }
 
 .folder-group-header {
   display: flex;
   align-items: center;
-  gap: 6px;
-  padding: 6px 8px;
-  background: var(--bg-secondary);
+  gap: 7px;
+  padding: 4px 4px 6px;
+  background: transparent;
   border-radius: var(--radius-sm);
   cursor: pointer;
   transition: var(--transition);
@@ -1408,19 +1428,20 @@ body {
 }
 
 .folder-group-header:hover {
-  background: var(--bg-hover);
+  background: rgba(128, 128, 128, 0.08);
 }
 
 .folder-group-arrow {
-  font-size: 12px;
+  font-size: 10px;
   color: var(--text-muted);
-  width: 12px;
+  width: 10px;
   text-align: center;
+  flex-shrink: 0;
 }
 
 .folder-group-dot {
-  width: 10px;
-  height: 10px;
+  width: 9px;
+  height: 9px;
   border-radius: 50%;
   flex-shrink: 0;
 }
@@ -1429,20 +1450,36 @@ body {
   font-size: 13px;
   font-weight: 600;
   color: var(--text-primary);
+  white-space: nowrap;
+  overflow: hidden;
+  text-overflow: ellipsis;
 }
 
 .folder-group-count {
   font-size: 11px;
   color: var(--text-muted);
-  background: var(--bg-tertiary);
-  padding: 1px 6px;
-  border-radius: 8px;
-  margin-left: auto;
+  white-space: nowrap;
+  flex-shrink: 0;
+}
+
+.folder-group-line {
+  height: 1px;
+  min-width: 24px;
+  flex: 1;
+  background: var(--border-color);
+  opacity: 0.7;
 }
 
 .folder-group-list {
-  padding-left: 8px;
-  margin-top: 6px;
+  padding-left: 0;
+  margin-top: 5px;
+  display: flex;
+  flex-direction: column;
+  gap: 6px;
+}
+
+.folder-group-list .prompt-card {
+  margin: 0;
 }
 
 .folder-group-list.hidden {
@@ -1680,6 +1717,10 @@ body {
   color: var(--text-muted);
   margin-top: 4px;
   margin-left: 24px;
+}
+
+.setting-hint.no-indent {
+  margin-left: 0;
 }
 
 /* Folder breadcrumb (compact back link) */

@@ -14,8 +14,11 @@
   let isBatchMode = false;
   let selectedPromptIds = new Set();
   let recentUsageCollapsed = false;
-  let currentSortMode = 'updatedAt'; // updatedAt | createdAt | title | usageCount
+  let currentSortMode = 'smart'; // smart | updatedAt | createdAt | title | usageCount | custom
+  let currentGroupSortMode = 'folderName'; // folderName | recent | updatedAt | usageCount | custom
   let displayMode = 'list'; // list | grouped
+  let isPromptDragSorting = false;
+  let suppressPromptCardClickUntil = 0;
 
   // Settings snapshot (for Apply/Cancel)
   let settingsSnapshot = null;
@@ -23,6 +26,8 @@
     return {
       language: document.getElementById('setting-language').value,
       enableSidebar: document.getElementById('setting-enable-sidebar').checked,
+      sidebarCloseOnOutside: document.getElementById('setting-sidebar-close-outside').checked,
+      sidebarCardClickAction: document.getElementById('setting-sidebar-card-click').value,
       showBadge: document.getElementById('setting-show-badge').checked,
       showRecent: document.getElementById('setting-show-recent').checked,
       defaultFolder: document.getElementById('setting-default-folder').value,
@@ -36,6 +41,57 @@
     element.dataset.tooltip = label;
     element.dataset.tooltipPlacement = placement;
     element.setAttribute('aria-label', label);
+  }
+
+  function isGroupedSortMode() {
+    return displayMode === 'grouped';
+  }
+
+  function getActiveSortMode() {
+    return isGroupedSortMode() ? currentGroupSortMode : currentSortMode;
+  }
+
+  function getSortOptions() {
+    if (isGroupedSortMode()) {
+      return [
+        ['folderName', i18n.t('sort_group_folder')],
+        ['recent', i18n.t('sort_group_recent')],
+        ['updatedAt', i18n.t('sort_group_updated')],
+        ['usageCount', i18n.t('sort_group_usage')],
+        ['custom', i18n.t('sort_group_custom')],
+      ];
+    }
+
+    return [
+      ['smart', i18n.t('sort_smart')],
+      ['updatedAt', i18n.t('sort_updated')],
+      ['createdAt', i18n.t('sort_created')],
+      ['title', i18n.t('sort_title')],
+      ['usageCount', i18n.t('sort_usage')],
+      ['custom', i18n.t('sort_custom')],
+    ];
+  }
+
+  function updateSortSelectOptions() {
+    const sortSelect = document.getElementById('sort-select');
+    if (!sortSelect) return;
+
+    sortSelect.innerHTML = getSortOptions()
+      .map(([value, label]) => `<option value="${value}">${escapeHtml(label)}</option>`)
+      .join('');
+    sortSelect.value = getActiveSortMode();
+    setTooltip(
+      sortSelect,
+      i18n.t(isGroupedSortMode() ? 'sort_group_tooltip' : 'sort_list_tooltip'),
+      'bottom'
+    );
+  }
+
+  async function persistSortModes() {
+    const settings = await Storage.getSettings();
+    settings.sortMode = currentSortMode;
+    settings.groupSortMode = currentGroupSortMode;
+    await Storage.saveSettings(settings);
   }
 
   // Initialize
@@ -154,6 +210,7 @@
     setTooltip(btnSettings, i18n.t('settings_title'), 'bottom');
     const btnTheme = document.getElementById('btn-theme');
     setTooltip(btnTheme, i18n.t('toggle_theme'), 'bottom');
+    updateSortSelectOptions();
 
     // Settings modal close button
     const settingsCloseBtn = document.querySelector('#settings-modal .modal-cancel');
@@ -379,9 +436,14 @@
     // Sort select
     const sortSelect = document.getElementById('sort-select');
     if (sortSelect) {
-      sortSelect.value = currentSortMode;
-      sortSelect.addEventListener('change', () => {
-        currentSortMode = sortSelect.value;
+      updateSortSelectOptions();
+      sortSelect.addEventListener('change', async () => {
+        if (isGroupedSortMode()) {
+          currentGroupSortMode = sortSelect.value;
+        } else {
+          currentSortMode = sortSelect.value;
+        }
+        await persistSortModes();
         renderPrompts();
       });
     }
@@ -728,6 +790,87 @@
     });
   }
 
+  function compareSmartPrompts(a, b) {
+    if (Boolean(a.pinned) !== Boolean(b.pinned)) return a.pinned ? -1 : 1;
+
+    return (
+      (b.lastUsedAt || 0) - (a.lastUsedAt || 0) ||
+      (b.usageCount || 0) - (a.usageCount || 0) ||
+      (b.updatedAt || 0) - (a.updatedAt || 0) ||
+      (b.createdAt || 0) - (a.createdAt || 0) ||
+      String(a.title || '').localeCompare(String(b.title || ''), i18n.getLocale())
+    );
+  }
+
+  function comparePromptsBySortMode(a, b, sortMode) {
+    if (a.pinned !== b.pinned) return a.pinned ? -1 : 1;
+    switch (sortMode) {
+      case 'smart':
+        return compareSmartPrompts(a, b);
+      case 'recent':
+        return (b.lastUsedAt || 0) - (a.lastUsedAt || 0) ||
+          (b.updatedAt || 0) - (a.updatedAt || 0);
+      case 'updatedAt':
+        return (b.updatedAt || 0) - (a.updatedAt || 0);
+      case 'createdAt':
+        return (b.createdAt || 0) - (a.createdAt || 0);
+      case 'title':
+        return (a.title || '').localeCompare(b.title || '', i18n.getLocale());
+      case 'usageCount':
+        return (b.usageCount || 0) - (a.usageCount || 0) ||
+          (b.lastUsedAt || 0) - (a.lastUsedAt || 0);
+      case 'custom': {
+        const aHasOrder = Number.isFinite(a.sortOrder);
+        const bHasOrder = Number.isFinite(b.sortOrder);
+        if (aHasOrder && bHasOrder && a.sortOrder !== b.sortOrder) {
+          return a.sortOrder - b.sortOrder;
+        }
+        if (aHasOrder !== bHasOrder) return aHasOrder ? -1 : 1;
+        return compareSmartPrompts(a, b);
+      }
+      default:
+        return compareSmartPrompts(a, b);
+    }
+  }
+
+  function comparePromptsByCurrentSort(a, b) {
+    return comparePromptsBySortMode(a, b, currentSortMode);
+  }
+
+  function getGroupPromptSortMode() {
+    switch (currentGroupSortMode) {
+      case 'recent':
+        return 'recent';
+      case 'updatedAt':
+        return 'updatedAt';
+      case 'usageCount':
+        return 'usageCount';
+      case 'custom':
+        return 'custom';
+      case 'folderName':
+      default:
+        return 'smart';
+    }
+  }
+
+  function getGroupSortMetric(prompts, mode) {
+    if (!prompts || prompts.length === 0) return 0;
+
+    switch (mode) {
+      case 'recent':
+        return Math.max(...prompts.map(p => p.lastUsedAt || 0));
+      case 'updatedAt':
+        return Math.max(...prompts.map(p => p.updatedAt || 0));
+      case 'usageCount':
+        return prompts.reduce((sum, p) => sum + (p.usageCount || 0), 0);
+      case 'custom':
+        return Math.min(...prompts.map(p => Number.isFinite(p.sortOrder) ? p.sortOrder : Number.MAX_SAFE_INTEGER));
+      case 'folderName':
+      default:
+        return 0;
+    }
+  }
+
   function tooltipAttrs(label, placement = 'top') {
     const safeLabel = escapeHtml(label);
     return `title="${safeLabel}" aria-label="${safeLabel}" data-tooltip="${safeLabel}" data-tooltip-placement="${placement}"`;
@@ -767,6 +910,14 @@
       `);
     }
 
+    if (!query && !currentFolderFilter && !currentTagFilter && getActiveSortMode() === 'custom' && currentTab === 'prompts') {
+      parts.push(`
+        <span class="search-tip sort-drag-tip">
+          ${i18n.t('sort_custom_hint')}
+        </span>
+      `);
+    }
+
     context.innerHTML = parts.join('');
     context.classList.toggle('hidden', parts.length === 0);
   }
@@ -789,15 +940,6 @@
       prompts = Storage.filterAndRankPrompts(prompts, query, { folders });
     }
 
-    // Delegate to grouped renderer if in grouped mode
-    if (displayMode === 'grouped' && !query && !currentFolderFilter && !currentTagFilter) {
-      updateSearchContext(prompts.length, query, folders);
-      await renderPromptsGrouped(container, emptyState, prompts);
-      return;
-    }
-
-    updateSearchContext(prompts.length, query, folders);
-
     if (prompts.length === 0) {
       container.innerHTML = '';
       emptyState.classList.remove('hidden');
@@ -819,28 +961,19 @@
       return;
     }
 
+    const shouldRenderGrouped = displayMode === 'grouped' && !query && !currentFolderFilter && !currentTagFilter;
+
     // Sort normally when browsing. Search results keep relevance order from Storage.filterAndRankPrompts.
-    if (!query) {
-      prompts.sort((a, b) => {
-        if (a.pinned !== b.pinned) return b.pinned ? 1 : -1;
-        switch (currentSortMode) {
-          case 'updatedAt':
-            return (b.updatedAt || 0) - (a.updatedAt || 0);
-          case 'createdAt':
-            return (b.createdAt || 0) - (a.createdAt || 0);
-          case 'title':
-            return (a.title || '').localeCompare(b.title || '', i18n.getLocale());
-          case 'usageCount':
-            return (b.usageCount || 0) - (a.usageCount || 0);
-          case 'custom': {
-            const aOrder = a.sortOrder != null ? a.sortOrder : 999999;
-            const bOrder = b.sortOrder != null ? b.sortOrder : 999999;
-            return aOrder - bOrder;
-          }
-          default:
-            return (b.updatedAt || 0) - (a.updatedAt || 0);
-        }
-      });
+    if (!query && !shouldRenderGrouped) {
+      prompts.sort(comparePromptsByCurrentSort);
+    }
+
+    updateSearchContext(prompts.length, query, folders);
+
+    // Delegate to grouped renderer if in grouped mode
+    if (shouldRenderGrouped) {
+      await renderPromptsGrouped(container, emptyState, prompts);
+      return;
     }
 
     emptyState.classList.add('hidden');
@@ -927,6 +1060,7 @@
       // Normal mode: existing behavior
       container.querySelectorAll('.prompt-card').forEach(card => {
         card.addEventListener('click', (e) => {
+          if (isPromptDragSorting || Date.now() < suppressPromptCardClickUntil) return;
           if (!e.target.closest('.prompt-card-action')) {
             copyPromptToClipboard(card.dataset.id);
           }
@@ -977,12 +1111,34 @@
       groups[fid].push(p);
     });
 
-    // Sort groups: default first, then by folder name
-    const sortedFolderIds = folders
-      .filter(f => f.id !== 'default')
-      .sort((a, b) => a.name.localeCompare(b.name, i18n.getLocale()))
-      .map(f => f.id);
-    const folderOrder = ['default', ...sortedFolderIds];
+    const folderMap = folders.reduce((map, folder) => {
+      map[folder.id] = folder;
+      return map;
+    }, {});
+
+    const folderNameForSort = (folderId) => {
+      const folder = folderMap[folderId];
+      if (!folder || folder.id === 'default') return i18n.t('folder_uncategorized');
+      return folder.name || '';
+    };
+
+    const compareFolderName = (a, b) => {
+      if (a === 'default' && b !== 'default') return -1;
+      if (b === 'default' && a !== 'default') return 1;
+      return folderNameForSort(a).localeCompare(folderNameForSort(b), i18n.getLocale());
+    };
+
+    const folderOrder = Object.keys(groups)
+      .filter(fid => groups[fid] && groups[fid].length > 0)
+      .sort((a, b) => {
+        if (currentGroupSortMode === 'folderName' || currentGroupSortMode === 'custom') {
+          return compareFolderName(a, b);
+        }
+
+        const aMetric = getGroupSortMetric(groups[a], currentGroupSortMode);
+        const bMetric = getGroupSortMetric(groups[b], currentGroupSortMode);
+        return bMetric - aMetric || compareFolderName(a, b);
+      });
 
     const hasAny = folderOrder.some(fid => groups[fid] && groups[fid].length > 0);
     if (!hasAny) {
@@ -1000,10 +1156,14 @@
     container.innerHTML = folderOrder.map(fid => {
       const groupPrompts = groups[fid];
       if (!groupPrompts || groupPrompts.length === 0) return '';
+      groupPrompts.sort((a, b) => comparePromptsBySortMode(a, b, getGroupPromptSortMode()));
 
-      const folder = folders.find(f => f.id === fid);
+      const folder = folderMap[fid];
       const folderName = folder && folder.id !== 'default' ? escapeHtml(folder.name) : i18n.t('folder_uncategorized');
       const folderColor = folder ? folder.color : '#808080';
+      const countLabel = i18n.getLocale() === 'zh'
+        ? `${groupPrompts.length} 条`
+        : `${groupPrompts.length} item${groupPrompts.length === 1 ? '' : 's'}`;
 
       const cardsHtml = groupPrompts.map(prompt => {
         const isSelected = selectedPromptIds.has(prompt.id);
@@ -1069,7 +1229,8 @@
             <span class="folder-group-arrow">▾</span>
             <span class="folder-group-dot" style="background:${folderColor}"></span>
             <span class="folder-group-name">${folderName}</span>
-            <span class="folder-group-count">${groupPrompts.length}</span>
+            <span class="folder-group-line"></span>
+            <span class="folder-group-count">${countLabel}</span>
           </div>
           <div class="folder-group-list">
             ${cardsHtml}
@@ -1090,6 +1251,7 @@
     } else {
       container.querySelectorAll('.prompt-card').forEach(card => {
         card.addEventListener('click', (e) => {
+          if (isPromptDragSorting || Date.now() < suppressPromptCardClickUntil) return;
           if (!e.target.closest('.prompt-card-action')) {
             copyPromptToClipboard(card.dataset.id);
           }
@@ -1147,7 +1309,7 @@
   function initDragAndDrop(container) {
     if (!container) return;
     // Only enable in custom sort mode and not in batch mode
-    if (currentSortMode !== 'custom' || isBatchMode) {
+    if (getActiveSortMode() !== 'custom' || isBatchMode) {
       container.querySelectorAll('.prompt-card').forEach(card => {
         card.removeAttribute('draggable');
         card.classList.remove('draggable-card');
@@ -1161,6 +1323,8 @@
       card.classList.add('draggable-card');
 
       card.addEventListener('dragstart', (e) => {
+        isPromptDragSorting = true;
+        suppressPromptCardClickUntil = Date.now() + 500;
         card.classList.add('dragging');
         e.dataTransfer.effectAllowed = 'move';
         e.dataTransfer.setData('text/plain', card.dataset.id);
@@ -1171,6 +1335,10 @@
         container.querySelectorAll('.prompt-card').forEach(c => {
           c.classList.remove('drag-over-top', 'drag-over-bottom');
         });
+        suppressPromptCardClickUntil = Date.now() + 300;
+        setTimeout(() => {
+          isPromptDragSorting = false;
+        }, 300);
       });
     });
 
@@ -2049,14 +2217,22 @@
 
     const sidebarCheckbox = document.getElementById('setting-enable-sidebar');
     if (sidebarCheckbox) sidebarCheckbox.checked = settings.enableSidebar !== false;
+    const sidebarCloseOutsideCheckbox = document.getElementById('setting-sidebar-close-outside');
+    if (sidebarCloseOutsideCheckbox) sidebarCloseOutsideCheckbox.checked = settings.sidebarCloseOnOutside !== false;
+    const sidebarCardClickSelect = document.getElementById('setting-sidebar-card-click');
+    if (sidebarCardClickSelect) sidebarCardClickSelect.value = settings.sidebarCardClickAction || 'copy';
 
     const badgeCheckbox = document.getElementById('setting-show-badge');
     if (badgeCheckbox) badgeCheckbox.checked = settings.showBadge !== false;
+
+    currentSortMode = settings.sortMode || currentSortMode;
+    currentGroupSortMode = settings.groupSortMode || currentGroupSortMode;
 
     // Load display mode
     displayMode = settings.displayMode || 'list';
     const displayModeSelect = document.getElementById('setting-display-mode');
     if (displayModeSelect) displayModeSelect.value = displayMode;
+    updateSortSelectOptions();
 
     // Load show recent
     const recentCheckbox = document.getElementById('setting-show-recent');
@@ -2076,6 +2252,8 @@
 
     const newLang = document.getElementById('setting-language').value;
     const newEnableSidebar = document.getElementById('setting-enable-sidebar').checked;
+    const newSidebarCloseOnOutside = document.getElementById('setting-sidebar-close-outside').checked;
+    const newSidebarCardClickAction = document.getElementById('setting-sidebar-card-click').value;
     const newShowBadge = document.getElementById('setting-show-badge').checked;
     const newShowRecent = document.getElementById('setting-show-recent').checked;
     const newDefaultFolder = document.getElementById('setting-default-folder').value;
@@ -2090,6 +2268,8 @@
     // Update settings object
     settings.locale = newLang;
     settings.enableSidebar = newEnableSidebar;
+    settings.sidebarCloseOnOutside = newSidebarCloseOnOutside;
+    settings.sidebarCardClickAction = newSidebarCardClickAction;
     settings.showBadge = newShowBadge;
     settings.showRecent = newShowRecent;
     settings.defaultFolder = newDefaultFolder;
@@ -2107,6 +2287,7 @@
     // Apply display mode change
     if (displayModeChanged) {
       displayMode = newDisplayMode;
+      updateSortSelectOptions();
       await renderPrompts();
     }
 

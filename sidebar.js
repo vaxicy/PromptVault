@@ -35,6 +35,8 @@
   let draggedPromptId = null;
   let isDraggingSort = false;
   let suppressCardClickUntil = 0;
+  let sidebarCloseOnOutside = true;
+  let sidebarCardClickAction = 'copy';
 
   // ========== Website Detection ==========
   const WEBSITE = detectWebsite();
@@ -248,6 +250,12 @@
       tags = store.tags || [];
       recentUsage = (store.recentUsage || []).slice(0, 20);
       isDarkMode = store.settings?.darkMode || false;
+      sidebarCloseOnOutside = store.settings?.sidebarCloseOnOutside !== false;
+      sidebarCardClickAction = store.settings?.sidebarCardClickAction || 'copy';
+
+      if (document.getElementById('pv-sidebar') && sidebarVisible) {
+        setSidebarVisible(true);
+      }
 
       if (callback) callback();
     };
@@ -390,7 +398,11 @@
         const promptId = card.dataset.promptId;
         const prompt = prompts.find((p) => p.id === promptId);
         if (prompt) {
-          copyPrompt(prompt, card);
+          if (sidebarCardClickAction === 'insert') {
+            insertPrompt(prompt.content, prompt.id);
+          } else {
+            copyPrompt(prompt, card);
+          }
         }
       });
     });
@@ -813,7 +825,9 @@
     const overlay = document.createElement('div');
     overlay.id = 'pv-sidebar-overlay';
     overlay.className = 'pv-hidden';
-    overlay.addEventListener('click', () => setSidebarVisible(false));
+    overlay.addEventListener('click', () => {
+      if (sidebarCloseOnOutside) setSidebarVisible(false);
+    });
     document.body.appendChild(overlay);
 
     // Sidebar container
@@ -962,7 +976,7 @@
 
     sidebarVisible = visible;
     sidebar.classList.toggle('pv-hidden', !visible);
-    if (overlay) overlay.classList.toggle('pv-hidden', !visible);
+    if (overlay) overlay.classList.toggle('pv-hidden', !visible || !sidebarCloseOnOutside);
 
     // Update toggle button visibility
     toggle.style.display = visible ? 'none' : 'flex';
@@ -979,7 +993,7 @@
   }
 
   function handleOutsidePointerDown(e) {
-    if (!sidebarVisible) return;
+    if (!sidebarVisible || !sidebarCloseOnOutside) return;
 
     const sidebar = document.getElementById('pv-sidebar');
     const toggle = document.getElementById('pv-sidebar-toggle');

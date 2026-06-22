@@ -17,7 +17,11 @@ const Storage = (() => {
       defaultFolder: 'default',
       locale: 'zh',
       enableSidebar: true,
-      showBadge: true
+      sidebarCloseOnOutside: true,
+      sidebarCardClickAction: 'copy',
+      showBadge: true,
+      sortMode: 'smart',
+      groupSortMode: 'folderName'
     }
   };
 
