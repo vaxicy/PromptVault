@@ -383,10 +383,55 @@
           <p class="setting-hint no-indent" data-i18n="settings_data_management_hint">导入会合并数据；清除会删除所有提示词、文件夹和标签</p>
           <button id="btn-clear-data" class="danger-btn settings-danger-btn">清除所有数据</button>
         </div>
+        <div class="settings-section support-section">
+          <h3 data-i18n="settings_support">感谢支持</h3>
+          <p class="support-intro-text" data-i18n="settings_support_intro_short">
+            ❤️ 如果 PromptVault 对你有帮助，欢迎支持开发者继续维护优化。
+          </p>
+
+          <div class="support-cards-grid">
+            <button id="btn-open-wechat-support" class="support-card-btn" type="button">
+              <span class="support-card-icon">🧧</span>
+              <span class="support-card-label" data-i18n="settings_wechat_reward">微信赞赏码</span>
+            </button>
+            <button id="btn-paypal-support" class="support-card-btn" type="button">
+              <span class="support-card-icon">💳</span>
+              <span class="support-card-label" data-i18n="settings_paypal_support">PayPal 支持</span>
+            </button>
+          </div>
+
+          <div class="support-email-row">
+            <span class="support-email-hint" data-i18n="settings_support_contact_hint">联系开发者：</span>
+            <a class="support-email-address" href="mailto:huangzero2004@gmail.com" target="_blank" rel="noopener">
+              ✉️ huangzero2004@gmail.com
+            </a>
+          </div>
+        </div>
       </div>
       <div class="modal-footer settings-footer">
         <button class="secondary-btn" id="btn-settings-cancel" data-i18n="btn_cancel">取消</button>
         <button class="primary-btn" id="btn-settings-apply" data-i18n="btn_apply">应用</button>
+      </div>
+    </div>
+  </div>
+
+  <!-- Support Detail Modal -->
+  <div id="support-modal" class="modal hidden">
+    <div class="modal-content support-detail-modal">
+      <div class="modal-header support-detail-header">
+        <h2 data-i18n="settings_wechat_reward">微信赞赏码</h2>
+        <button class="modal-close">&times;</button>
+      </div>
+      <div class="modal-body support-detail-body">
+        <div class="support-qr-card">
+          <div class="support-qr-large-wrap">
+            <img src="assets/support/wechat-reward.png" alt="WeChat reward code" class="support-qr-large">
+          </div>
+          <div class="support-card-title" data-i18n="settings_wechat_reward">微信赞赏码</div>
+          <p class="setting-hint no-indent" data-i18n="settings_wechat_reward_hint">
+            国内用户可以使用微信扫码支持。
+          </p>
+        </div>
       </div>
     </div>
   </div>

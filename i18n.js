@@ -140,7 +140,8 @@ const i18n = (() => {
       toast_error_invalid_json: '无效的 JSON 文件',
       toast_error_no_input: '未找到输入框',
       toast_error_cannot_insert: '无法插入到此页面',
-
+      toast_paypal_coming_soon: 'PayPal 支持入口即将开放',
+      
       // Notification
       notif_no_active_input: '未找到活动输入框',
       notif_no_input_found: '此页面上未找到文本输入框',
@@ -167,6 +168,12 @@ const i18n = (() => {
       sidebar_card_click_insert: '插入页面输入框',
       settings_sidebar_card_click_hint: '建议保持复制，避免误插入当前页面',
       settings_data_management_hint: '导入会合并数据；清除会删除所有提示词、文件夹和标签',
+      settings_support: '感谢支持',
+      settings_support_intro_short: '❤️ 如果 PromptVault 对你有帮助，欢迎支持开发者继续维护优化。',
+      settings_support_contact_hint: '联系开发者：',
+      settings_wechat_reward: '微信赞赏码',
+      settings_wechat_reward_hint: '国内用户可以使用微信扫码支持。',
+      settings_paypal_support: 'PayPal 支持',
       btn_import: '导入',
       btn_export: '导出',
 
@@ -411,7 +418,8 @@ const i18n = (() => {
       toast_error_invalid_json: 'Invalid JSON file',
       toast_error_no_input: 'No active input found',
       toast_error_cannot_insert: 'Cannot insert into this page',
-
+      toast_paypal_coming_soon: 'PayPal support is coming soon',
+      
       // Notification
       notif_no_active_input: 'No active input found',
       notif_no_input_found: 'No text input found on this page',
@@ -438,6 +446,12 @@ const i18n = (() => {
       sidebar_card_click_insert: 'Insert into page input',
       settings_sidebar_card_click_hint: 'Copy is recommended to avoid accidental insertion',
       settings_data_management_hint: 'Import merges data; clear deletes all prompts, folders, and tags',
+      settings_support: 'Thanks for Your Support',
+      settings_support_intro_short: '❤️ If PromptVault helps you, consider supporting the developer to keep it maintained.',
+      settings_support_contact_hint: 'Contact the developer:',
+      settings_wechat_reward: 'WeChat Reward Code',
+      settings_wechat_reward_hint: 'Users in China can scan with WeChat to support development.',
+      settings_paypal_support: 'Support via PayPal',
       btn_import: 'Import',
       btn_export: 'Export',
 

@@ -5,6 +5,16 @@
 (async function () {
   'use strict';
 
+  // Inject content scripts into current tab (for manifest V3 activeTab approach)
+  try {
+    const tabs = await new Promise(resolve => chrome.tabs.query({ active: true, currentWindow: true }, resolve));
+    if (tabs && tabs[0]) {
+      await new Promise(resolve => chrome.runtime.sendMessage({ action: 'injectScripts' }, resolve));
+    }
+  } catch (e) {
+    console.log('PromptVault: Failed to inject scripts:', e.message);
+  }
+
   // State
   let currentTab = 'prompts';
   let editingPromptId = null;
@@ -19,6 +29,7 @@
   let displayMode = 'list'; // list | grouped
   let isPromptDragSorting = false;
   let suppressPromptCardClickUntil = 0;
+  const PAYPAL_DONATION_URL = 'https://www.paypal.com/ncp/payment/3ZZGQLA3U2GZQ';
 
   // Settings snapshot (for Apply/Cancel)
   let settingsSnapshot = null;
@@ -369,6 +380,8 @@
     // Import/Export
     document.getElementById('btn-import').addEventListener('click', importData);
     document.getElementById('btn-export').addEventListener('click', exportData);
+    document.getElementById('btn-open-wechat-support')?.addEventListener('click', openWechatSupport);
+    document.getElementById('btn-paypal-support')?.addEventListener('click', openPaypalSupport);
 
     // Settings - open modal (load values + snapshot)
     document.getElementById('btn-settings').addEventListener('click', async () => {
@@ -2197,6 +2210,31 @@
     };
 
     input.click();
+  }
+
+  function isPaypalDonationConfigured() {
+    return /^https:\/\/.+/i.test(PAYPAL_DONATION_URL) &&
+      !PAYPAL_DONATION_URL.includes('PLACEHOLDER');
+  }
+
+  function openExternalUrl(url) {
+    if (typeof chrome !== 'undefined' && chrome.tabs?.create) {
+      chrome.tabs.create({ url });
+      return;
+    }
+    window.open(url, '_blank', 'noopener,noreferrer');
+  }
+
+  function openPaypalSupport() {
+    if (!isPaypalDonationConfigured()) {
+      showToast(i18n.t('toast_paypal_coming_soon'), 'info');
+      return;
+    }
+    openExternalUrl(PAYPAL_DONATION_URL);
+  }
+
+  function openWechatSupport() {
+    openModal('support-modal');
   }
 
   async function toggleDarkMode() {

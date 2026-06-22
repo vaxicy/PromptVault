@@ -6,6 +6,11 @@
 
 // Listen for messages from popup or background
 chrome.runtime.onMessage.addListener((message, sender, sendResponse) => {
+  if (message.action === 'ping') {
+    sendResponse({ pong: true });
+    return true;
+  }
+
   if (message.action === 'insertPrompt') {
     const success = UniversalInsert.insertText(message.text);
     sendResponse({ success });
