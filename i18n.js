@@ -182,7 +182,7 @@ const i18n = (() => {
       sidebar_no_pinned: '暂无置顶',
       sidebar_no_pinned_hint: '将提示词置顶方便快速访问',
       sidebar_loading: '加载中...',
-      sidebar_copied: '已复制到剪贴板',
+      sidebar_copied: '已复制到剪贴板！',
       sidebar_inserted: '已插入提示词',
       sidebar_no_input: '未找到输入框，请先点击输入框',
       sidebar_insert_failed: '插入失败，请手动复制',
@@ -272,6 +272,9 @@ const i18n = (() => {
       // Settings - show recent
       label_show_recent: '显示最近使用',
       settings_show_recent_hint: '在首页显示最近使用的提示词',
+      // Settings - auto top after use
+      settings_auto_top: '点击后置顶',
+      settings_auto_top_hint: '复制提示词后自动置顶（智能排序模式下生效）',
     },
     en: {
       // Header
@@ -450,7 +453,7 @@ const i18n = (() => {
       sidebar_no_pinned: 'No pinned',
       sidebar_no_pinned_hint: 'Pin prompts for quick access',
       sidebar_loading: 'Loading...',
-      sidebar_copied: 'Copied to clipboard',
+      sidebar_copied: 'Copied to clipboard!',
       sidebar_inserted: 'Prompt inserted',
       sidebar_no_input: 'No input found. Click the input box first.',
       sidebar_insert_failed: 'Insert failed. Please copy manually.',
@@ -540,6 +543,9 @@ const i18n = (() => {
       // Settings - show recent
       label_show_recent: 'Show Recent Usage',
       settings_show_recent_hint: 'Show recently used prompts on home page',
+      // Settings - auto top after use
+      settings_auto_top: 'Auto Top After Use',
+      settings_auto_top_hint: 'Automatically pin to top after copying (works in smart sort mode)',
     },
   };
 

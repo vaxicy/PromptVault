@@ -21,6 +21,7 @@ const Storage = (() => {
       sidebarCardClickAction: 'copy',
       showBadge: true,
       sortMode: 'smart',
+      autoTopAfterUse: true,
       groupSortMode: 'folderName'
     }
   };

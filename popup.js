@@ -30,6 +30,7 @@
       sidebarCardClickAction: document.getElementById('setting-sidebar-card-click').value,
       showBadge: document.getElementById('setting-show-badge').checked,
       showRecent: document.getElementById('setting-show-recent').checked,
+      autoTopAfterUse: document.getElementById('setting-auto-top')?.checked,
       defaultFolder: document.getElementById('setting-default-folder').value,
       displayMode: document.getElementById('setting-display-mode').value,
     };
@@ -37,7 +38,7 @@
 
   function setTooltip(element, label, placement = 'top') {
     if (!element || !label) return;
-    element.title = label;
+    element.removeAttribute('title');
     element.dataset.tooltip = label;
     element.dataset.tooltipPlacement = placement;
     element.setAttribute('aria-label', label);
@@ -873,7 +874,7 @@
 
   function tooltipAttrs(label, placement = 'top') {
     const safeLabel = escapeHtml(label);
-    return `title="${safeLabel}" aria-label="${safeLabel}" data-tooltip="${safeLabel}" data-tooltip-placement="${placement}"`;
+    return `aria-label="${safeLabel}" data-tooltip="${safeLabel}" data-tooltip-placement="${placement}"`;
   }
 
   function renderFilterChip(type, label, value) {
@@ -2089,10 +2090,15 @@
     const prompt = await Storage.getPrompt(promptId);
     if (!prompt) return;
     await navigator.clipboard.writeText(prompt.content);
-    // Record usage
+    // Record usage (updates lastUsedAt so smart sort puts it on top)
     await Storage.recordUsage(promptId);
     showCardCopiedFeedback(promptId);
     showToast(i18n.t('toast_copied'), 'success');
+    // Re-render so the just-used prompt moves to the top (if enabled)
+    const settings = await Storage.getSettings();
+    if (settings.autoTopAfterUse !== false) {
+      renderPrompts();
+    }
   }
 
   /**
@@ -2238,6 +2244,10 @@
     const recentCheckbox = document.getElementById('setting-show-recent');
     if (recentCheckbox) recentCheckbox.checked = settings.showRecent !== false;
 
+    // Load auto top after use
+    const autoTopCheckbox = document.getElementById('setting-auto-top');
+    if (autoTopCheckbox) autoTopCheckbox.checked = settings.autoTopAfterUse !== false;
+
     // Also populate and select default folder
     await updateFolderSelects(await Storage.getFolders());
     const defaultFolderSelect = document.getElementById('setting-default-folder');
@@ -2256,6 +2266,7 @@
     const newSidebarCardClickAction = document.getElementById('setting-sidebar-card-click').value;
     const newShowBadge = document.getElementById('setting-show-badge').checked;
     const newShowRecent = document.getElementById('setting-show-recent').checked;
+    const newAutoTop = document.getElementById('setting-auto-top')?.checked;
     const newDefaultFolder = document.getElementById('setting-default-folder').value;
     const newDisplayMode = document.getElementById('setting-display-mode').value;
 
@@ -2272,6 +2283,7 @@
     settings.sidebarCardClickAction = newSidebarCardClickAction;
     settings.showBadge = newShowBadge;
     settings.showRecent = newShowRecent;
+    settings.autoTopAfterUse = newAutoTop;
     settings.defaultFolder = newDefaultFolder;
     settings.displayMode = newDisplayMode;
 

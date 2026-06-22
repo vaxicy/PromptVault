@@ -107,7 +107,7 @@
   }
 
   // ========== Insert Prompt ==========
-  function insertPrompt(text, promptId) {
+  async function insertPrompt(text, promptId) {
     const input = findInputBox();
 
     if (!input) {
@@ -124,9 +124,14 @@
         insertIntoInput(input, text);
       }
 
-      // Record usage
+      // Record usage (updates lastUsedAt so smart sort can put it on top)
       if (promptId) {
         recordUsage(promptId);
+        // Re-render if autoTopAfterUse is enabled
+        const settings = await getSettings();
+        if (settings.autoTopAfterUse !== false) {
+          renderSidebar();
+        }
       }
 
       showToast(i18n.t('sidebar_inserted'));
@@ -211,14 +216,39 @@
     }
   }
 
+  // ========== Get Settings ==========
+  function getSettings() {
+    return new Promise((resolve) => {
+      chrome.storage.local.get('promptvault_data', (data) => {
+        const store = data.promptvault_data || {};
+        resolve(store.settings || {});
+      });
+    });
+  }
+
   function copyPrompt(prompt, card) {
-    navigator.clipboard.writeText(prompt.content).then(() => {
+    navigator.clipboard.writeText(prompt.content).then(async () => {
       if (card) {
         card.classList.add('pv-copied');
+        // Show "copied" badge on the card
+        const badge = document.createElement('div');
+        badge.className = 'pv-copied-badge';
+        badge.textContent = i18n.t('toast_copied') || '已复制';
+        card.style.position = 'relative';
+        card.appendChild(badge);
+        // Record usage (updates lastUsedAt so smart sort can put it on top)
+        if (prompt.id) {
+          recordUsage(prompt.id);
+          // Re-render if autoTopAfterUse is enabled
+          const settings = await getSettings();
+          if (settings.autoTopAfterUse !== false) {
+            renderSidebar();
+          }
+        }
+        // Remove visual feedback after 900ms
         setTimeout(() => {
           card.classList.remove('pv-copied');
-          if (prompt.id) recordUsage(prompt.id);
-          loadData(() => renderSidebar());
+          if (badge.parentNode) badge.remove();
         }, 900);
       } else if (prompt.id) {
         recordUsage(prompt.id);
@@ -796,14 +826,20 @@
 
   // ========== Toast ==========
   function showToast(message, type = 'success') {
-    const existing = document.querySelector('.pv-toast');
-    if (existing) existing.remove();
+    const existing = document.querySelectorAll('.pv-toast');
+    existing.forEach(t => t.remove());
 
     const toast = document.createElement('div');
-    toast.className = 'pv-toast';
+    toast.className = 'pv-toast' + (type === 'error' ? ' pv-error' : '');
     toast.textContent = message;
-    if (type === 'error') toast.style.background = '#ef4444';
-    document.body.appendChild(toast);
+
+    // Append to sidebar if visible, otherwise to body
+    const sidebar = document.getElementById('pv-sidebar');
+    if (sidebar && !sidebar.classList.contains('pv-hidden')) {
+      sidebar.appendChild(toast);
+    } else {
+      document.body.appendChild(toast);
+    }
 
     setTimeout(() => toast.remove(), TOAST_DURATION);
   }
