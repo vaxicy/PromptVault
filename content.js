@@ -33,11 +33,3 @@ chrome.runtime.onMessage.addListener((message, sender, sendResponse) => {
 
   return true;
 });
-
-// Keyboard shortcut: Ctrl/Cmd + Shift + P to open Command Palette
-document.addEventListener('keydown', (e) => {
-  if ((e.ctrlKey || e.metaKey) && e.shiftKey && e.key === 'P') {
-    e.preventDefault();
-    chrome.runtime.sendMessage({ action: 'openCommandPalette' });
-  }
-});

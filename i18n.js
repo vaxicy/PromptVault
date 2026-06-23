@@ -3,7 +3,10 @@
  * Languages: zh (中文), en (English)
  * 产品定位：AI Prompt Manager（简单、轻量）
  */
-const i18n = (() => {
+
+// Idempotency guard: check window property (survives re-injection)
+if (typeof window.PromptVaultI18n === 'undefined') {
+  window.PromptVaultI18n = (() => {
   const translations = {
     zh: {
       // Header
@@ -141,7 +144,8 @@ const i18n = (() => {
       toast_error_no_input: '未找到输入框',
       toast_error_cannot_insert: '无法插入到此页面',
       toast_paypal_coming_soon: 'PayPal 支持入口即将开放',
-      
+      toast_error_empty_fields: '标题和内容不能为空',
+
       // Notification
       notif_no_active_input: '未找到活动输入框',
       notif_no_input_found: '此页面上未找到文本输入框',
@@ -419,7 +423,8 @@ const i18n = (() => {
       toast_error_no_input: 'No active input found',
       toast_error_cannot_insert: 'Cannot insert into this page',
       toast_paypal_coming_soon: 'PayPal support is coming soon',
-      
+      toast_error_empty_fields: 'Title and content cannot be empty',
+
       // Notification
       notif_no_active_input: 'No active input found',
       notif_no_input_found: 'No text input found on this page',
@@ -639,3 +644,8 @@ const i18n = (() => {
     detectLocale,
   };
 })();
+} // end idempotency guard
+
+// Ensure `i18n` is available as a global variable in the isolated world
+// Using `var` so it survives re-injection and is accessible to other scripts
+var i18n = window.PromptVaultI18n;

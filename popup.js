@@ -5,16 +5,6 @@
 (async function () {
   'use strict';
 
-  // Inject content scripts into current tab (for manifest V3 activeTab approach)
-  try {
-    const tabs = await new Promise(resolve => chrome.tabs.query({ active: true, currentWindow: true }, resolve));
-    if (tabs && tabs[0]) {
-      await new Promise(resolve => chrome.runtime.sendMessage({ action: 'injectScripts' }, resolve));
-    }
-  } catch (e) {
-    console.log('PromptVault: Failed to inject scripts:', e.message);
-  }
-
   // State
   let currentTab = 'prompts';
   let editingPromptId = null;
@@ -1934,7 +1924,7 @@
     const folder = document.getElementById('prompt-folder').value;
 
     if (!title || !content) {
-      showToast(i18n.t('toast_error_folder_name'), 'error');
+      showToast(i18n.t('toast_error_empty_fields'), 'error');
       return;
     }
 
@@ -2347,7 +2337,7 @@
     }
 
     // Update badge (explicitly wait for background to process)
-    if (badgeChanged || true) {
+    if (badgeChanged) {
       chrome.runtime.sendMessage({ action: 'updateBadge' });
     }
 

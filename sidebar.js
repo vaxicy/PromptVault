@@ -23,6 +23,54 @@
     return Date.now().toString(36) + Math.random().toString(36).substr(2);
   }
 
+  // Extension context safety check
+  let _contextInvalidWarned = false;
+  function isExtContextValid() {
+    try {
+      return typeof chrome !== 'undefined' && !!chrome.runtime?.id && !!chrome.storage?.local;
+    } catch { return false; }
+  }
+
+  function warnExtInvalid(err) {
+    if (_contextInvalidWarned) return;
+    _contextInvalidWarned = true;
+    console.warn('[PromptVault] Extension context lost. Please refresh the page to restore full functionality.', err);
+  }
+
+  // Safe storage get (returns default on error)
+  function safeStorageGet(key, fallback) {
+    return new Promise((resolve) => {
+      if (!isExtContextValid()) { resolve(fallback); warnExtInvalid('context invalid'); return; }
+      try {
+        chrome.storage.local.get(key, (data) => {
+          if (chrome.runtime.lastError) {
+            warnExtInvalid(chrome.runtime.lastError);
+            resolve(fallback);
+          } else {
+            resolve(data[key] || fallback);
+          }
+        });
+      } catch (e) {
+        warnExtInvalid(e); resolve(fallback);
+      }
+    });
+  }
+
+  // Safe storage set (silent fail on error)
+  function safeStorageSet(data) {
+    return new Promise((resolve) => {
+      if (!isExtContextValid()) { resolve(false); warnExtInvalid('context invalid'); return; }
+      try {
+        chrome.storage.local.set(data, () => {
+          if (chrome.runtime.lastError) warnExtInvalid(chrome.runtime.lastError);
+          resolve(!chrome.runtime.lastError);
+        });
+      } catch (e) {
+        warnExtInvalid(e); resolve(false);
+      }
+    });
+  }
+
   // ========== State ==========
   let prompts = [];
   let folders = [];
@@ -198,9 +246,8 @@
           console.warn('[PromptVault] Failed to record usage:', error);
         });
       } else {
-        // Fallback: direct storage write
-        chrome.storage.local.get('promptvault_data', (data) => {
-          const store = data.promptvault_data || {};
+        // Fallback: direct storage write (with context safety)
+        safeStorageGet('promptvault_data', {}).then((store) => {
           if (!store.recentUsage) store.recentUsage = [];
           store.recentUsage = recentUsage;
           // Update prompt usageCount
@@ -209,7 +256,7 @@
             prompt.usageCount = (prompt.usageCount || 0) + 1;
             prompt.lastUsedAt = Date.now();
           }
-          chrome.storage.local.set({ promptvault_data: store });
+          safeStorageSet({ promptvault_data: store });
         });
       }
     } catch (e) {
@@ -219,47 +266,32 @@
 
   // ========== Get Settings ==========
   function getSettings() {
-    return new Promise((resolve) => {
-      chrome.storage.local.get('promptvault_data', (data) => {
-        const store = data.promptvault_data || {};
-        resolve(store.settings || {});
-      });
-    });
+    return safeStorageGet('promptvault_data', {}).then((store) => store.settings || {});
   }
 
   // ========== Toggle Position Persistence ==========
   async function saveTogglePosition(pos, mode) {
     try {
-      return new Promise((resolve) => {
-        chrome.storage.local.get('promptvault_data', (data) => {
-          const store = data.promptvault_data || {};
-          if (!store.settings) store.settings = {};
-          store.settings.togglePosition = { x: pos.x, y: pos.y, mode: mode || 'dock' };
-          chrome.storage.local.set({ promptvault_data: store }, resolve);
-        });
-      });
+      const store = await safeStorageGet('promptvault_data', {});
+      if (!store.settings) store.settings = {};
+      store.settings.togglePosition = { x: pos.x, y: pos.y, mode: mode || 'dock' };
+      return safeStorageSet({ promptvault_data: store });
     } catch (e) {
-      // Extension context invalidated — silently ignore
-      console.warn('[PromptVault] Failed to save toggle position:', e.message);
+      warnExtInvalid(e);
+      return false;
     }
   }
 
   async function loadTogglePosition() {
     try {
-      return new Promise((resolve) => {
-        chrome.storage.local.get('promptvault_data', (data) => {
-          const store = data.promptvault_data || {};
-          const pos = store.settings?.togglePosition;
-          if (pos && typeof pos === 'object' && 'x' in pos && 'y' in pos) {
-            resolve(pos); // { x, y, mode? }
-          } else {
-            resolve(null);
-          }
-        });
-      });
+      const store = await safeStorageGet('promptvault_data', {});
+      const pos = store.settings?.togglePosition;
+      if (pos && typeof pos === 'object' && 'x' in pos && 'y' in pos) {
+        return pos; // { x, y, mode? }
+      }
+      return null;
     } catch (e) {
-      // Extension context invalidated
-      console.warn('[PromptVault] Failed to load toggle position:', e.message);
+      warnExtInvalid(e);
       return null;
     }
   }
@@ -467,8 +499,8 @@
     }
 
     try {
-      chrome.storage.local.get('promptvault_data', (data) => {
-        applyStore(data.promptvault_data || {});
+      safeStorageGet('promptvault_data', {}).then((store) => {
+        applyStore(store);
       });
     } catch (error) {
       console.warn('[PromptVault] Failed to load sidebar data:', error);
@@ -713,16 +745,12 @@
       if (typeof Storage !== 'undefined' && Storage.reorderPrompts) {
         await Storage.reorderPrompts(orderedIds);
       } else {
-        await new Promise((resolve) => {
-          chrome.storage.local.get('promptvault_data', (data) => {
-            const store = data.promptvault_data || {};
-            orderedIds.forEach((id, index) => {
-              const prompt = store.prompts?.find((p) => p.id === id);
-              if (prompt) prompt.sortOrder = index;
-            });
-            chrome.storage.local.set({ promptvault_data: store }, resolve);
-          });
+        const store = await safeStorageGet('promptvault_data', {});
+        orderedIds.forEach((id, index) => {
+          const prompt = store.prompts?.find((p) => p.id === id);
+          if (prompt) prompt.sortOrder = index;
         });
+        await safeStorageSet({ promptvault_data: store });
       }
     } catch (error) {
       console.warn('[PromptVault] Failed to reorder prompts:', error);
@@ -832,15 +860,14 @@
       (el) => el.querySelector('.pv-edit-tag-remove').dataset.tag
     );
 
-    chrome.storage.local.get('promptvault_data', (data) => {
-      const store = data.promptvault_data || {};
+    safeStorageGet('promptvault_data', {}).then((store) => {
       const prompt = store.prompts?.find((p) => p.id === promptId);
       if (prompt) {
         prompt.title = title;
         prompt.content = content;
         prompt.tags = tags;
         prompt.updatedAt = Date.now();
-        chrome.storage.local.set({ promptvault_data: store }, () => {
+        safeStorageSet({ promptvault_data: store }).then(() => {
           loadData(() => renderSidebar());
           showToast(i18n.t('toast_updated'));
         });
@@ -850,11 +877,10 @@
 
   // ========== Delete Prompt ==========
   function deletePrompt(promptId) {
-    chrome.storage.local.get('promptvault_data', (data) => {
-      const store = data.promptvault_data || {};
+    safeStorageGet('promptvault_data', {}).then((store) => {
       if (!store.prompts) return;
       store.prompts = store.prompts.filter((p) => p.id !== promptId);
-      chrome.storage.local.set({ promptvault_data: store }, () => {
+      safeStorageSet({ promptvault_data: store }).then(() => {
         loadData(() => renderSidebar());
         showToast(i18n.t('toast_deleted'));
       });
@@ -978,12 +1004,11 @@
 
   // ========== Toggle Pin ==========
   function togglePin(promptId) {
-    chrome.storage.local.get('promptvault_data', (data) => {
-      const store = data.promptvault_data || {};
+    safeStorageGet('promptvault_data', {}).then((store) => {
       const prompt = store.prompts?.find((p) => p.id === promptId);
       if (prompt) {
         prompt.pinned = !prompt.pinned;
-        chrome.storage.local.set({ promptvault_data: store }, () => {
+        safeStorageSet({ promptvault_data: store }).then(() => {
           loadData(() => renderSidebar());
         });
       }
@@ -1133,11 +1158,10 @@
       themeBtn.addEventListener('click', () => {
         isDarkMode = !isDarkMode;
         syncSidebarThemeClass();
-        chrome.storage.local.get('promptvault_data', (data) => {
-          const store = data.promptvault_data || {};
+        safeStorageGet('promptvault_data', {}).then((store) => {
           if (!store.settings) store.settings = {};
           store.settings.darkMode = isDarkMode;
-          chrome.storage.local.set({ promptvault_data: store });
+          safeStorageSet({ promptvault_data: store });
         });
       });
     }
@@ -1248,9 +1272,7 @@
     try {
       const data = typeof Storage !== 'undefined' && Storage.getAll
         ? await Storage.getAll()
-        : await new Promise(resolve => {
-            chrome.storage.local.get('promptvault_data', (d) => resolve(d.promptvault_data || {}));
-          });
+        : await safeStorageGet('promptvault_data', {});
       settings = data.settings || {};
     } catch (error) {
       console.warn('[PromptVault] Failed to load sidebar settings:', error);
@@ -1298,13 +1320,7 @@
     // Load data and render
     loadData(() => {
       renderSidebar();
-      // Don't auto-show on generic websites; wait for user action
-      if (WEBSITE !== 'generic') {
-        setTimeout(() => {
-          const sidebar = document.getElementById('pv-sidebar');
-          if (sidebar) setSidebarVisible(true);
-        }, 300);
-      }
+      // Sidebar defaults to hidden; user clicks toggle button to show
     });
 
     // Listen for storage changes (e.g., enableSidebar toggled)

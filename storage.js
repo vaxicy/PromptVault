@@ -2,7 +2,10 @@
  * Storage Module - Handles all Chrome storage operations
  * Uses Chrome Storage Local API
  */
-const Storage = (() => {
+
+// Idempotency guard: check window property (survives re-injection)
+if (typeof window.PromptVaultStorage === 'undefined') {
+  window.PromptVaultStorage = (() => {
   const STORAGE_KEY = 'promptvault_data';
 
   // Default data structure
@@ -587,3 +590,8 @@ const Storage = (() => {
     addRecentUsage,
   };
 })();
+} // end idempotency guard
+
+// Ensure `Storage` is available as a global variable in the isolated world
+// Using `var` so it survives re-injection and is accessible to other scripts
+var Storage = window.PromptVaultStorage;

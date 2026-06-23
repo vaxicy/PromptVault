@@ -5,7 +5,9 @@
  * Compatible with: React, Vue, Gmail, Notion, LinkedIn, etc.
  */
 
-const UniversalInsert = (() => {
+// Idempotency guard: check window property (survives re-injection)
+if (typeof window.PromptVaultUniversalInsert === 'undefined') {
+  window.PromptVaultUniversalInsert = (() => {
   const TOAST_DURATION = 2500;
 
   /**
@@ -176,7 +178,7 @@ const UniversalInsert = (() => {
     const activeEl = getActiveElement();
 
     if (!activeEl) {
-      showToast('未找到输入框，请先点击输入框', 'error');
+      showToast(i18n.t('sidebar_no_input'), 'error');
       return false;
     }
 
@@ -184,7 +186,7 @@ const UniversalInsert = (() => {
       if (activeEl.tagName === 'IFRAME') {
         if (insertIntoIframe(activeEl, text)) {
           recordUsage(text);
-          showToast('已插入提示词');
+          showToast(i18n.t('sidebar_inserted'));
           return true;
         }
       }
@@ -205,17 +207,17 @@ const UniversalInsert = (() => {
             insertIntoInput(fallback, text);
           }
         } else {
-          showToast('未找到输入框，请手动粘贴', 'error');
+          showToast(i18n.t('sidebar_insert_failed'), 'error');
           return false;
         }
       }
 
       recordUsage(text);
-      showToast('已插入提示词');
+      showToast(i18n.t('sidebar_inserted'));
       return true;
     } catch (err) {
       console.error('[PromptVault] Insert failed:', err);
-      showToast('插入失败，请手动复制', 'error');
+      showToast(i18n.t('sidebar_insert_failed'), 'error');
       return false;
     }
   }
@@ -296,7 +298,7 @@ const UniversalInsert = (() => {
    */
   function copyToClipboard(text) {
     return navigator.clipboard.writeText(text).then(() => {
-      showToast('已复制到剪贴板');
+      showToast(i18n.t('sidebar_copied'));
     }).catch(() => {
       // Fallback
       const textarea = document.createElement('textarea');
@@ -320,3 +322,8 @@ const UniversalInsert = (() => {
     showToast,
   };
 })();
+} // end idempotency guard
+
+// Ensure `UniversalInsert` is available as a global variable in the isolated world
+// Using `var` so it survives re-injection and is accessible to other scripts
+var UniversalInsert = window.PromptVaultUniversalInsert;

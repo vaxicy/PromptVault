@@ -110,8 +110,12 @@ const i18n = (() => {
   return { t, setLocale, loadLocale };
 })();
 
-// Load locale on service worker startup (fire-and-forget; onInstalled awaits it explicitly)
-i18n.loadLocale().catch(() => {});
+// Load locale on service worker startup, then create context menus
+i18n.loadLocale().then(() => {
+  createContextMenus();
+}).catch(() => {
+  createContextMenus(); // Create anyway even if locale load fails
+});
 
 // Initialize extension
 chrome.runtime.onInstalled.addListener(async (details) => {
@@ -130,10 +134,9 @@ chrome.runtime.onInstalled.addListener(async (details) => {
     chrome.storage.local.set({ promptvault_hasSeenWelcome: false });
   } else if (details.reason === 'update') {
     console.log('PromptVault updated to version', chrome.runtime.getManifest().version);
+    // Recreate context menus on update (menus may be cleared)
+    createContextMenus();
   }
-
-  // Create context menu
-  createContextMenus();
 });
 
 function createContextMenus() {
@@ -161,35 +164,58 @@ chrome.storage.onChanged.addListener((changes, namespace) => {
     const newData = changes.promptvault_data.newValue;
     if (newData && newData.settings && newData.settings.locale) {
       i18n.setLocale(newData.settings.locale);
-      // Update context menu title
-      try {
-        chrome.contextMenus.update('saveAsPrompt', {
-          title: i18n.t('ctx_save_as_prompt')
-        });
-      } catch (e) {}
+      // Update context menu titles (MV3: returns promise, need .catch)
+      chrome.contextMenus.update('saveAsPrompt', {
+        title: i18n.t('ctx_save_as_prompt')
+      }).catch(() => {});
+      chrome.contextMenus.update('insertPrompt', {
+        title: i18n.t('ctx_insert_prompt')
+      }).catch(() => {});
     }
   }
 });
 
-// Listen for messages from content script or popup
+// Listen for messages from content script or popup (single merged listener)
 chrome.runtime.onMessage.addListener((message, sender, sendResponse) => {
+  // Sync handlers: call sendResponse immediately, return false
   if (message.action === 'openPopup') {
     sendResponse({ success: true });
-  }
-
-  if (message.action === 'savePrompt') {
-    savePromptFromPage(message.prompt)
-      .then(response => sendResponse(response))
-      .catch(error => sendResponse({ error: error.message }));
-    return true;
+    return false;
   }
 
   if (message.action === 'updateBadge') {
     updateBadge();
     sendResponse({ success: true });
+    return false;
   }
 
-  return true;
+  if (message.action === 'ping') {
+    sendResponse({ pong: true });
+    return false;
+  }
+
+  // Async handlers: keep message channel open
+  if (message.action === 'savePrompt') {
+    savePromptFromPage(message.prompt)
+      .then(response => sendResponse(response))
+      .catch(error => sendResponse({ error: error.message }));
+    return true; // async
+  }
+
+  if (message.action === 'injectScripts') {
+    chrome.tabs.query({ active: true, currentWindow: true }, async (tabs) => {
+      if (tabs[0]) {
+        const result = await injectScripts(tabs[0].id);
+        sendResponse({ success: result });
+      } else {
+        sendResponse({ success: false, error: 'No active tab' });
+      }
+    });
+    return true; // async
+  }
+
+  // Unknown action: close channel
+  return false;
 });
 
 /**
@@ -390,24 +416,6 @@ chrome.tabs.onRemoved.addListener((tabId) => {
   injectedTabs.delete(tabId);
 });
 
-// Listen for messages from popup (to inject scripts)
-chrome.runtime.onMessage.addListener((message, sender, sendResponse) => {
-  if (message.action === 'injectScripts') {
-    chrome.tabs.query({ active: true, currentWindow: true }, async (tabs) => {
-      if (tabs[0]) {
-        const result = await injectScripts(tabs[0].id);
-        sendResponse({ success: result });
-      } else {
-        sendResponse({ success: false, error: 'No active tab' });
-      }
-    });
-    return true; // Keep message channel open for async response
-  }
 
-  if (message.action === 'ping') {
-    sendResponse({ pong: true });
-    return true;
-  }
-});
 
 console.log('PromptVault background service worker loaded');
