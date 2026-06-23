@@ -17,13 +17,11 @@ if (typeof window.PromptVaultI18n === 'undefined') {
       // Tabs
       tab_prompts: '提示词',
       tab_folders: '文件夹',
-      tab_tags: '标签',
       tab_pinned: '置顶',
 
       // Section headings
       heading_all_prompts: '所有提示词',
       heading_folders: '文件夹',
-      heading_tags: '标签',
       heading_pinned: '置顶',
 
       // Search
@@ -32,7 +30,6 @@ if (typeof window.PromptVaultI18n === 'undefined') {
       // Buttons
       btn_new_prompt: '新建提示词',
       btn_new_folder: '新建文件夹',
-      btn_new_tag: '新建标签',
       btn_import: '导入',
       btn_export: '导出',
       btn_save: '保存',
@@ -54,7 +51,6 @@ if (typeof window.PromptVaultI18n === 'undefined') {
       label_title: '提示词名称',
       label_content: '提示词内容',
       label_folder: '文件夹',
-      label_tags: '标签',
       label_name: '名称',
       label_color: '颜色',
       custom_color: '自定义颜色',
@@ -65,26 +61,23 @@ if (typeof window.PromptVaultI18n === 'undefined') {
       // Placeholders
       placeholder_title: '输入提示词名称...',
       placeholder_content: '输入提示词内容...',
-      placeholder_tag: '添加标签...',
       placeholder_folder_name: '输入文件夹名称...',
-      placeholder_new_tag: '输入新标签名称:',
 
       // Empty states
       empty_no_prompts: '暂无提示词',
       empty_prompts_hint: '创建你的第一个提示词开始使用',
       empty_no_search_results: '没有找到匹配的提示词',
-      empty_search_hint: '试试更短的关键词，或使用 tag: / folder: 精准筛选',
+      empty_search_hint: '试试更短的关键词，或使用 folder: 精准筛选',
       empty_no_filtered_prompts: '当前筛选下没有提示词',
-      empty_filter_hint: '返回全部提示词或换一个标签/文件夹',
+      empty_filter_hint: '返回全部提示词或换一个文件夹',
       empty_action_new_prompt: '新建提示词',
       empty_action_clear_search: '清空搜索',
       empty_action_view_all: '查看全部提示词',
       search_results_count: '找到 {0} 个结果',
       filter_search: '搜索',
-      filter_tag: '标签',
       filter_folder: '文件夹',
       clear_filter: '清除筛选',
-      search_syntax_tip: '支持按关键词、标签、文件夹搜索',
+      search_syntax_tip: '支持按关键词、文件夹搜索',
       empty_shortcut_hint: '提示',
 
       // Shortcut
@@ -106,14 +99,12 @@ if (typeof window.PromptVaultI18n === 'undefined') {
       welcome_get_started: '开始体验',
       empty_no_pinned: '暂无置顶',
       empty_pinned_hint: '将提示词置顶后显示在这里',
-      empty_no_tags: '暂无标签',
 
       // Modal titles
       modal_new_prompt: '新建提示词',
       modal_edit_prompt: '编辑提示词',
       modal_new_folder: '新建文件夹',
       modal_edit_folder: '编辑文件夹',
-      modal_new_tag: '新建标签',
       modal_settings: '设置',
       modal_confirm: '确认',
 
@@ -132,8 +123,6 @@ if (typeof window.PromptVaultI18n === 'undefined') {
       toast_created: '创建成功',
       toast_folder_created: '文件夹已创建',
       toast_folder_updated: '文件夹已更新',
-      toast_tag_created: '标签已创建',
-      toast_tag_deleted: '标签已删除',
       toast_copied: '已复制到剪贴板！',
       toast_inserted: '已插入页面！',
       toast_exported: '数据已导出！',
@@ -171,7 +160,7 @@ if (typeof window.PromptVaultI18n === 'undefined') {
       sidebar_card_click_copy: '复制到剪贴板',
       sidebar_card_click_insert: '插入页面输入框',
       settings_sidebar_card_click_hint: '建议保持复制，避免误插入当前页面',
-      settings_data_management_hint: '导入会合并数据；清除会删除所有提示词、文件夹和标签',
+      settings_data_management_hint: '导入会合并数据；清除会删除所有提示词和文件夹',
       settings_support: '感谢支持',
       settings_support_intro_short: '❤️ 如果 PromptVault 对你有帮助，欢迎支持开发者继续维护优化。',
       settings_support_contact_hint: '联系开发者：',
@@ -296,13 +285,11 @@ if (typeof window.PromptVaultI18n === 'undefined') {
       // Tabs
       tab_prompts: 'Prompts',
       tab_folders: 'Folders',
-      tab_tags: 'Tags',
       tab_pinned: 'Pinned',
 
       // Section headings
       heading_all_prompts: 'All Prompts',
       heading_folders: 'Folders',
-      heading_tags: 'Tags',
       heading_pinned: 'Pinned',
 
       // Search
@@ -311,7 +298,6 @@ if (typeof window.PromptVaultI18n === 'undefined') {
       // Buttons
       btn_new_prompt: 'New Prompt',
       btn_new_folder: 'New Folder',
-      btn_new_tag: 'New Tag',
       btn_import: 'Import',
       btn_export: 'Export',
       btn_save: 'Save',
@@ -333,7 +319,6 @@ if (typeof window.PromptVaultI18n === 'undefined') {
       label_title: 'Prompt Name',
       label_content: 'Prompt Content',
       label_folder: 'Folder',
-      label_tags: 'Tags',
       label_name: 'Name',
       label_color: 'Color',
       custom_color: 'Custom color',
@@ -344,26 +329,23 @@ if (typeof window.PromptVaultI18n === 'undefined') {
       // Placeholders
       placeholder_title: 'Enter prompt name...',
       placeholder_content: 'Enter your prompt content...',
-      placeholder_tag: 'Add tag...',
       placeholder_folder_name: 'Enter folder name...',
-      placeholder_new_tag: 'Enter new tag name:',
 
       // Empty states
       empty_no_prompts: 'No prompts yet',
       empty_prompts_hint: 'Create your first prompt to get started',
       empty_no_search_results: 'No matching prompts found',
-      empty_search_hint: 'Try a shorter keyword, or use tag: / folder: filters',
+      empty_search_hint: 'Try a shorter keyword, or use folder: filter',
       empty_no_filtered_prompts: 'No prompts in this filter',
-      empty_filter_hint: 'Go back to all prompts or choose another tag/folder',
+      empty_filter_hint: 'Go back to all prompts or choose another folder',
       empty_action_new_prompt: 'New Prompt',
       empty_action_clear_search: 'Clear Search',
       empty_action_view_all: 'View All Prompts',
       search_results_count: '{0} results found',
       filter_search: 'Search',
-      filter_tag: 'Tag',
       filter_folder: 'Folder',
       clear_filter: 'Clear filter',
-      search_syntax_tip: 'Search by keyword, tag, or folder',
+      search_syntax_tip: 'Search by keyword or folder',
       empty_shortcut_hint: 'Tip',
 
       // Shortcut
@@ -385,14 +367,12 @@ if (typeof window.PromptVaultI18n === 'undefined') {
       welcome_get_started: 'Get Started',
       empty_no_pinned: 'No pinned prompts',
       empty_pinned_hint: 'Pin prompts for quick access',
-      empty_no_tags: 'No tags yet',
 
       // Modal titles
       modal_new_prompt: 'New Prompt',
       modal_edit_prompt: 'Edit Prompt',
       modal_new_folder: 'New Folder',
       modal_edit_folder: 'Edit Folder',
-      modal_new_tag: 'New Tag',
       modal_settings: 'Settings',
       modal_confirm: 'Confirm',
 
@@ -411,8 +391,6 @@ if (typeof window.PromptVaultI18n === 'undefined') {
       toast_created: 'Prompt created!',
       toast_folder_created: 'Folder created',
       toast_folder_updated: 'Folder updated',
-      toast_tag_created: 'Tag created',
-      toast_tag_deleted: 'Tag deleted',
       toast_copied: 'Copied to clipboard!',
       toast_inserted: 'Inserted into page!',
       toast_exported: 'Data exported!',
@@ -450,7 +428,7 @@ if (typeof window.PromptVaultI18n === 'undefined') {
       sidebar_card_click_copy: 'Copy to clipboard',
       sidebar_card_click_insert: 'Insert into page input',
       settings_sidebar_card_click_hint: 'Copy is recommended to avoid accidental insertion',
-      settings_data_management_hint: 'Import merges data; clear deletes all prompts, folders, and tags',
+      settings_data_management_hint: 'Import merges data; clear deletes all prompts and folders',
       settings_support: 'Thanks for Your Support',
       settings_support_intro_short: '❤️ If PromptVault helps you, consider supporting the developer to keep it maintained.',
       settings_support_contact_hint: 'Contact the developer:',

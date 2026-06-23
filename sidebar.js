@@ -74,7 +74,6 @@
   // ========== State ==========
   let prompts = [];
   let folders = [];
-  let tags = [];
   let recentUsage = [];
   let currentTab = 'all'; // 'all' | 'recent' | 'pinned'
   let searchQuery = '';
@@ -472,10 +471,9 @@
   // ========== Load Data ==========
   function loadData(callback) {
     const applyStore = (store) => {
-      prompts = store.prompts || [];
-      folders = store.folders || [];
-      tags = store.tags || [];
-      recentUsage = (store.recentUsage || []).slice(0, 20);
+    prompts = store.prompts || [];
+    folders = store.folders || [];
+    recentUsage = (store.recentUsage || []).slice(0, 20);
       isDarkMode = store.settings?.darkMode || false;
       sidebarCloseOnOutside = store.settings?.sidebarCloseOnOutside !== false;
       sidebarCardClickAction = store.settings?.sidebarCardClickAction || 'copy';
@@ -601,11 +599,6 @@
             <button class="pv-card-action-btn pv-del-btn" data-prompt-id="${prompt.id}" title="${i18n.t('btn_delete')}">${ICONS.trash}</button>
           </div>
         </div>
-        ${
-          prompt.tags && prompt.tags.length > 0
-            ? `<div class="pv-card-tags">${prompt.tags.map((t) => `<span class="pv-card-tag">${escapeHtml(t)}</span>`).join('')}</div>`
-            : ''
-        }
         <div class="pv-card-content">${escapeHtml(prompt.content)}</div>
         <div class="pv-card-meta">
           ${folderDisplay ? `<span class="pv-card-folder">${folderDisplay}</span>` : ''}
@@ -768,10 +761,6 @@
     const card = document.querySelector(`.pv-card[data-prompt-id="${promptId}"]`);
     if (!card) return;
 
-    const tagsHtml = (prompt.tags || [])
-      .map((t) => `<span class="pv-edit-tag">${escapeHtml(t)}<span class="pv-edit-tag-remove" data-tag="${escapeHtml(t)}">&times;</span></span>`)
-      .join('');
-
     card.classList.add('pv-editing');
     card.innerHTML = `
       <div class="pv-edit-form">
@@ -780,13 +769,6 @@
         </div>
         <div class="pv-edit-row">
           <textarea class="pv-edit-content" placeholder="${i18n.t('placeholder_content')}">${escapeHtml(prompt.content)}</textarea>
-        </div>
-        <div class="pv-edit-row pv-edit-tags-row">
-          <div class="pv-edit-tags">${tagsHtml}</div>
-          <div class="pv-edit-tag-add">
-            <input type="text" class="pv-edit-tag-input" placeholder="${i18n.t('placeholder_tag')}">
-            <button class="pv-edit-tag-add-btn">+</button>
-          </div>
         </div>
         <div class="pv-edit-actions">
           <button class="pv-edit-cancel-btn">${i18n.t('btn_cancel')}</button>
@@ -804,48 +786,6 @@
     card.querySelector('.pv-edit-save-btn').addEventListener('click', () => {
       saveEdit(promptId);
     });
-
-    // Remove tag
-    card.querySelectorAll('.pv-edit-tag-remove').forEach((span) => {
-      span.addEventListener('click', (e) => {
-        e.stopPropagation();
-        const tagToRemove = span.dataset.tag;
-        const tagsContainer = card.querySelector('.pv-edit-tags');
-        const tagSpans = tagsContainer.querySelectorAll('.pv-edit-tag');
-        tagSpans.forEach((ts) => {
-          if (ts.querySelector('.pv-edit-tag-remove').dataset.tag === tagToRemove) {
-            ts.remove();
-          }
-        });
-      });
-    });
-
-    // Add tag
-    const tagInput = card.querySelector('.pv-edit-tag-input');
-    const addTagBtn = card.querySelector('.pv-edit-tag-add-btn');
-    const addTag = () => {
-      const val = tagInput.value.trim();
-      if (!val) return;
-      const tagsContainer = card.querySelector('.pv-edit-tags');
-      // Check duplicate
-      const existing = [...tagsContainer.querySelectorAll('.pv-edit-tag')].some(
-        (el) => el.querySelector('.pv-edit-tag-remove').dataset.tag === val
-      );
-      if (existing) return;
-      const tagEl = document.createElement('span');
-      tagEl.className = 'pv-edit-tag';
-      tagEl.innerHTML = `${escapeHtml(val)}<span class="pv-edit-tag-remove" data-tag="${escapeHtml(val)}">&times;</span>`;
-      tagEl.querySelector('.pv-edit-tag-remove').addEventListener('click', (e) => {
-        e.stopPropagation();
-        tagEl.remove();
-      });
-      tagsContainer.appendChild(tagEl);
-      tagInput.value = '';
-    };
-    addTagBtn.addEventListener('click', addTag);
-    tagInput.addEventListener('keydown', (e) => {
-      if (e.key === 'Enter') { e.preventDefault(); addTag(); }
-    });
   }
 
   function saveEdit(promptId) {
@@ -856,16 +796,11 @@
     const content = card.querySelector('.pv-edit-content').value.trim();
     if (!title) { showToast(i18n.t('placeholder_title') + ' ' + i18n.t('toast_error_folder_name'), 'error'); return; }
 
-    const tags = [...card.querySelectorAll('.pv-edit-tag')].map(
-      (el) => el.querySelector('.pv-edit-tag-remove').dataset.tag
-    );
-
     safeStorageGet('promptvault_data', {}).then((store) => {
       const prompt = store.prompts?.find((p) => p.id === promptId);
       if (prompt) {
         prompt.title = title;
         prompt.content = content;
-        prompt.tags = tags;
         prompt.updatedAt = Date.now();
         safeStorageSet({ promptvault_data: store }).then(() => {
           loadData(() => renderSidebar());
@@ -936,8 +871,7 @@
         result = result.filter(
           (p) =>
             p.title.toLowerCase().includes(q) ||
-            p.content.toLowerCase().includes(q) ||
-            (p.tags && p.tags.some((t) => t.toLowerCase().includes(q)))
+            p.content.toLowerCase().includes(q)
         );
       }
     }

@@ -337,16 +337,15 @@
     if (query) {
       if (typeof Storage !== 'undefined' && Storage.filterAndRankPrompts) {
         result = Storage.filterAndRankPrompts(result, query, { folders: allFolders });
-      } else {
-        const q = query.toLowerCase();
-        result = result.filter(
-          (p) =>
-            p.title.toLowerCase().includes(q) ||
-            p.content.toLowerCase().includes(q) ||
-            (p.tags && p.tags.some((t) => t.toLowerCase().includes(q)))
-        );
-        result = sortPromptsSmart(result);
-      }
+        } else {
+          const q = query.toLowerCase();
+          result = result.filter(
+            (p) =>
+              p.title.toLowerCase().includes(q) ||
+              p.content.toLowerCase().includes(q)
+          );
+          result = sortPromptsSmart(result);
+        }
     }
 
     filteredPrompts = result;

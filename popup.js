@@ -10,7 +10,6 @@
   let editingPromptId = null;
   let editingFolderId = null;
   let currentFolderFilter = null;
-  let currentTagFilter = null;
   let isBatchMode = false;
   let selectedPromptIds = new Set();
   let recentUsageCollapsed = false;
@@ -120,7 +119,6 @@
     const tabLabels = {
       'prompts': i18n.t('tab_prompts'),
       'folders': i18n.t('tab_folders'),
-      'tags': i18n.t('tab_tags'),
       'pinned': i18n.t('tab_pinned'),
     };
     document.querySelectorAll('.nav-tab').forEach(tab => {
@@ -144,11 +142,6 @@
         <line x1="12" y1="5" x2="12" y2="19"></line>
         <line x1="5" y1="12" x2="19" y2="12"></line>
       </svg> ` + i18n.t('btn_new_folder');
-    document.getElementById('btn-new-tag').innerHTML =
-      `<svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2">
-        <line x1="12" y1="5" x2="12" y2="19"></line>
-        <line x1="5" y1="12" x2="19" y2="12"></line>
-      </svg> ` + i18n.t('btn_new_tag');
 
     // Settings modal labels
     const defaultFolderLabel = document.querySelector('[for="setting-default-folder"]');
@@ -202,8 +195,6 @@
     // Tab headings
     const h2Folders = document.querySelector('#tab-folders .tab-header h2');
     if (h2Folders) h2Folders.textContent = i18n.t('heading_folders');
-    const h2Tags = document.querySelector('#tab-tags .tab-header h2');
-    if (h2Tags) h2Tags.textContent = i18n.t('heading_tags');
     const h2Pinned = document.getElementById('heading-pinned');
     if (h2Pinned) h2Pinned.textContent = i18n.t('heading_pinned_prompts');
 
@@ -243,16 +234,13 @@
     const btnBatchCancel = document.getElementById('btn-batch-cancel');
     if (btnBatchCancel) btnBatchCancel.textContent = i18n.t('btn_batch_cancel');
 
-    // Prompt/Folder/Tag modals - static labels
+    // Prompt/Folder modals - static labels
     document.getElementById('prompt-modal-title').textContent = i18n.t('modal_new_prompt');
     document.querySelector('[for="prompt-title"]').textContent = i18n.t('label_title');
     document.getElementById('prompt-title').placeholder = i18n.t('placeholder_title');
     document.querySelector('[for="prompt-content"]').textContent = i18n.t('label_content');
     document.getElementById('prompt-content').placeholder = i18n.t('placeholder_content');
     document.querySelector('[for="prompt-folder"]').textContent = i18n.t('label_folder');
-    const promptTagsLabel = document.querySelectorAll('#prompt-modal label')[3];
-    if (promptTagsLabel) promptTagsLabel.textContent = i18n.t('label_tags');
-    document.getElementById('prompt-tag-input').placeholder = i18n.t('placeholder_tag');
     document.querySelector('#prompt-modal .modal-cancel').textContent = i18n.t('btn_cancel');
     document.getElementById('btn-save-prompt').textContent = i18n.t('btn_save');
 
@@ -262,12 +250,6 @@
     document.querySelector('[for="folder-color"]').textContent = i18n.t('label_color');
     document.querySelector('#folder-modal .modal-cancel').textContent = i18n.t('btn_cancel');
     document.getElementById('btn-save-folder').textContent = i18n.t('btn_save') + ' ' + i18n.t('heading_folders');
-
-    document.getElementById('tag-modal-title').textContent = i18n.t('modal_new_tag');
-    document.getElementById('tag-input-label').textContent = i18n.t('label_tags') + ' ' + i18n.t('label_name');
-    document.getElementById('tag-input').placeholder = i18n.t('placeholder_new_tag');
-    document.querySelector('#tag-modal .modal-cancel').textContent = i18n.t('btn_cancel');
-    document.getElementById('btn-save-tag').textContent = i18n.t('btn_confirm');
 
     // Confirm dialog
     document.getElementById('confirm-message').textContent = i18n.t('confirm_delete_prompt_msg');
@@ -318,9 +300,6 @@
       } else if (type === 'folder') {
         currentFolderFilter = null;
         updatePromptsHeader();
-      } else if (type === 'tag') {
-        currentTagFilter = null;
-        updatePromptsHeader();
       }
       handleSearch();
     });
@@ -332,9 +311,8 @@
       if (query) {
         document.getElementById('search-input').value = '';
         handleSearch();
-      } else if (currentFolderFilter || currentTagFilter) {
+      } else if (currentFolderFilter) {
         currentFolderFilter = null;
-        currentTagFilter = null;
         updatePromptsHeader();
         renderPrompts();
       } else {
@@ -344,7 +322,6 @@
     document.getElementById('btn-empty-view-all')?.addEventListener('click', () => {
       document.getElementById('search-input').value = '';
       currentFolderFilter = null;
-      currentTagFilter = null;
       switchTab('prompts');
     });
 
@@ -357,9 +334,6 @@
 
     // New folder button
     document.getElementById('btn-new-folder').addEventListener('click', () => openFolderModal());
-
-    // New tag button
-    document.getElementById('btn-new-tag').addEventListener('click', () => openNewTagDialog());
 
     // Save prompt button
     document.getElementById('btn-save-prompt').addEventListener('click', savePrompt);
@@ -407,16 +381,6 @@
       modal.addEventListener('click', (e) => {
         if (e.target === modal) closeAllModals();
       });
-    });
-
-    // Tag input
-    const tagInput = document.getElementById('prompt-tag-input');
-    tagInput.addEventListener('keypress', (e) => {
-      if (e.key === 'Enter') {
-        e.preventDefault();
-        addTagToPrompt(tagInput.value.trim());
-        tagInput.value = '';
-      }
     });
 
     // Toggle recent usage collapse/expand
@@ -473,13 +437,6 @@
       prompts = await Storage.getPromptsByFolder(currentFolderFilter);
     } else {
       prompts = await Storage.getPrompts();
-    }
-
-    if (currentTagFilter) {
-      const normalizedTag = currentTagFilter.trim().toLowerCase();
-      prompts = prompts.filter(p =>
-        (p.tags || []).some(t => t.trim().toLowerCase() === normalizedTag)
-      );
     }
 
     return prompts;
@@ -634,7 +591,6 @@
     currentTab = tabName;
     if (!preserveFilter) {
       currentFolderFilter = null;
-      currentTagFilter = null;
     }
 
     // Exit batch mode when switching tabs
@@ -661,20 +617,14 @@
     const wrap = document.getElementById('folder-breadcrumb-wrap');
     if (!wrap) return;
 
-    if (currentFolderFilter || currentTagFilter) {
+    if (currentFolderFilter) {
       const folders = await Storage.getFolders();
-      let label = '';
-      if (currentFolderFilter) {
-        const folder = folders.find(f => f.id === currentFolderFilter);
-        label = folder && folder.id !== 'default' ? escapeHtml(folder.name) : i18n.t('folder_uncategorized');
-      } else {
-        label = `${i18n.t('label_tags')}: ${escapeHtml(currentTagFilter)}`;
-      }
+      const folder = folders.find(f => f.id === currentFolderFilter);
+      const label = folder && folder.id !== 'default' ? escapeHtml(folder.name) : i18n.t('folder_uncategorized');
       wrap.innerHTML = `<span class="folder-breadcrumb" title="${i18n.t('back_to_all') || 'Back to all'}">&#9664; ${label}</span>`;
       // Click breadcrumb to go back to all prompts
       wrap.querySelector('.folder-breadcrumb').addEventListener('click', () => {
         currentFolderFilter = null;
-        currentTagFilter = null;
         updatePromptsHeader();
         renderPrompts();
       });
@@ -708,7 +658,6 @@
     await Promise.all([
       renderPrompts(),
       renderFolders(),
-      renderTags(),
       renderPinned(),
       renderRecentUsage(),
     ]);
@@ -717,7 +666,7 @@
   function getSearchTerms(query) {
     if (!query) return [];
     const filters = Storage.parseSearchQuery(query);
-    return [...filters.terms, ...filters.titleTerms, ...filters.tags, ...filters.folders]
+    return [...filters.terms, ...filters.titleTerms, ...filters.folders]
       .map(term => term.trim())
       .filter(Boolean)
       .sort((a, b) => b.length - a.length);
@@ -894,7 +843,7 @@
     if (!context) return;
 
     const parts = [];
-    if (query || currentFolderFilter || currentTagFilter) {
+    if (query || currentFolderFilter) {
       parts.push(`<span class="search-result-count">${i18n.t('search_results_count', resultCount)}</span>`);
     }
 
@@ -904,7 +853,6 @@
       const folderName = folder && folder.id !== 'default' ? folder.name : i18n.t('folder_uncategorized');
       parts.push(renderFilterChip('folder', i18n.t('filter_folder'), folderName));
     }
-    if (currentTagFilter) parts.push(renderFilterChip('tag', i18n.t('filter_tag'), currentTagFilter));
 
     if (!parts.length && document.activeElement === document.getElementById('search-input')) {
       parts.push(`
@@ -914,7 +862,7 @@
       `);
     }
 
-    if (!query && !currentFolderFilter && !currentTagFilter && getActiveSortMode() === 'custom' && currentTab === 'prompts') {
+    if (!query && !currentFolderFilter && getActiveSortMode() === 'custom' && currentTab === 'prompts') {
       parts.push(`
         <span class="search-tip sort-drag-tip">
           ${i18n.t('sort_custom_hint')}
@@ -952,7 +900,7 @@
         emptyState.querySelector('p').textContent = i18n.t('empty_no_search_results');
         emptyState.querySelector('.empty-hint').textContent = i18n.t('empty_search_hint');
         if (emptyActionBtn) emptyActionBtn.textContent = i18n.t('empty_action_clear_search');
-      } else if (currentFolderFilter || currentTagFilter) {
+      } else if (currentFolderFilter) {
         emptyState.querySelector('p').textContent = i18n.t('empty_no_filtered_prompts');
         emptyState.querySelector('.empty-hint').textContent = i18n.t('empty_filter_hint');
         if (emptyActionBtn) emptyActionBtn.textContent = i18n.t('empty_action_view_all');
@@ -965,7 +913,7 @@
       return;
     }
 
-    const shouldRenderGrouped = displayMode === 'grouped' && !query && !currentFolderFilter && !currentTagFilter;
+    const shouldRenderGrouped = displayMode === 'grouped' && !query && !currentFolderFilter;
 
     // Sort normally when browsing. Search results keep relevance order from Storage.filterAndRankPrompts.
     if (!query && !shouldRenderGrouped) {
@@ -988,9 +936,6 @@
       const isSelected = selectedPromptIds.has(prompt.id);
       const titleHtml = highlightMatches(prompt.title, searchTerms);
       const snippetHtml = highlightMatches(buildPromptSnippet(prompt.content, searchTerms), searchTerms);
-      const tagsHtml = (prompt.tags || [])
-        .map(tag => `<span class="prompt-card-tag">${highlightMatches(tag, searchTerms)}</span>`)
-        .join('');
       const statusChipsHtml = renderPromptStatusChips(prompt);
 
       if (isBatchMode) {
@@ -1006,7 +951,6 @@
               <div class="prompt-card-preview">${snippetHtml}</div>
               <div class="prompt-card-meta">
                 <span class="prompt-card-folder" style="border-left: 3px solid ${folderColor}">${escapeHtml(folderName)}</span>
-                ${tagsHtml}
                 ${statusChipsHtml}
               </div>
             </div>
@@ -1041,7 +985,6 @@
             <div class="prompt-card-preview">${snippetHtml}</div>
             <div class="prompt-card-meta">
               <span class="prompt-card-folder" style="border-left: 3px solid ${folderColor}">${escapeHtml(folderName)}</span>
-              ${tagsHtml}
               ${statusChipsHtml}
               ${prompt.usageCount > 0 ? `<span class="prompt-card-usage">${i18n.t('usage_stats', prompt.usageCount, formatRelativeTime(prompt.lastUsedAt))}</span>` : ''}
               ${renderClickHint()}
@@ -1183,7 +1126,6 @@
                 </div>
                 <div class="prompt-card-preview">${escapeHtml((prompt.content || '').substring(0, 150))}${(prompt.content || '').length > 150 ? '...' : ''}</div>
                 <div class="prompt-card-meta">
-                  ${(prompt.tags || []).map(tag => `<span class="prompt-card-tag">${escapeHtml(tag)}</span>`).join('')}
                   ${renderPromptStatusChips(prompt)}
                 </div>
               </div>
@@ -1217,7 +1159,6 @@
               </div>
               <div class="prompt-card-preview">${escapeHtml((prompt.content || '').substring(0, 150))}${(prompt.content || '').length > 150 ? '...' : ''}</div>
               <div class="prompt-card-meta">
-                ${(prompt.tags || []).map(tag => `<span class="prompt-card-tag">${escapeHtml(tag)}</span>`).join('')}
                 ${renderPromptStatusChips(prompt)}
                 ${prompt.usageCount > 0 ? `<span class="prompt-card-usage">${i18n.t('usage_stats', prompt.usageCount, formatRelativeTime(prompt.lastUsedAt))}</span>` : ''}
                 ${renderClickHint()}
@@ -1225,9 +1166,9 @@
             </div>
           `;
         }
-      }).join('');
+    }).join('');
 
-      return `
+    return `
         <div class="folder-group" data-folder-id="${fid}">
           <div class="folder-group-header" data-folder-id="${fid}">
             <span class="folder-group-arrow">▾</span>
@@ -1502,55 +1443,6 @@
   }
 
   /**
-   * Render tags list
-   */
-  async function renderTags() {
-    const container = document.getElementById('tags-list');
-    const tags = await Storage.getTags();
-    const prompts = await Storage.getPrompts();
-
-    if (tags.length === 0) {
-      container.innerHTML = '<div class="empty-state"><p>' + i18n.t('empty_no_tags') + '</p></div>';
-      return;
-    }
-
-    container.innerHTML = tags.map(tag => {
-      // Normalize both sides for robust matching
-      const normalizedTag = tag.trim().toLowerCase();
-      const count = prompts.filter(p => {
-        if (!p.tags || !p.tags.length) return false;
-        return p.tags.some(t => t.trim().toLowerCase() === normalizedTag);
-      }).length;
-      return `
-        <div class="tag-item" data-tag="${escapeHtml(tag)}">
-          <span>${escapeHtml(tag)}</span>
-          <span class="tag-item-count">${count}</span>
-          <button class="tag-item-delete" data-tag="${escapeHtml(tag)}" ${tooltipAttrs(i18n.t('btn_delete'))}>×</button>
-        </div>
-      `;
-    }).join('');
-
-    container.querySelectorAll('.tag-item').forEach(item => {
-      item.addEventListener('click', (e) => {
-        if (!e.target.classList.contains('tag-item-delete')) {
-          currentTagFilter = item.dataset.tag;
-          currentFolderFilter = null;
-          switchTab('prompts', true);
-        }
-      });
-    });
-
-    container.querySelectorAll('.tag-item-delete').forEach(btn => {
-      btn.addEventListener('click', async (e) => {
-        e.stopPropagation();
-        await Storage.removeTag(btn.dataset.tag);
-        renderAll();
-        showToast(i18n.t('toast_tag_deleted'));
-      });
-    });
-  }
-
-  /**
    * Render pinned list (only pinned prompts)
    */
   async function renderPinned() {
@@ -1617,7 +1509,6 @@
           <div class="prompt-card-preview">${escapeHtml((prompt.content || '').substring(0, 150))}${(prompt.content || '').length > 150 ? '...' : ''}</div>
           <div class="prompt-card-meta">
             <span class="prompt-card-folder" style="border-left: 3px solid ${folderColor}">${escapeHtml(folderName)}</span>
-            ${(prompt.tags || []).map(tag => `<span class="prompt-card-tag">${escapeHtml(tag)}</span>`).join('')}
             ${renderPromptStatusChips(prompt)}
             ${prompt.usageCount > 0 ? `<span class="prompt-card-usage">${i18n.t('usage_stats', prompt.usageCount, formatRelativeTime(prompt.lastUsedAt))}</span>` : ''}
             ${renderClickHint()}
@@ -1778,15 +1669,9 @@
     document.querySelector('[for="prompt-title"]').textContent = i18n.t('label_title');
     document.querySelector('[for="prompt-content"]').textContent = i18n.t('label_content');
     document.querySelector('[for="prompt-folder"]').textContent = i18n.t('label_folder');
-    document.querySelector('#prompt-modal .form-group:nth-child(4) label').textContent = i18n.t('label_tags');
     document.getElementById('prompt-title').placeholder = i18n.t('placeholder_title');
     document.getElementById('prompt-content').placeholder = i18n.t('placeholder_content');
-    document.getElementById('prompt-tag-input').placeholder = i18n.t('placeholder_tag');
     document.getElementById('btn-save-prompt').textContent = i18n.t('btn_save');
-
-    // Load existing tags for suggestions
-    const existingTags = await Storage.getTags();
-    renderTagSuggestions(existingTags);
 
     if (promptId) {
       title.textContent = i18n.t('modal_edit_prompt');
@@ -1794,125 +1679,14 @@
       document.getElementById('prompt-title').value = prompt.title;
       document.getElementById('prompt-content').value = prompt.content;
       document.getElementById('prompt-folder').value = prompt.folder || 'default';
-      renderPromptTags(prompt.tags || []);
     } else {
       title.textContent = i18n.t('modal_new_prompt');
       document.getElementById('prompt-title').value = '';
       document.getElementById('prompt-content').value = '';
       document.getElementById('prompt-folder').value = 'default';
-      renderPromptTags([]);
     }
 
     openModal('prompt-modal');
-  }
-
-  /**
-   * Render tag suggestions (existing tags)
-   */
-  function renderTagSuggestions(existingTags) {
-    const container = document.getElementById('tag-suggestions');
-    if (!container) return;
-
-    // Defensive dedup
-    const uniqueTags = [...new Set(existingTags || [])];
-
-    if (uniqueTags.length === 0) {
-      container.innerHTML = '';
-      container.classList.add('hidden');
-      return;
-    }
-
-    container.classList.remove('hidden');
-    container.innerHTML = uniqueTags.map(tag => `
-      <span class="tag-suggestion" data-tag="${escapeHtml(tag)}">
-        ${escapeHtml(tag)}
-      </span>
-    `).join('');
-
-    // Use event delegation: bind once on container
-    container.onclick = (e) => {
-      const target = e.target.closest('.tag-suggestion');
-      if (!target) return;
-      const tag = target.dataset.tag;
-      const currentTags = getCurrentPromptTags();
-
-      if (currentTags.includes(tag)) {
-        removeTagFromPrompt(tag);
-      } else {
-        addTagToPrompt(tag);
-      }
-
-      updateTagSuggestionState();
-    };
-
-    updateTagSuggestionState();
-  }
-
-  /**
-   * Update visual state of tag suggestions (highlight selected ones)
-   */
-  function updateTagSuggestionState() {
-    const currentTags = getCurrentPromptTags();
-    const suggestions = document.querySelectorAll('.tag-suggestion');
-    suggestions.forEach(span => {
-      if (currentTags.includes(span.dataset.tag)) {
-        span.classList.add('selected');
-      } else {
-        span.classList.remove('selected');
-      }
-    });
-  }
-
-  /**
-   * Get current prompt tags from chip display
-   */
-  function getCurrentPromptTags() {
-    const container = document.getElementById('prompt-tags');
-    return Array.from(container.querySelectorAll('.tag-chip'))
-      .map(chip => chip.textContent.trim().slice(0, -1).trim())
-      .filter(t => t.length > 0);
-  }
-
-  /**
-   * Render prompt tags in modal
-   */
-  function renderPromptTags(tags) {
-    const container = document.getElementById('prompt-tags');
-    container.innerHTML = tags.map(tag => `
-      <span class="tag-chip">
-        ${escapeHtml(tag)}
-        <button class="tag-chip-remove" data-tag="${escapeHtml(tag)}">×</button>
-      </span>
-    `).join('');
-
-    container.querySelectorAll('.tag-chip-remove').forEach(btn => {
-      btn.addEventListener('click', () => {
-        removeTagFromPrompt(btn.dataset.tag);
-      });
-    });
-
-    // Update suggestion highlights
-    updateTagSuggestionState();
-  }
-
-  function addTagToPrompt(tag) {
-    if (!tag) return;
-    tag = tag.trim();
-    if (!tag) return;
-    const container = document.getElementById('prompt-tags');
-    const existingTags = getCurrentPromptTags();
-    if (!existingTags.includes(tag)) {
-      existingTags.push(tag);
-      renderPromptTags(existingTags);
-    }
-  }
-
-  function removeTagFromPrompt(tag) {
-    tag = tag.trim();
-    const container = document.getElementById('prompt-tags');
-    const existingTags = getCurrentPromptTags()
-      .filter(t => t !== tag);
-    renderPromptTags(existingTags);
   }
 
   /**
@@ -1928,16 +1702,11 @@
       return;
     }
 
-    const tags = Array.from(document.querySelectorAll('#prompt-tags .tag-chip'))
-      .map(chip => chip.textContent.trim().slice(0, -1).trim())
-      .filter(t => t.length > 0);
-
     const prompt = {
       id: editingPromptId || Storage.generateId(),
       title,
       content,
       folder,
-      tags,
       pinned: false,
       usageCount: 0,
       createdAt: Date.now(),
@@ -1953,9 +1722,6 @@
     }
 
     await Storage.savePrompt(prompt);
-    for (const tag of tags) {
-      await Storage.addTag(tag);
-    }
 
     closeAllModals();
     renderAll();
@@ -2028,62 +1794,6 @@
     closeAllModals();
     renderAll();
     showToast(editingFolderId ? i18n.t('toast_folder_updated') : i18n.t('toast_folder_created'), 'success');
-  }
-
-  async function openNewTagDialog() {
-    const tagModal = document.getElementById('tag-modal');
-    const tagInput = document.getElementById('tag-input');
-    const tagModalTitle = document.getElementById('tag-modal-title');
-    const tagInputLabel = document.getElementById('tag-input-label');
-
-    // Set i18n text
-    tagModalTitle.textContent = i18n.t('modal_new_tag') || '新建标签';
-    tagInputLabel.textContent = i18n.t('label_name') || '名称';
-    tagInput.placeholder = i18n.t('placeholder_tag') || '输入标签名称...';
-
-    // Show modal
-    tagModal.classList.remove('hidden');
-    setTimeout(() => tagInput.focus(), 50);
-
-    // Save handler
-    const saveTag = async () => {
-      const tag = tagInput.value.trim();
-      if (!tag) return;
-      await Storage.addTag(tag);
-      closeTagModal();
-      renderAll();
-      showToast(i18n.t('toast_tag_created'), 'success');
-    };
-
-    // Bind buttons (one-time)
-    const saveBtn = document.getElementById('btn-save-tag');
-    const cancelBtn = tagModal.querySelector('.modal-cancel');
-    const closeBtn = tagModal.querySelector('.modal-close');
-
-    const closeTagModal = () => {
-      tagModal.classList.add('hidden');
-      tagInput.value = '';
-      // Remove listeners to avoid stacking
-      saveBtn.replaceWith(saveBtn.cloneNode(true));
-      cancelBtn.replaceWith(cancelBtn.cloneNode(true));
-      closeBtn.replaceWith(closeBtn.cloneNode(true));
-    };
-
-    // Re-bind fresh listeners
-    document.getElementById('btn-save-tag').addEventListener('click', saveTag);
-    tagModal.querySelector('.modal-cancel').addEventListener('click', closeTagModal);
-    tagModal.querySelector('.modal-close').addEventListener('click', closeTagModal);
-
-    // Enter key to save
-    tagInput.addEventListener('keydown', (e) => {
-      if (e.key === 'Enter') { e.preventDefault(); saveTag(); }
-      if (e.key === 'Escape') { closeTagModal(); }
-    });
-
-    // Click overlay to close
-    tagModal.addEventListener('click', (e) => {
-      if (e.target === tagModal) closeTagModal();
-    });
   }
 
   /**

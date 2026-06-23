@@ -565,20 +565,6 @@ body {
   color: var(--text-secondary);
 }
 
-.prompt-card-tags {
-  display: flex;
-  gap: 4px;
-  flex-wrap: wrap;
-}
-
-.prompt-card-tag {
-  font-size: 11px;
-  padding: 2px 7px;
-  background: rgba(128, 128, 128, 0.14);
-  border-radius: 12px;
-  color: var(--text-secondary);
-}
-
 .prompt-card-status {
   font-size: 11px;
   padding: 2px 8px;
@@ -706,57 +692,6 @@ body {
 .folder-card-actions .prompt-card-action:hover {
   background: rgba(255, 107, 107, 0.15);
   color: #FF6B6B;
-}
-
-/* Tags Cloud */
-.tags-cloud {
-  display: flex;
-  flex-wrap: wrap;
-  gap: 8px;
-}
-
-.tag-item {
-  display: flex;
-  align-items: center;
-  gap: 6px;
-  padding: 6px 12px;
-  background: var(--bg-secondary);
-  border: 1px solid var(--border-color);
-  border-radius: 20px;
-  cursor: pointer;
-  transition: var(--transition);
-  font-size: 13px;
-}
-
-.tag-item:hover {
-  border-color: var(--accent-primary);
-  background: var(--bg-hover);
-}
-
-.tag-item-count {
-  font-size: 11px;
-  color: var(--text-secondary);
-  background: var(--bg-tertiary);
-  padding: 1px 6px;
-  border-radius: 10px;
-}
-
-.tag-item-delete {
-  background: none;
-  border: none;
-  color: var(--text-muted);
-  cursor: pointer;
-  padding: 2px;
-  border-radius: 50%;
-  display: flex;
-  align-items: center;
-  justify-content: center;
-  transition: var(--transition);
-}
-
-.tag-item-delete:hover {
-  color: var(--danger);
-  background: rgba(255, 71, 87, 0.1);
 }
 
 /* Empty State */
@@ -1008,110 +943,7 @@ body {
 .color-preset.custom-color-btn svg {
   color: white;
   filter: drop-shadow(0 0 2px rgba(0,0,0,0.5));
-}
-
-/* Tag Suggestions */
-.tag-suggestions {
-  display: flex;
-  flex-wrap: wrap;
-  gap: 6px;
-  padding: 8px;
-  margin-bottom: 8px;
-  background: var(--bg-secondary);
-  border: 1px solid var(--border-color);
-  border-radius: var(--radius-sm);
-  min-height: 36px;
-}
-
-.tag-suggestion {
-  display: inline-flex;
-  align-items: center;
-  padding: 4px 10px;
-  background: var(--bg-tertiary);
-  color: var(--text-secondary);
-  border-radius: 12px;
-  font-size: 12px;
-  cursor: pointer;
-  transition: var(--transition);
-  border: 1px solid transparent;
-}
-
-.tag-suggestion:hover {
-  background: var(--bg-hover);
-  color: var(--text-primary);
-  border-color: var(--border-color);
-}
-
-.tag-suggestion.selected {
-  background: var(--accent-primary);
-  color: var(--accent-contrast);
-  border-color: var(--accent-primary);
-}
-
-.tag-suggestions.hidden {
-  display: none;
-}
-
-/* Tags Input */
-.tags-input-container {
-  display: flex;
-  flex-wrap: wrap;
-  gap: 6px;
-  padding: 8px;
-  background: var(--bg-secondary);
-  border: 1px solid var(--border-color);
-  border-radius: var(--radius-sm);
-  min-height: 42px;
-  align-items: center;
-}
-
-.tags-input-container:focus-within {
-  border-color: var(--accent-primary);
-  box-shadow: 0 0 0 3px rgba(128, 128, 128, 0.14);
-}
-
-.tags-list {
-  display: flex;
-  flex-wrap: wrap;
-  gap: 6px;
-}
-
-.tag-chip {
-  display: flex;
-  align-items: center;
-  gap: 4px;
-  padding: 4px 8px;
-  background: var(--accent-primary);
-  color: var(--accent-contrast);
-  border-radius: 12px;
-  font-size: 12px;
-}
-
-.tag-chip-remove {
-  background: none;
-  border: none;
-  color: var(--accent-contrast);
-  cursor: pointer;
-  font-size: 16px;
-  line-height: 1;
-  padding: 0;
-  margin-left: 2px;
-  opacity: 0.8;
-}
-
-.tag-chip-remove:hover {
-  opacity: 1;
-}
-
-.tags-input-container input {
-  flex: 1;
-  min-width: 100px;
-  background: none;
-  border: none;
-  color: var(--text-primary);
-  font-size: 14px;
-  outline: none;
-}
+  }
 
 /* Variables */
 .variables-list {

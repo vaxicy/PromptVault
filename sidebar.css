@@ -440,24 +440,7 @@
   color: var(--pv-text-secondary);
   white-space: nowrap;
   flex-shrink: 0;
-}
-
-#pv-sidebar .pv-card-tags {
-  display: flex;
-  gap: 4px;
-  flex-wrap: wrap;
-  margin-left: auto;
-}
-
-#pv-sidebar .pv-card-tag {
-  background: var(--pv-accent-light);
-  color: var(--pv-text-secondary);
-  padding: 2px 8px;
-  border-radius: 10px;
-  font-size: 10px;
-  font-weight: 500;
-  white-space: nowrap;
-}
+  }
 
 #pv-sidebar .pv-card-actions {
   display: flex;
@@ -711,84 +694,6 @@ body > .pv-toast {
 
 #pv-sidebar .pv-edit-content:focus {
   border-color: var(--pv-accent);
-}
-
-/* Edit Tags */
-#pv-sidebar .pv-edit-tags-row {
-  gap: 6px;
-}
-
-#pv-sidebar .pv-edit-tags {
-  display: flex;
-  flex-wrap: wrap;
-  gap: 4px;
-}
-
-#pv-sidebar .pv-edit-tag {
-  display: inline-flex;
-  align-items: center;
-  gap: 2px;
-  background: var(--pv-accent-light);
-  color: var(--pv-text-secondary);
-  padding: 2px 6px;
-  border-radius: 10px;
-  font-size: 10px;
-  font-weight: 500;
-  cursor: default;
-}
-
-#pv-sidebar .pv-edit-tag-remove {
-  cursor: pointer;
-  font-size: 13px;
-  line-height: 1;
-  margin-left: 2px;
-  opacity: 0.6;
-}
-
-#pv-sidebar .pv-edit-tag-remove:hover {
-  opacity: 1;
-  color: #ef4444;
-}
-
-#pv-sidebar .pv-edit-tag-add {
-  display: flex;
-  gap: 4px;
-  align-items: center;
-}
-
-#pv-sidebar .pv-edit-tag-input {
-  width: 80px;
-  padding: 3px 6px;
-  border: 1px solid var(--pv-border);
-  border-radius: 6px;
-  background: var(--pv-input-bg);
-  color: var(--pv-text);
-  font-size: 11px;
-  outline: none;
-  box-sizing: border-box;
-}
-
-#pv-sidebar .pv-edit-tag-input:focus {
-  border-color: var(--pv-accent);
-}
-
-#pv-sidebar .pv-edit-tag-add-btn {
-  background: var(--pv-accent);
-  color: var(--pv-accent-contrast);
-  border: none;
-  border-radius: 50%;
-  width: 20px;
-  height: 20px;
-  font-size: 13px;
-  cursor: pointer;
-  display: flex;
-  align-items: center;
-  justify-content: center;
-  line-height: 1;
-}
-
-#pv-sidebar .pv-edit-tag-add-btn:hover {
-  opacity: 0.85;
 }
 
 /* Edit Actions */
@@ -1064,8 +969,7 @@ body > .pv-toast {
 
 #pv-sidebar .pv-search-input:focus,
 #pv-sidebar .pv-edit-title:focus,
-#pv-sidebar .pv-edit-content:focus,
-#pv-sidebar .pv-edit-tag-input:focus {
+#pv-sidebar .pv-edit-content:focus {
   border-color: var(--pv-accent) !important;
   box-shadow: 0 0 0 2px var(--pv-accent-light) !important;
 }

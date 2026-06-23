@@ -227,7 +227,6 @@ async function initializeStorage() {
     folders: [
       { id: 'default', name: 'Default', color: '#808080' }
     ],
-    tags: [],
     settings: { darkMode: true, defaultFolder: 'default', locale: 'zh', enableSidebar: true, showBadge: true }
   };
 
@@ -240,24 +239,22 @@ async function initializeStorage() {
 async function savePromptFromPage(promptData) {
   try {
     const data = await chrome.storage.local.get('promptvault_data');
-    const store = data.promptvault_data || {
-      prompts: [],
-      folders: [{ id: 'default', name: 'Default', color: '#808080' }],
-      tags: [],
-      settings: { darkMode: true, defaultFolder: 'default', locale: 'zh', enableSidebar: true, showBadge: true }
-    };
+      const store = data.promptvault_data || {
+        prompts: [],
+        folders: [{ id: 'default', name: 'Default', color: '#808080' }],
+        settings: { darkMode: true, defaultFolder: 'default', locale: 'zh', enableSidebar: true, showBadge: true }
+      };
 
-    const prompt = {
-      id: generateId(),
-      title: promptData.title || i18n.t('default_prompt_title'),
-      content: promptData.content,
-      folder: promptData.folder || 'default',
-      tags: promptData.tags || [],
-      pinned: false,
-      usageCount: 0,
-      createdAt: Date.now(),
-      updatedAt: Date.now()
-    };
+        const prompt = {
+          id: generateId(),
+          title: promptData.title || i18n.t('default_prompt_title'),
+          content: promptData.content,
+          folder: promptData.folder || 'default',
+          pinned: false,
+          usageCount: 0,
+          createdAt: Date.now(),
+          updatedAt: Date.now()
+        };
 
     store.prompts.push(prompt);
     await chrome.storage.local.set({ promptvault_data: store });
@@ -298,7 +295,6 @@ if (chrome.contextMenus && chrome.contextMenus.onClicked) {
         const store = data.promptvault_data || {
           prompts: [],
           folders: [{ id: 'default', name: 'Default', color: '#808080' }],
-          tags: [],
           settings: { darkMode: true, defaultFolder: 'default', locale: 'zh', enableSidebar: true, showBadge: true }
         };
 
@@ -307,7 +303,6 @@ if (chrome.contextMenus && chrome.contextMenus.onClicked) {
           title: generateShortTitle(selectedText),
           content: selectedText,
           folder: 'default',
-          tags: [],
           pinned: false,
           usageCount: 0,
           createdAt: Date.now(),

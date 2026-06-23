@@ -14,7 +14,6 @@ if (typeof window.PromptVaultStorage === 'undefined') {
     folders: [
       { id: 'default', name: 'Default', color: '#808080' }
     ],
-    tags: [],
     settings: {
       darkMode: true,
       defaultFolder: 'default',
@@ -219,7 +218,6 @@ if (typeof window.PromptVaultStorage === 'undefined') {
     const tokens = normalizeSearchText(query).match(/"[^"]+"|\S+/g) || [];
     const filters = {
       terms: [],
-      tags: [],
       folders: [],
       titleTerms: [],
       pinned: null,
@@ -231,9 +229,7 @@ if (typeof window.PromptVaultStorage === 'undefined') {
       const value = rest.join(':').trim();
       const key = rawKey.trim();
 
-      if (value && key === 'tag') {
-        filters.tags.push(value);
-      } else if (value && key === 'folder') {
+      if (value && key === 'folder') {
         filters.folders.push(value);
       } else if (value && key === 'title') {
         filters.titleTerms.push(value);
@@ -251,13 +247,9 @@ if (typeof window.PromptVaultStorage === 'undefined') {
   function promptMatchesFilters(prompt, filters, folderLabel) {
     const title = normalizeSearchText(prompt.title);
     const content = normalizeSearchText(prompt.content);
-    const tags = (prompt.tags || []).map(normalizeSearchText);
     const folder = normalizeSearchText(folderLabel);
 
     if (filters.pinned !== null && Boolean(prompt.pinned) !== filters.pinned) return false;
-
-    const tagMatches = filters.tags.every(term => tags.some(tag => tag.includes(term)));
-    if (!tagMatches) return false;
 
     const folderMatches = filters.folders.every(term => folder.includes(term));
     if (!folderMatches) return false;
@@ -268,7 +260,6 @@ if (typeof window.PromptVaultStorage === 'undefined') {
     return filters.terms.every(term =>
       title.includes(term) ||
       content.includes(term) ||
-      tags.some(tag => tag.includes(term)) ||
       folder.includes(term)
     );
   }
@@ -283,14 +274,12 @@ if (typeof window.PromptVaultStorage === 'undefined') {
   function scorePrompt(prompt, filters, folderLabel) {
     const title = normalizeSearchText(prompt.title);
     const content = normalizeSearchText(prompt.content);
-    const tags = (prompt.tags || []).map(normalizeSearchText);
     const folder = normalizeSearchText(folderLabel);
-    const allTerms = [...filters.terms, ...filters.titleTerms, ...filters.tags, ...filters.folders];
+    const allTerms = [...filters.terms, ...filters.titleTerms, ...filters.folders];
 
     let score = 0;
     allTerms.forEach(term => {
       score += getFieldScore(title, term, { exact: 120, prefix: 90, contains: 65 });
-      score += tags.reduce((sum, tag) => sum + getFieldScore(tag, term, { exact: 80, prefix: 60, contains: 45 }), 0);
       score += getFieldScore(folder, term, { exact: 45, prefix: 35, contains: 25 });
       score += getFieldScore(content, term, { exact: 30, prefix: 22, contains: 12 });
     });
@@ -354,14 +343,6 @@ if (typeof window.PromptVaultStorage === 'undefined') {
   }
 
   /**
-   * Get prompts by tag
-   */
-  async function getPromptsByTag(tag) {
-    const prompts = await getPrompts();
-    return prompts.filter(p => p.tags && p.tags.includes(tag));
-  }
-
-  /**
    * Get all folders
    */
   async function getFolders() {
@@ -403,55 +384,6 @@ if (typeof window.PromptVaultStorage === 'undefined') {
   }
 
   /**
-   * Normalize a tag name (trim whitespace, filter empty)
-   */
-  function normalizeTag(tag) {
-    if (!tag) return '';
-    return String(tag).trim();
-  }
-
-  /**
-   * Get all tags (deduplicated & normalized)
-   */
-  async function getTags() {
-    const data = await getAll();
-    const tags = (data.tags || [])
-      .map(t => normalizeTag(t))
-      .filter(t => t.length > 0);
-    return [...new Set(tags)];
-  }
-
-  /**
-   * Add a tag
-   */
-  async function addTag(tag) {
-    tag = normalizeTag(tag);
-    if (!tag) return (await getAll()).tags || [];
-    const data = await getAll();
-    if (!data.tags.includes(tag)) {
-      data.tags.push(tag);
-      await saveAll(data);
-    }
-    return data.tags;
-  }
-
-  /**
-   * Remove a tag
-   */
-  async function removeTag(tag) {
-    tag = normalizeTag(tag);
-    const data = await getAll();
-    data.tags = data.tags.filter(t => t !== tag);
-    // Remove tag from all prompts (normalized comparison)
-    data.prompts.forEach(p => {
-      if (p.tags) {
-        p.tags = p.tags.map(t => normalizeTag(t)).filter(t => t && t !== tag);
-      }
-    });
-    await saveAll(data);
-  }
-
-  /**
    * Export all data as JSON
    */
   async function exportData() {
@@ -485,15 +417,6 @@ if (typeof window.PromptVaultStorage === 'undefined') {
           existing.folders[existingIndex] = newFolder;
         } else {
           existing.folders.push(newFolder);
-        }
-      });
-    }
-
-    // Merge tags
-    if (jsonData.tags) {
-      jsonData.tags.forEach(tag => {
-        if (!existing.tags.includes(tag)) {
-          existing.tags.push(tag);
         }
       });
     }
@@ -574,13 +497,9 @@ if (typeof window.PromptVaultStorage === 'undefined') {
     filterAndRankPrompts,
     parseSearchQuery,
     getPromptsByFolder,
-    getPromptsByTag,
     getFolders,
     saveFolder,
     deleteFolder,
-    getTags,
-    addTag,
-    removeTag,
     exportData,
     importData,
     getSettings,
