@@ -816,7 +816,7 @@ body {
 
 /* Form Elements */
 .form-group {
-  margin-bottom: 12px;
+  margin-bottom: 16px;
 }
 
 .form-group:last-child {
@@ -828,7 +828,7 @@ body {
   font-size: 13px;
   font-weight: 500;
   color: var(--text-secondary);
-  margin-bottom: 6px;
+  margin-bottom: 8px;
 }
 
 .form-group input[type="text"],
@@ -1807,6 +1807,143 @@ body {
   gap: 6px;
   padding: 8px 12px;
   font-size: 13px;
+}
+
+/* Tags Input */
+.tags-container {
+  display: flex;
+  flex-wrap: wrap;
+  gap: 6px;
+  padding: 8px 10px;
+  background: var(--bg-secondary);
+  border: 1px solid var(--border-color);
+  border-radius: var(--radius-sm);
+  min-height: 46px;
+  align-items: center;
+  position: relative;
+  cursor: text;
+}
+
+.tags-container:focus-within {
+  border-color: var(--accent-primary);
+  box-shadow: 0 0 0 3px rgba(128, 128, 128, 0.14);
+}
+
+.tags-list {
+  display: flex;
+  flex-wrap: wrap;
+  gap: 5px;
+  flex-shrink: 0;
+}
+
+.tag-item {
+  display: inline-flex;
+  align-items: center;
+  gap: 5px;
+  padding: 4px 10px;
+  background: rgba(128, 128, 128, 0.15);
+  border-radius: 12px;
+  font-size: 12px;
+  color: var(--text-primary);
+  white-space: nowrap;
+  transition: background 0.15s ease;
+}
+
+.tag-item:hover {
+  background: rgba(128, 128, 128, 0.25);
+}
+
+.tag-item .tag-remove {
+  cursor: pointer;
+  color: var(--text-muted);
+  font-size: 14px;
+  line-height: 1;
+  padding: 0 2px;
+  border-radius: 50%;
+  transition: var(--transition);
+}
+
+.tag-item .tag-remove:hover {
+  color: var(--danger);
+  background: rgba(255, 71, 87, 0.15);
+}
+
+.tags-input {
+  border: none;
+  background: transparent;
+  color: var(--text-primary);
+  font-size: 13px;
+  outline: none;
+  flex: 1;
+  min-width: 80px;
+  padding: 6px 4px;
+}
+
+.tags-input::placeholder {
+  color: var(--text-muted);
+  font-size: 12px;
+}
+
+/* Tag display in prompt card (rendered inside .prompt-card-meta) */
+.prompt-card-tag {
+  display: inline-block;
+  padding: 2px 8px;
+  background: rgba(128, 128, 128, 0.12);
+  border-radius: 10px;
+  font-size: 11px;
+  color: var(--text-secondary);
+  cursor: pointer;
+  transition: var(--transition);
+  white-space: nowrap;
+}
+
+.prompt-card-tag:hover {
+  background: rgba(128, 128, 128, 0.25);
+  color: var(--text-primary);
+}
+
+/* Tag Suggestions (inline) */
+.tags-suggestions {
+  display: flex;
+  flex-wrap: wrap;
+  gap: 6px;
+  align-items: center;
+  padding: 6px 0 2px;
+  margin-top: 6px;
+}
+
+.tags-suggestion-item {
+  display: inline-flex;
+  align-items: center;
+  gap: 4px;
+  padding: 4px 11px;
+  background: rgba(128, 128, 128, 0.1);
+  border: 1px solid var(--border-color);
+  border-radius: 12px;
+  font-size: 12px;
+  color: var(--text-secondary);
+  cursor: pointer;
+  transition: all 0.15s ease;
+  white-space: nowrap;
+  user-select: none;
+}
+
+.tags-suggestion-item:hover {
+  background: rgba(128, 128, 128, 0.18);
+  border-color: var(--text-muted);
+}
+
+.tags-suggestion-item.selected {
+  background: rgba(128, 128, 128, 0.2);
+  color: var(--text-muted);
+  border-color: transparent;
+  cursor: default;
+  opacity: 0.6;
+}
+
+.tags-suggestion-item.selected:hover {
+  background: rgba(128, 128, 128, 0.2);
+  opacity: 0.6;
 }
 
 /* Responsive */

@@ -220,6 +220,7 @@ if (typeof window.PromptVaultStorage === 'undefined') {
       terms: [],
       folders: [],
       titleTerms: [],
+      tags: [],
       pinned: null,
     };
 
@@ -233,6 +234,8 @@ if (typeof window.PromptVaultStorage === 'undefined') {
         filters.folders.push(value);
       } else if (value && key === 'title') {
         filters.titleTerms.push(value);
+      } else if (value && key === 'tag') {
+        filters.tags.push(value);
       } else if (value && key === 'is') {
         if (value === 'pinned' || value === 'favorite') filters.pinned = true;
         if (value === 'unpinned') filters.pinned = false;
@@ -248,6 +251,7 @@ if (typeof window.PromptVaultStorage === 'undefined') {
     const title = normalizeSearchText(prompt.title);
     const content = normalizeSearchText(prompt.content);
     const folder = normalizeSearchText(folderLabel);
+    const tags = (prompt.tags || []).map(t => normalizeSearchText(t));
 
     if (filters.pinned !== null && Boolean(prompt.pinned) !== filters.pinned) return false;
 
@@ -257,10 +261,16 @@ if (typeof window.PromptVaultStorage === 'undefined') {
     const titleMatches = filters.titleTerms.every(term => title.includes(term));
     if (!titleMatches) return false;
 
+    const tagMatches = filters.tags.every(term =>
+      tags.some(tag => tag.includes(term))
+    );
+    if (!tagMatches) return false;
+
     return filters.terms.every(term =>
       title.includes(term) ||
       content.includes(term) ||
-      folder.includes(term)
+      folder.includes(term) ||
+      tags.some(tag => tag.includes(term))
     );
   }
 
@@ -443,6 +453,23 @@ if (typeof window.PromptVaultStorage === 'undefined') {
   }
 
   /**
+   * Get all existing tags with usage count
+   * Returns [{tag, count}] sorted by count desc
+   */
+  async function getAllTags() {
+    const data = await getAll();
+    const tagCount = {};
+    (data.prompts || []).forEach(p => {
+      (p.tags || []).forEach(t => {
+        const key = t.toLowerCase();
+        if (!tagCount[key]) tagCount[key] = { tag: t, key, count: 0 };
+        tagCount[key].count++;
+      });
+    });
+    return Object.values(tagCount).sort((a, b) => b.count - a.count);
+  }
+
+  /**
    * Generate unique ID
    */
   function generateId() {
@@ -507,6 +534,7 @@ if (typeof window.PromptVaultStorage === 'undefined') {
     generateId,
     getRecentUsage,
     addRecentUsage,
+    getAllTags,
   };
 })();
 } // end idempotency guard

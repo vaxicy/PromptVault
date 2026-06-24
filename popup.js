@@ -18,6 +18,8 @@
   let displayMode = 'list'; // list | grouped
   let isPromptDragSorting = false;
   let suppressPromptCardClickUntil = 0;
+  let currentTags = []; // Current tags being edited
+  let allTagsList = []; // [{tag, key, count}]
   const PAYPAL_DONATION_URL = 'https://www.paypal.com/ncp/payment/3ZZGQLA3U2GZQ';
 
   // Settings snapshot (for Apply/Cancel)
@@ -100,6 +102,8 @@
   applyTranslations();
   await Storage.init();
   await loadSettings();
+  await loadAllTags();
+  initTagInput();
   await renderAll();
 
   // Event Listeners
@@ -416,6 +420,137 @@
       });
     }
 
+  }
+
+  /**
+   * Tag Selector - inline tag bar
+   */
+  async function loadAllTags() {
+    allTagsList = await Storage.getAllTags();
+  }
+
+  function initTagInput() {
+    const tagsInput = document.getElementById('prompt-tags');
+    const tagsList = document.getElementById('tags-list');
+    const suggestions = document.getElementById('tags-suggestions');
+
+    if (!tagsInput || !tagsList || !suggestions) return;
+
+    // Input → filter suggestions
+    tagsInput.addEventListener('input', () => {
+      renderAvailableTags();
+    });
+
+    // Enter → add typed tag
+    tagsInput.addEventListener('keydown', (e) => {
+      if (e.key === 'Enter') {
+        e.preventDefault();
+        addTagFromInput();
+      }
+    });
+
+    // Initial render
+    renderAvailableTags();
+  }
+
+  function renderAvailableTags() {
+    const suggestions = document.getElementById('tags-suggestions');
+    const tagsInput = document.getElementById('prompt-tags');
+    if (!suggestions) return;
+
+    const query = tagsInput ? tagsInput.value.trim().toLowerCase() : '';
+
+    // Filter: not already selected, matches query (if any)
+    let filtered = allTagsList.filter(t =>
+      (!query || t.key.includes(query))
+    );
+
+    if (filtered.length === 0 && !query) {
+      // Show all tags when no query
+      filtered = allTagsList;
+    }
+
+    if (filtered.length === 0) {
+      suggestions.innerHTML = '';
+      return;
+    }
+
+    suggestions.innerHTML = `<span class="tags-suggestions-label">可用标签：</span>` +
+      filtered.map(t => {
+        const isSelected = currentTags.some(ct => ct.toLowerCase() === t.key);
+        const cls = isSelected ? 'tags-suggestion-item selected' : 'tags-suggestion-item';
+        const check = isSelected ? ' ✓' : '';
+        return `<span class="${cls}" data-tag="${escapeHtml(t.tag)}">${escapeHtml(t.tag)}${check}</span>`;
+      }).join('');
+
+    // Click handler
+    suggestions.querySelectorAll('.tags-suggestion-item').forEach(el => {
+      el.addEventListener('click', () => {
+        toggleTag(el.dataset.tag);
+      });
+    });
+  }
+
+  function toggleTag(tagName) {
+    const idx = currentTags.findIndex(t => t.toLowerCase() === tagName.toLowerCase());
+    if (idx >= 0) {
+      currentTags.splice(idx, 1);
+    } else {
+      // Use original casing from allTagsList
+      const existing = allTagsList.find(t => t.key === tagName.toLowerCase());
+      currentTags.push(existing ? existing.tag : tagName);
+    }
+    renderTagsList();
+  }
+
+  function addTagFromInput() {
+    const tagsInput = document.getElementById('prompt-tags');
+    if (!tagsInput) return;
+    let tag = tagsInput.value.trim();
+    if (!tag) return;
+
+    // Deduplication: check if a tag with the same name (case-insensitive) already exists
+    const existing = allTagsList.find(t => t.key === tag.toLowerCase());
+    if (existing) {
+      tag = existing.tag;
+    }
+
+    if (currentTags.some(t => t.toLowerCase() === tag.toLowerCase())) return;
+
+    currentTags.push(tag);
+    renderTagsList();
+    tagsInput.value = '';
+    renderAvailableTags();
+    tagsInput.focus();
+  }
+
+  function renderTagsList() {
+    const tagsList = document.getElementById('tags-list');
+    if (!tagsList) return;
+
+    tagsList.innerHTML = currentTags.map(tag => `
+      <span class="tag-item">
+        ${escapeHtml(tag)}
+        <span class="tag-remove" data-tag="${escapeHtml(tag)}">×</span>
+      </span>
+    `).join('');
+
+    // Add remove handlers
+    tagsList.querySelectorAll('.tag-remove').forEach(btn => {
+      btn.addEventListener('click', () => {
+        const tag = btn.dataset.tag;
+        currentTags = currentTags.filter(t => t !== tag);
+        renderTagsList();
+      });
+    });
+
+    // Update available tags to reflect selection
+    renderAvailableTags();
+  }
+
+  function setTags(tags) {
+    currentTags = [...(tags || [])];
+    renderTagsList();
   }
 
   /**
@@ -937,6 +1072,9 @@
       const titleHtml = highlightMatches(prompt.title, searchTerms);
       const snippetHtml = highlightMatches(buildPromptSnippet(prompt.content, searchTerms), searchTerms);
       const statusChipsHtml = renderPromptStatusChips(prompt);
+      const tagsHtml = (prompt.tags && prompt.tags.length > 0)
+        ? prompt.tags.map(tag => `<span class="prompt-card-tag" data-tag="${escapeHtml(tag)}">${escapeHtml(tag)}</span>`).join('')
+        : '';
 
       if (isBatchMode) {
         return `
@@ -952,6 +1090,7 @@
               <div class="prompt-card-meta">
                 <span class="prompt-card-folder" style="border-left: 3px solid ${folderColor}">${escapeHtml(folderName)}</span>
                 ${statusChipsHtml}
+                ${tagsHtml}
               </div>
             </div>
           </div>
@@ -988,6 +1127,7 @@
               ${statusChipsHtml}
               ${prompt.usageCount > 0 ? `<span class="prompt-card-usage">${i18n.t('usage_stats', prompt.usageCount, formatRelativeTime(prompt.lastUsedAt))}</span>` : ''}
               ${renderClickHint()}
+              ${tagsHtml}
             </div>
           </div>
         `;
@@ -1036,6 +1176,19 @@
         });
       });
     }
+
+    // Add tag click handlers for filtering
+    container.querySelectorAll('.prompt-card-tag').forEach(tag => {
+      tag.addEventListener('click', (e) => {
+        e.stopPropagation();
+        const tagName = tag.dataset.tag;
+        if (tagName) {
+          const searchInput = document.getElementById('search-input');
+          searchInput.value = `tag:${tagName}`;
+          handleSearch();
+        }
+      });
+    });
 
     // Init drag-and-drop if in custom sort mode
     initDragAndDrop(container);
@@ -1114,6 +1267,9 @@
 
       const cardsHtml = groupPrompts.map(prompt => {
         const isSelected = selectedPromptIds.has(prompt.id);
+        const tagsHtml = (prompt.tags && prompt.tags.length > 0)
+          ? prompt.tags.map(tag => `<span class="prompt-card-tag" data-tag="${escapeHtml(tag)}">${escapeHtml(tag)}</span>`).join('')
+          : '';
         if (isBatchMode) {
           return `
             <div class="prompt-card ${isSelected ? 'selected' : ''}" data-id="${prompt.id}" data-batch-select="true">
@@ -1127,6 +1283,7 @@
                 <div class="prompt-card-preview">${escapeHtml((prompt.content || '').substring(0, 150))}${(prompt.content || '').length > 150 ? '...' : ''}</div>
                 <div class="prompt-card-meta">
                   ${renderPromptStatusChips(prompt)}
+                  ${tagsHtml}
                 </div>
               </div>
             </div>
@@ -1162,6 +1319,7 @@
                 ${renderPromptStatusChips(prompt)}
                 ${prompt.usageCount > 0 ? `<span class="prompt-card-usage">${i18n.t('usage_stats', prompt.usageCount, formatRelativeTime(prompt.lastUsedAt))}</span>` : ''}
                 ${renderClickHint()}
+                ${tagsHtml}
               </div>
             </div>
           `;
@@ -1225,6 +1383,19 @@
         });
       });
     }
+
+    // Add tag click handlers for filtering (grouped view)
+    container.querySelectorAll('.prompt-card-tag').forEach(tag => {
+      tag.addEventListener('click', (e) => {
+        e.stopPropagation();
+        const tagName = tag.dataset.tag;
+        if (tagName) {
+          const searchInput = document.getElementById('search-input');
+          searchInput.value = `tag:${tagName}`;
+          handleSearch();
+        }
+      });
+    });
 
     // Folder group collapse/expand
     container.querySelectorAll('.folder-group-header').forEach(header => {
@@ -1469,6 +1640,9 @@
       const folder = folders.find(f => f.id === prompt.folder);
       const folderName = folder && folder.id !== 'default' ? escapeHtml(folder.name) : i18n.t('folder_uncategorized');
       const folderColor = folder ? folder.color : '#808080';
+      const tagsHtml = (prompt.tags && prompt.tags.length > 0)
+        ? prompt.tags.map(tag => `<span class="prompt-card-tag" data-tag="${escapeHtml(tag)}">${escapeHtml(tag)}</span>`).join('')
+        : '';
 
       return `
         <div class="prompt-card" data-id="${prompt.id}">
@@ -1512,14 +1686,29 @@
             ${renderPromptStatusChips(prompt)}
             ${prompt.usageCount > 0 ? `<span class="prompt-card-usage">${i18n.t('usage_stats', prompt.usageCount, formatRelativeTime(prompt.lastUsedAt))}</span>` : ''}
             ${renderClickHint()}
+            ${tagsHtml}
           </div>
         </div>
       `;
     }).join('');
 
+    // Add tag click handlers for filtering (pinned view)
+    container.querySelectorAll('.prompt-card-tag').forEach(tag => {
+      tag.addEventListener('click', (e) => {
+        e.stopPropagation();
+        const tagName = tag.dataset.tag;
+        if (tagName) {
+          const searchInput = document.getElementById('search-input');
+          searchInput.value = `tag:${tagName}`;
+          handleSearch();
+        }
+      });
+    });
+
     // Attach event listeners for pinned-list cards
     container.querySelectorAll('.prompt-card').forEach(card => {
       card.addEventListener('click', (e) => {
+        if (e.target.closest('.prompt-card-tag')) return; // Don't trigger card click when clicking tag
         if (!e.target.closest('.prompt-card-action')) {
           copyPromptToClipboard(card.dataset.id);
         }
@@ -1673,20 +1862,29 @@
     document.getElementById('prompt-content').placeholder = i18n.t('placeholder_content');
     document.getElementById('btn-save-prompt').textContent = i18n.t('btn_save');
 
+    // Refresh all tags list
+    await loadAllTags();
+
     if (promptId) {
       title.textContent = i18n.t('modal_edit_prompt');
       const prompt = await Storage.getPrompt(promptId);
       document.getElementById('prompt-title').value = prompt.title;
       document.getElementById('prompt-content').value = prompt.content;
       document.getElementById('prompt-folder').value = prompt.folder || 'default';
+      // Load tags
+      setTags(prompt.tags || []);
     } else {
       title.textContent = i18n.t('modal_new_prompt');
       document.getElementById('prompt-title').value = '';
       document.getElementById('prompt-content').value = '';
       document.getElementById('prompt-folder').value = 'default';
+      // Clear tags
+      setTags([]);
     }
 
     openModal('prompt-modal');
+    // Ensure tag suggestions render immediately when modal opens
+    renderAvailableTags();
   }
 
   /**
@@ -1707,6 +1905,7 @@
       title,
       content,
       folder,
+      tags: [...currentTags], // Save tags
       pinned: false,
       usageCount: 0,
       createdAt: Date.now(),
@@ -1722,6 +1921,9 @@
     }
 
     await Storage.savePrompt(prompt);
+
+    // Refresh all tags list so new tags appear in dropdown
+    await loadAllTags();
 
     closeAllModals();
     renderAll();
@@ -2105,6 +2307,12 @@
     document.querySelectorAll('.modal').forEach(modal => {
       modal.classList.add('hidden');
     });
+    // Reset tags state to prevent tag pollution
+    currentTags = [];
+    const tagsInput = document.getElementById('prompt-tags');
+    if (tagsInput) tagsInput.value = '';
+    const suggestions = document.getElementById('tags-suggestions');
+    if (suggestions) suggestions.innerHTML = '';
   }
 
   function showToast(message, type = 'info') {
