@@ -1,0 +1,25 @@
+---
+description: 打包产物存放位置硬性规定——扩展打包生成的 zip 必须放在项目父级目录（vibe coding/），禁止放在 PromptVault 项目根目录内。
+globs: **/*
+alwaysApply: true
+enabled: true
+---
+
+# 打包产物存放位置（硬性规定）
+
+## 规则
+
+**扩展打包生成的 `.zip` 文件必须放在项目**父级目录** `D:\迅雷下载\vibe coding\`，严禁放在 `PromptVault` 项目根目录内部。**
+
+### 原因
+1. 防止误提交构建产物进仓库
+2. 保持项目目录干净，只有源码和配置文件
+3. 与其他项目的发布产物（如 tarot 等）在同一层级，方便管理
+
+### 路径示例
+- ✅ 正确：`D:\迅雷下载\vibe coding\PromptVault-v1.2.0.zip`
+- ❌ 错误：`D:\迅雷下载\vibe coding\PromptVault\PromptVault-v1.2.0.zip`
+
+### 执行要求
+每次打包脚本输出路径必须设为 `D:\迅雷下载\vibe coding\`，文件名格式 `PromptVault-v<版本号>.zip`。
+若发现旧 zip 在项目根目录中，应立即迁移到外层。
