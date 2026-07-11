@@ -474,6 +474,13 @@
   display: block;
 }
 
+/* Insert icon explicitly larger (22px) to match the popup. CSS overrides
+   SVG width/height attributes, so it must be set here. */
+#pv-sidebar .pv-card-action-btn.pv-insert-btn svg {
+  width: 20px;
+  height: 20px;
+}
+
 #pv-sidebar .pv-card-action-btn:hover {
   background: var(--pv-accent-light);
   color: var(--pv-text);

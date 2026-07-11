@@ -1101,6 +1101,13 @@
             <div class="prompt-card-header">
               <div class="prompt-card-title">${titleHtml}</div>
               <div class="prompt-card-actions">
+                <button class="prompt-card-action insert" ${tooltipAttrs(i18n.t('btn_insert'))} data-id="${prompt.id}">
+                  <svg width="20" height="20" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.5">
+                    <line x1="12" y1="3" x2="12" y2="15"></line>
+                    <polyline points="6 10 12 16 18 10"></polyline>
+                    <line x1="5" y1="20" x2="19" y2="20"></line>
+                  </svg>
+                </button>
                 <button class="prompt-card-action edit" ${tooltipAttrs(i18n.t('btn_edit'))} data-id="${prompt.id}">
                   <svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2">
                     <path d="M11 4H4a2 2 0 0 0-2 2v14a2 2 0 0 0 2 2h14a2 2 0 0 0 2-2v-7"></path>
@@ -1151,6 +1158,13 @@
           if (!e.target.closest('.prompt-card-action')) {
             copyPromptToClipboard(card.dataset.id);
           }
+        });
+      });
+
+      container.querySelectorAll('.prompt-card-action.insert').forEach(btn => {
+        btn.addEventListener('click', async (e) => {
+          e.stopPropagation();
+          await insertPromptIntoPage(btn.dataset.id);
         });
       });
 
@@ -1294,6 +1308,13 @@
               <div class="prompt-card-header">
                 <div class="prompt-card-title">${escapeHtml(prompt.title)}</div>
                 <div class="prompt-card-actions">
+                  <button class="prompt-card-action insert" ${tooltipAttrs(i18n.t('btn_insert'))} data-id="${prompt.id}">
+                    <svg width="20" height="20" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.5">
+                      <line x1="12" y1="3" x2="12" y2="15"></line>
+                      <polyline points="6 10 12 16 18 10"></polyline>
+                      <line x1="5" y1="20" x2="19" y2="20"></line>
+                    </svg>
+                  </button>
                   <button class="prompt-card-action edit" ${tooltipAttrs(i18n.t('btn_edit'))} data-id="${prompt.id}">
                     <svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2">
                       <path d="M11 4H4a2 2 0 0 0-2 2v14a2 2 0 0 0 2 2h14a2 2 0 0 0 2-2v-7"></path>
@@ -1358,6 +1379,13 @@
           if (!e.target.closest('.prompt-card-action')) {
             copyPromptToClipboard(card.dataset.id);
           }
+        });
+      });
+
+      container.querySelectorAll('.prompt-card-action.insert').forEach(btn => {
+        btn.addEventListener('click', async (e) => {
+          e.stopPropagation();
+          await insertPromptIntoPage(btn.dataset.id);
         });
       });
 
@@ -1649,6 +1677,13 @@
           <div class="prompt-card-header">
             <div class="prompt-card-title">${escapeHtml(prompt.title)}</div>
             <div class="prompt-card-actions">
+              <button class="prompt-card-action insert" ${tooltipAttrs(i18n.t('btn_insert'))} data-id="${prompt.id}">
+                         <svg width="20" height="20" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.5">
+                  <line x1="12" y1="3" x2="12" y2="15"></line>
+                  <polyline points="6 10 12 16 18 10"></polyline>
+                  <line x1="5" y1="20" x2="19" y2="20"></line>
+                </svg>
+              </button>
               <button class="prompt-card-action copy" ${tooltipAttrs(i18n.t('btn_copy'))} data-id="${prompt.id}">
                 <svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2">
                   <rect x="9" y="9" width="13" height="13" rx="2" ry="2"></rect>
@@ -1713,6 +1748,9 @@
           copyPromptToClipboard(card.dataset.id);
         }
       });
+    });
+    container.querySelectorAll('.prompt-card-action.insert').forEach(btn => {
+      btn.addEventListener('click', async (e) => { e.stopPropagation(); await insertPromptIntoPage(btn.dataset.id); });
     });
     container.querySelectorAll('.prompt-card-action.copy').forEach(btn => {
       btn.addEventListener('click', (e) => { e.stopPropagation(); copyPromptToClipboard(btn.dataset.id); });

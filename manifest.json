@@ -5,7 +5,6 @@
   "description": "保存、整理和快速访问你的 AI 提示词 | Save, organize, and quickly access your AI prompts",
   "permissions": [
     "storage",
-    "scripting",
     "contextMenus",
     "notifications"
   ],
@@ -16,11 +15,10 @@
       "js": [
         "i18n.js",
         "storage.js",
+        "universal-insert.js",
         "content.js",
-        "sidebar.js"
-      ],
-      "css": [
-        "sidebar.css"
+        "sidebar.js",
+        "command-palette.js"
       ],
       "run_at": "document_end"
     }
@@ -49,6 +47,10 @@
     {
       "resources": [
         "sidebar.css",
+        "sidebar-frame.html",
+        "sidebar-frame.js",
+        "i18n.js",
+        "storage.js",
         "styles.css",
         "welcome.html",
         "welcome.js",

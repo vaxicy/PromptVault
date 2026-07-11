@@ -7,6 +7,15 @@
 (function () {
   'use strict';
 
+  // Skip on React SSR sites (ChatGPT, Claude, etc.)
+  // These sites' React hydration will destroy any DOM we inject.
+  const host = window.location.hostname || '';
+  const isReactSSRHost = /chatgpt\.com|chat\.openai\.com|claude\.ai/i.test(host);
+  if (isReactSSRHost) {
+    console.log('[PromptVault] Skipping command palette on React SSR site:', host);
+    return;
+  }
+
   const PALETTE_ID = 'pv-command-palette';
   const PIN_ICON = '<svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" style="width:14px;height:14px;display:block;"><line x1="12" y1="17" x2="12" y2="22"></line><path d="M5 17h14v-1.76a2 2 0 0 0-1.11-1.79l-1.78-.9A2 2 0 0 1 15 10.76V6h1a2 2 0 0 0 0-4H8a2 2 0 0 0 0 4h1v4.76a2 2 0 0 1-1.11 1.79l-1.78.9A2 2 0 0 0 5 15.24z"></path></svg>';
   const SHORTCUT_ICON = '<svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" style="width:20px;height:20px;display:block;"><rect x="4" y="4" width="16" height="16" rx="3"></rect><path d="M8 9h8"></path><path d="M8 15h8"></path><path d="M9 9v6"></path><path d="M15 9v6"></path></svg>';
