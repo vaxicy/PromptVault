@@ -56,6 +56,13 @@
         </svg>
         文件夹
       </button>
+      <button class="nav-tab" data-tab="tags">
+        <svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2">
+          <path d="M20.59 13.41 11 3.83A2 2 0 0 0 9.59 3H4a1 1 0 0 0-1 1v5.59A2 2 0 0 0 3.59 11l9.59 9.59a2 2 0 0 0 2.82 0l4.59-4.59a2 2 0 0 0 0-2.82z"></path>
+          <circle cx="7.5" cy="7.5" r=".5" fill="currentColor"></circle>
+        </svg>
+        标签
+      </button>
       <button class="nav-tab" data-tab="pinned">
         <svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2">
           <line x1="12" y1="17" x2="12" y2="22"></line>
@@ -144,6 +151,32 @@
           </button>
         </div>
         <div id="folders-list" class="items-list"></div>
+      </div>
+
+      <!-- Tags Tab -->
+      <div id="tab-tags" class="tab-content">
+        <div class="tab-header">
+          <h2 id="heading-tags">标签</h2>
+          <button id="btn-new-tag" class="primary-btn">
+            <svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.5">
+              <line x1="12" y1="5" x2="12" y2="19"></line>
+              <line x1="5" y1="12" x2="19" y2="12"></line>
+            </svg>
+            新增标签
+          </button>
+        </div>
+        <div class="tag-manager-toolbar">
+          <input type="text" id="tag-search-input" class="tag-search-input" placeholder="搜索标签..." autocomplete="off">
+        </div>
+        <div id="tags-manager-list" class="items-list tags-manager-list"></div>
+        <div id="tags-empty" class="empty-state hidden">
+          <svg width="48" height="48" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1">
+            <path d="M20.59 13.41 11 3.83A2 2 0 0 0 9.59 3H4a1 1 0 0 0-1 1v5.59A2 2 0 0 0 3.59 11l9.59 9.59a2 2 0 0 0 2.82 0l4.59-4.59a2 2 0 0 0 0-2.82z"></path>
+            <circle cx="7.5" cy="7.5" r=".5" fill="currentColor"></circle>
+          </svg>
+          <p id="tags-empty-title">暂无标签</p>
+          <p class="empty-hint" id="tags-empty-hint">给提示词添加标签后会显示在这里</p>
+        </div>
       </div>
 
       <!-- Pinned Tab -->
@@ -410,6 +443,26 @@
             国内用户可以使用微信扫码支持。
           </p>
         </div>
+      </div>
+    </div>
+  </div>
+
+  <!-- Tag Editor Dialog -->
+  <div id="tag-modal" class="modal hidden">
+    <div class="modal-content small">
+      <div class="modal-header">
+        <h2 id="tag-modal-title">新增标签</h2>
+        <button class="modal-close">&times;</button>
+      </div>
+      <div class="modal-body">
+        <div class="form-group">
+          <label for="tag-name-input" id="tag-name-label">标签名称</label>
+          <input type="text" id="tag-name-input" placeholder="输入标签名称..." maxlength="50" autocomplete="off">
+        </div>
+      </div>
+      <div class="modal-footer">
+        <button class="secondary-btn modal-cancel">取消</button>
+        <button id="btn-save-tag" class="primary-btn">保存</button>
       </div>
     </div>
   </div>

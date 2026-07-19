@@ -17,19 +17,24 @@ if (typeof window.PromptVaultI18n === 'undefined') {
       // Tabs
       tab_prompts: '提示词',
       tab_folders: '文件夹',
+      tab_tags: '标签',
       tab_pinned: '置顶',
 
       // Section headings
       heading_all_prompts: '所有提示词',
       heading_folders: '文件夹',
+      heading_tags: '标签',
       heading_pinned: '置顶',
 
       // Search
       search_placeholder: '搜索提示词...',
+      tag_search_placeholder: '搜索标签...',
+      tag_usage_count: '{0} 个提示词',
 
       // Buttons
       btn_new_prompt: '新建提示词',
       btn_new_folder: '新建文件夹',
+      btn_new_tag: '新增标签',
       btn_import: '导入',
       btn_export: '导出',
       btn_save: '保存',
@@ -42,6 +47,7 @@ if (typeof window.PromptVaultI18n === 'undefined') {
       btn_edit: '编辑',
       btn_pin: '置顶',
       btn_delete: '删除',
+      btn_rename_tag: '重命名',
       btn_close: '关闭',
       card_click_to_copy: '点击复制',
       card_copied: '已复制',
@@ -51,6 +57,7 @@ if (typeof window.PromptVaultI18n === 'undefined') {
       label_title: '提示词名称',
       label_content: '提示词内容',
       label_folder: '文件夹',
+      label_tag_name: '标签名称',
       label_name: '名称',
       label_color: '颜色',
       custom_color: '自定义颜色',
@@ -62,6 +69,7 @@ if (typeof window.PromptVaultI18n === 'undefined') {
       placeholder_title: '输入提示词名称...',
       placeholder_content: '输入提示词内容...',
       placeholder_folder_name: '输入文件夹名称...',
+      placeholder_tag_name: '输入标签名称...',
 
       // Empty states
       empty_no_prompts: '暂无提示词',
@@ -70,6 +78,8 @@ if (typeof window.PromptVaultI18n === 'undefined') {
       empty_search_hint: '试试更短的关键词，或使用 folder: 精准筛选',
       empty_no_filtered_prompts: '当前筛选下没有提示词',
       empty_filter_hint: '返回全部提示词或换一个文件夹',
+      empty_no_tags: '暂无标签',
+      empty_tags_hint: '点击新增标签，或在提示词里添加标签',
       empty_action_new_prompt: '新建提示词',
       empty_action_clear_search: '清空搜索',
       empty_action_view_all: '查看全部提示词',
@@ -115,6 +125,10 @@ if (typeof window.PromptVaultI18n === 'undefined') {
       confirm_delete_folder_msg: '确定要删除这个文件夹吗？其中的提示词将移至"默认"。',
       confirm_clear_data: '清除所有数据',
       confirm_clear_data_msg: '确定要删除所有数据吗？此操作不可撤销。',
+      confirm_delete_tag: '删除标签',
+      confirm_delete_tag_msg: '确定要从所有提示词中删除标签“{0}”吗？',
+      prompt_new_tag: '新增标签',
+      prompt_rename_tag: '重命名标签',
 
       // Toast messages
       toast_saved: '保存成功！',
@@ -134,6 +148,10 @@ if (typeof window.PromptVaultI18n === 'undefined') {
       toast_error_cannot_insert: '无法插入到此页面',
       toast_paypal_coming_soon: 'PayPal 支持入口即将开放',
       toast_error_empty_fields: '标题和内容不能为空',
+      toast_error_tag_name: '请输入标签名称',
+      toast_tag_created: '标签已新增',
+      toast_tag_renamed: '标签已重命名',
+      toast_tag_deleted: '标签已删除',
 
       // Notification
       notif_no_active_input: '未找到活动输入框',
@@ -285,19 +303,24 @@ if (typeof window.PromptVaultI18n === 'undefined') {
       // Tabs
       tab_prompts: 'Prompts',
       tab_folders: 'Folders',
+      tab_tags: 'Tags',
       tab_pinned: 'Pinned',
 
       // Section headings
       heading_all_prompts: 'All Prompts',
       heading_folders: 'Folders',
+      heading_tags: 'Tags',
       heading_pinned: 'Pinned',
 
       // Search
       search_placeholder: 'Search prompts...',
+      tag_search_placeholder: 'Search tags...',
+      tag_usage_count: '{0} prompts',
 
       // Buttons
       btn_new_prompt: 'New Prompt',
       btn_new_folder: 'New Folder',
+      btn_new_tag: 'New Tag',
       btn_import: 'Import',
       btn_export: 'Export',
       btn_save: 'Save',
@@ -310,6 +333,7 @@ if (typeof window.PromptVaultI18n === 'undefined') {
       btn_edit: 'Edit',
       btn_pin: 'Pin',
       btn_delete: 'Delete',
+      btn_rename_tag: 'Rename',
       btn_close: 'Close',
       card_click_to_copy: 'Click to copy',
       card_copied: 'Copied',
@@ -319,6 +343,7 @@ if (typeof window.PromptVaultI18n === 'undefined') {
       label_title: 'Prompt Name',
       label_content: 'Prompt Content',
       label_folder: 'Folder',
+      label_tag_name: 'Tag name',
       label_name: 'Name',
       label_color: 'Color',
       custom_color: 'Custom color',
@@ -330,6 +355,7 @@ if (typeof window.PromptVaultI18n === 'undefined') {
       placeholder_title: 'Enter prompt name...',
       placeholder_content: 'Enter your prompt content...',
       placeholder_folder_name: 'Enter folder name...',
+      placeholder_tag_name: 'Enter tag name...',
 
       // Empty states
       empty_no_prompts: 'No prompts yet',
@@ -338,6 +364,8 @@ if (typeof window.PromptVaultI18n === 'undefined') {
       empty_search_hint: 'Try a shorter keyword, or use folder: filter',
       empty_no_filtered_prompts: 'No prompts in this filter',
       empty_filter_hint: 'Go back to all prompts or choose another folder',
+      empty_no_tags: 'No tags yet',
+      empty_tags_hint: 'Create a tag here, or add tags while editing prompts',
       empty_action_new_prompt: 'New Prompt',
       empty_action_clear_search: 'Clear Search',
       empty_action_view_all: 'View All Prompts',
@@ -383,6 +411,10 @@ if (typeof window.PromptVaultI18n === 'undefined') {
       confirm_delete_folder_msg: 'Are you sure you want to delete this folder? Prompts will be moved to Default.',
       confirm_clear_data: 'Clear All Data',
       confirm_clear_data_msg: 'Are you sure you want to delete ALL data? This cannot be undone.',
+      confirm_delete_tag: 'Delete Tag',
+      confirm_delete_tag_msg: 'Remove tag "{0}" from every prompt?',
+      prompt_new_tag: 'New tag',
+      prompt_rename_tag: 'Rename tag',
 
       // Toast messages
       toast_saved: 'Prompt saved!',
@@ -402,6 +434,10 @@ if (typeof window.PromptVaultI18n === 'undefined') {
       toast_error_cannot_insert: 'Cannot insert into this page',
       toast_paypal_coming_soon: 'PayPal support is coming soon',
       toast_error_empty_fields: 'Title and content cannot be empty',
+      toast_error_tag_name: 'Please enter a tag name',
+      toast_tag_created: 'Tag created',
+      toast_tag_renamed: 'Tag renamed',
+      toast_tag_deleted: 'Tag deleted',
 
       // Notification
       notif_no_active_input: 'No active input found',

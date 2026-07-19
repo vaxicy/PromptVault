@@ -20,6 +20,8 @@
   let suppressPromptCardClickUntil = 0;
   let currentTags = []; // Current tags being edited
   let allTagsList = []; // [{tag, key, count}]
+  let tagModalMode = 'create';
+  let tagModalOriginalName = '';
   const PAYPAL_DONATION_URL = 'https://www.paypal.com/ncp/payment/3ZZGQLA3U2GZQ';
 
   // Settings snapshot (for Apply/Cancel)
@@ -123,6 +125,7 @@
     const tabLabels = {
       'prompts': i18n.t('tab_prompts'),
       'folders': i18n.t('tab_folders'),
+      'tags': i18n.t('tab_tags'),
       'pinned': i18n.t('tab_pinned'),
     };
     document.querySelectorAll('.nav-tab').forEach(tab => {
@@ -199,6 +202,23 @@
     // Tab headings
     const h2Folders = document.querySelector('#tab-folders .tab-header h2');
     if (h2Folders) h2Folders.textContent = i18n.t('heading_folders');
+    const h2Tags = document.getElementById('heading-tags');
+    if (h2Tags) h2Tags.textContent = i18n.t('heading_tags');
+    const tagSearchInput = document.getElementById('tag-search-input');
+    if (tagSearchInput) tagSearchInput.placeholder = i18n.t('tag_search_placeholder');
+    const btnNewTag = document.getElementById('btn-new-tag');
+    if (btnNewTag) {
+      btnNewTag.innerHTML = `
+        <svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.5">
+          <line x1="12" y1="5" x2="12" y2="19"></line>
+          <line x1="5" y1="12" x2="19" y2="12"></line>
+        </svg>
+        ${i18n.t('btn_new_tag')}`;
+    }
+    const tagsEmptyTitle = document.getElementById('tags-empty-title');
+    if (tagsEmptyTitle) tagsEmptyTitle.textContent = i18n.t('empty_no_tags');
+    const tagsEmptyHint = document.getElementById('tags-empty-hint');
+    if (tagsEmptyHint) tagsEmptyHint.textContent = i18n.t('empty_tags_hint');
     const h2Pinned = document.getElementById('heading-pinned');
     if (h2Pinned) h2Pinned.textContent = i18n.t('heading_pinned_prompts');
 
@@ -247,6 +267,12 @@
     document.querySelector('[for="prompt-folder"]').textContent = i18n.t('label_folder');
     document.querySelector('#prompt-modal .modal-cancel').textContent = i18n.t('btn_cancel');
     document.getElementById('btn-save-prompt').textContent = i18n.t('btn_save');
+    document.querySelector('#tag-modal .modal-cancel').textContent = i18n.t('btn_cancel');
+    document.getElementById('btn-save-tag').textContent = i18n.t('btn_save');
+    const tagNameLabel = document.getElementById('tag-name-label');
+    if (tagNameLabel) tagNameLabel.textContent = i18n.t('label_tag_name');
+    const tagNameInput = document.getElementById('tag-name-input');
+    if (tagNameInput) tagNameInput.placeholder = i18n.t('placeholder_tag_name');
 
     document.getElementById('folder-modal-title').textContent = i18n.t('modal_new_folder');
     document.querySelector('[for="folder-name"]').textContent = i18n.t('label_name');
@@ -294,6 +320,13 @@
       searchInput.value = '';
       handleSearch();
     });
+
+    document.getElementById('tag-search-input')?.addEventListener('input', () => {
+      renderTagsManager();
+    });
+    document.getElementById('btn-new-tag')?.addEventListener('click', () => {
+      createTag();
+    });
     document.getElementById('search-context').addEventListener('click', (e) => {
       const btn = e.target.closest('[data-clear-filter]');
       if (!btn) return;
@@ -338,6 +371,13 @@
 
     // New folder button
     document.getElementById('btn-new-folder').addEventListener('click', () => openFolderModal());
+    document.getElementById('btn-save-tag')?.addEventListener('click', saveTagFromModal);
+    document.getElementById('tag-name-input')?.addEventListener('keydown', (e) => {
+      if (e.key === 'Enter') {
+        e.preventDefault();
+        saveTagFromModal();
+      }
+    });
 
     // Save prompt button
     document.getElementById('btn-save-prompt').addEventListener('click', savePrompt);
@@ -436,6 +476,10 @@
 
     if (!tagsInput || !tagsList || !suggestions) return;
 
+    document.getElementById('tags-container')?.addEventListener('click', () => {
+      tagsInput.focus();
+    });
+
     // Input → filter suggestions
     tagsInput.addEventListener('input', () => {
       renderAvailableTags();
@@ -447,6 +491,10 @@
         e.preventDefault();
         addTagFromInput();
       }
+    });
+
+    tagsInput.addEventListener('blur', () => {
+      addTagFromInput();
     });
 
     // Initial render
@@ -515,7 +563,11 @@
       tag = existing.tag;
     }
 
-    if (currentTags.some(t => t.toLowerCase() === tag.toLowerCase())) return;
+    if (currentTags.some(t => t.toLowerCase() === tag.toLowerCase())) {
+      tagsInput.value = '';
+      renderAvailableTags();
+      return;
+    }
 
     currentTags.push(tag);
     renderTagsList();
@@ -793,9 +845,107 @@
     await Promise.all([
       renderPrompts(),
       renderFolders(),
+      renderTagsManager(),
       renderPinned(),
       renderRecentUsage(),
     ]);
+  }
+
+  async function renderTagsManager() {
+    const container = document.getElementById('tags-manager-list');
+    const empty = document.getElementById('tags-empty');
+    if (!container || !empty) return;
+
+    await loadAllTags();
+    const query = document.getElementById('tag-search-input')?.value.trim().toLowerCase() || '';
+    const tags = allTagsList.filter(item => !query || item.key.includes(query));
+
+    empty.classList.toggle('hidden', tags.length > 0);
+    container.innerHTML = tags.map(item => `
+      <div class="tag-manager-item" data-tag="${escapeHtml(item.tag)}">
+        <button class="tag-manager-name" data-action="filter-tag" type="button">
+          <span>${escapeHtml(item.tag)}</span>
+          <small>${i18n.t('tag_usage_count', item.count)}</small>
+        </button>
+        <div class="tag-manager-actions">
+          <button class="secondary-btn compact" data-action="rename-tag" type="button">${i18n.t('btn_rename_tag')}</button>
+          <button class="danger-btn compact" data-action="delete-tag" type="button">${i18n.t('btn_delete')}</button>
+        </div>
+      </div>
+    `).join('');
+
+    container.querySelectorAll('[data-action]').forEach(button => {
+      button.addEventListener('click', (event) => {
+        const item = event.target.closest('.tag-manager-item');
+        const tag = item?.dataset.tag;
+        if (!tag) return;
+
+        const action = event.currentTarget.dataset.action;
+        if (action === 'filter-tag') {
+          document.getElementById('search-input').value = `tag:${tag}`;
+          switchTab('prompts');
+          handleSearch();
+        } else if (action === 'rename-tag') {
+          renameTag(tag);
+        } else if (action === 'delete-tag') {
+          confirmDelete('tag', tag);
+        }
+      });
+    });
+  }
+
+  async function renameTag(oldTag) {
+    openTagModal('rename', oldTag);
+  }
+
+  async function createTag() {
+    openTagModal('create');
+  }
+
+  function openTagModal(mode, tagName = '') {
+    tagModalMode = mode;
+    tagModalOriginalName = tagName;
+
+    const title = document.getElementById('tag-modal-title');
+    const input = document.getElementById('tag-name-input');
+    if (title) title.textContent = i18n.t(mode === 'rename' ? 'prompt_rename_tag' : 'prompt_new_tag');
+    if (input) {
+      input.value = tagName;
+      input.placeholder = i18n.t('placeholder_tag_name');
+    }
+
+    openModal('tag-modal');
+    setTimeout(() => {
+      input?.focus();
+      input?.select();
+    }, 0);
+  }
+
+  async function saveTagFromModal() {
+    const input = document.getElementById('tag-name-input');
+    const trimmed = input?.value.trim() || '';
+    if (!trimmed) {
+      showToast(i18n.t('toast_error_tag_name'), 'error');
+      input?.focus();
+      return;
+    }
+
+    if (tagModalMode === 'rename') {
+      if (trimmed.toLowerCase() === tagModalOriginalName.toLowerCase()) {
+        closeAllModals();
+        return;
+      }
+      await Storage.renameTag(tagModalOriginalName, trimmed);
+      showToast(i18n.t('toast_tag_renamed'), 'success');
+    } else {
+      await Storage.createTag(trimmed);
+      const tagSearchInput = document.getElementById('tag-search-input');
+      if (tagSearchInput) tagSearchInput.value = '';
+      showToast(i18n.t('toast_tag_created'), 'success');
+    }
+
+    closeAllModals();
+    await renderAll();
   }
 
   function getSearchTerms(query) {
@@ -1929,6 +2079,8 @@
    * Save prompt
    */
   async function savePrompt() {
+    addTagFromInput();
+
     const title = document.getElementById('prompt-title').value.trim();
     const content = document.getElementById('prompt-content').value.trim();
     const folder = document.getElementById('prompt-folder').value;
@@ -2093,6 +2245,9 @@
     } else if (type === 'clear_recent') {
       title.textContent = i18n.t('confirm_clear_recent');
       message.textContent = i18n.t('confirm_clear_recent_msg');
+    } else if (type === 'tag') {
+      title.textContent = i18n.t('confirm_delete_tag');
+      message.textContent = i18n.t('confirm_delete_tag_msg', id);
     }
 
     openModal('confirm-dialog');
@@ -2106,6 +2261,9 @@
         showToast(i18n.t('toast_deleted'), 'success');
       } else if (type === 'clear_recent') {
         await clearAllRecentUsage();
+      } else if (type === 'tag') {
+        await Storage.deleteTag(id);
+        showToast(i18n.t('toast_tag_deleted'), 'success');
       }
       closeAllModals();
       renderAll();
@@ -2351,6 +2509,10 @@
     if (tagsInput) tagsInput.value = '';
     const suggestions = document.getElementById('tags-suggestions');
     if (suggestions) suggestions.innerHTML = '';
+    const tagNameInput = document.getElementById('tag-name-input');
+    if (tagNameInput) tagNameInput.value = '';
+    tagModalMode = 'create';
+    tagModalOriginalName = '';
   }
 
   function showToast(message, type = 'info') {

@@ -11,6 +11,7 @@ if (typeof window.PromptVaultStorage === 'undefined') {
   // Default data structure
   const defaultData = {
     prompts: [],
+    tags: [],
     folders: [
       { id: 'default', name: 'Default', color: '#808080' }
     ],
@@ -459,14 +460,119 @@ if (typeof window.PromptVaultStorage === 'undefined') {
   async function getAllTags() {
     const data = await getAll();
     const tagCount = {};
+    (data.tags || []).forEach(t => {
+      const key = normalizeSearchText(t);
+      if (!key || tagCount[key]) return;
+      tagCount[key] = { tag: t, key, count: 0 };
+    });
     (data.prompts || []).forEach(p => {
       (p.tags || []).forEach(t => {
-        const key = t.toLowerCase();
+        const key = normalizeSearchText(t);
         if (!tagCount[key]) tagCount[key] = { tag: t, key, count: 0 };
         tagCount[key].count++;
       });
     });
     return Object.values(tagCount).sort((a, b) => b.count - a.count);
+  }
+
+  /**
+   * Create a reusable tag, even before it is used by a prompt.
+   */
+  async function createTag(tagName) {
+    const name = String(tagName || '').trim();
+    const key = normalizeSearchText(name);
+    if (!key) return { created: false };
+
+    const data = await getAll();
+    if (!data.tags) data.tags = [];
+
+    const existsInRegistry = data.tags.some(tag => normalizeSearchText(tag) === key);
+    const existsInPrompts = (data.prompts || []).some(prompt =>
+      (prompt.tags || []).some(tag => normalizeSearchText(tag) === key)
+    );
+
+    if (!existsInRegistry) {
+      data.tags.push(name);
+      await saveAll(data);
+    }
+
+    return { created: !existsInRegistry && !existsInPrompts };
+  }
+
+  /**
+   * Rename a tag everywhere it is used.
+   */
+  async function renameTag(oldTag, newTag) {
+    const oldKey = normalizeSearchText(oldTag);
+    const newName = String(newTag || '').trim();
+    const newKey = normalizeSearchText(newName);
+    if (!oldKey || !newKey) return { updated: 0 };
+
+    const data = await getAll();
+    if (!data.tags) data.tags = [];
+    let updated = 0;
+
+    let registryUpdated = false;
+    if (data.tags.some(tag => normalizeSearchText(tag) === oldKey)) {
+      const nextTags = [];
+      data.tags.forEach(tag => {
+        const candidate = normalizeSearchText(tag) === oldKey ? newName : tag;
+        if (!nextTags.some(existing => normalizeSearchText(existing) === normalizeSearchText(candidate))) {
+          nextTags.push(candidate);
+        }
+      });
+      data.tags = nextTags;
+      registryUpdated = true;
+    }
+
+    (data.prompts || []).forEach(prompt => {
+      const tags = prompt.tags || [];
+      if (!tags.some(tag => normalizeSearchText(tag) === oldKey)) return;
+
+      const nextTags = [];
+      tags.forEach(tag => {
+        const candidate = normalizeSearchText(tag) === oldKey ? newName : tag;
+        if (!nextTags.some(existing => normalizeSearchText(existing) === normalizeSearchText(candidate))) {
+          nextTags.push(candidate);
+        }
+      });
+
+      prompt.tags = nextTags;
+      prompt.updatedAt = Date.now();
+      updated++;
+    });
+
+    if (updated > 0 || registryUpdated) await saveAll(data);
+    return { updated, registryUpdated };
+  }
+
+  /**
+   * Remove a tag from every prompt.
+   */
+  async function deleteTag(tagName) {
+    const key = normalizeSearchText(tagName);
+    if (!key) return { updated: 0 };
+
+    const data = await getAll();
+    if (!data.tags) data.tags = [];
+    let updated = 0;
+
+    const nextRegistryTags = data.tags.filter(tag => normalizeSearchText(tag) !== key);
+    const registryUpdated = nextRegistryTags.length !== data.tags.length;
+    data.tags = nextRegistryTags;
+
+    (data.prompts || []).forEach(prompt => {
+      const tags = prompt.tags || [];
+      const nextTags = tags.filter(tag => normalizeSearchText(tag) !== key);
+      if (nextTags.length === tags.length) return;
+
+      prompt.tags = nextTags;
+      prompt.updatedAt = Date.now();
+      updated++;
+    });
+
+    if (updated > 0 || registryUpdated) await saveAll(data);
+    return { updated, registryUpdated };
   }
 
   /**
@@ -535,6 +641,9 @@ if (typeof window.PromptVaultStorage === 'undefined') {
     getRecentUsage,
     addRecentUsage,
     getAllTags,
+    createTag,
+    renameTag,
+    deleteTag,
   };
 })();
 } // end idempotency guard

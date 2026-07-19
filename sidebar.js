@@ -58,7 +58,6 @@
         });
       } catch (e) { resolve(fallback); }
     });
-  });
   }
 
   // ========== Create Iframe ==========
