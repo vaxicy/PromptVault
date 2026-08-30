@@ -488,38 +488,6 @@
       const list = document.querySelector(`#${PALETTE_ID} .pv-palette-list`);
       if (list) renderList(list);
     });
-
-    // Show shortcut toast on first open
-    const hasSeenToast = localStorage.getItem('pv_cmd_palette_toast_seen');
-    if (!hasSeenToast) {
-      setTimeout(() => {
-        showShortcutToast();
-        localStorage.setItem('pv_cmd_palette_toast_seen', 'true');
-      }, 500);
-    }
-  }
-
-  // ========== Show Shortcut Toast ==========
-  function showShortcutToast() {
-    const isMac = navigator.platform.toUpperCase().indexOf('MAC') >= 0;
-    const shortcut = isMac ? '⌘ + Shift + P' : 'Ctrl + Shift + P';
-
-    const toast = document.createElement('div');
-    toast.className = 'pv-cmd-toast';
-    toast.innerHTML = `
-      <div class="pv-cmd-toast-icon">${SHORTCUT_ICON}</div>
-      <div class="pv-cmd-toast-body">
-        <div class="pv-cmd-toast-title">${i18n.t('shortcut_toast_title') || '快捷键已启用'}</div>
-        <div class="pv-cmd-toast-text">${(i18n.t('shortcut_toast_body') || '以后在任何网页按：')}<code>${shortcut}</code></div>
-      </div>
-    `;
-    document.body.appendChild(toast);
-
-    setTimeout(() => toast.classList.add('pv-cmd-toast-show'), 10);
-    setTimeout(() => {
-      toast.classList.remove('pv-cmd-toast-show');
-      setTimeout(() => toast.remove(), 300);
-    }, 3000);
   }
 
   function closePalette() {
@@ -546,15 +514,6 @@
     if (message.action === 'openCommandPalette') {
       openPalette();
       sendResponse({ success: true });
-    }
-  });
-
-  // ========== Global Keyboard Shortcut ==========
-  document.addEventListener('keydown', (e) => {
-    // Ctrl/Cmd + Shift + P
-    if ((e.ctrlKey || e.metaKey) && e.shiftKey && e.key === 'P') {
-      e.preventDefault();
-      openPalette();
     }
   });
 

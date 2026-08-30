@@ -286,17 +286,6 @@ if (chrome.commands) {
     if (command === 'open-promptvault') {
       chrome.action.openPopup();
     }
-    if (command === 'open-command-palette') {
-      // Content scripts are auto-injected via manifest, send message directly
-      const tabs = await chrome.tabs.query({ active: true, currentWindow: true });
-      if (tabs[0]) {
-        try {
-          chrome.tabs.sendMessage(tabs[0].id, { action: 'openCommandPalette' });
-        } catch (e) {
-          console.log('PromptVault: Content script not available in current tab');
-        }
-      }
-    }
   });
 }
 

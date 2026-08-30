@@ -7,12 +7,6 @@
   await i18n.loadLocale();
   applyTranslations();
 
-  const isMac = navigator.platform.toUpperCase().indexOf('MAC') >= 0;
-  const shortcutKbd = document.getElementById('welcome-shortcut-kbd');
-  if (shortcutKbd) {
-    shortcutKbd.textContent = isMac ? '⌘ + Shift + P' : 'Ctrl + Shift + P';
-  }
-
   document.getElementById('welcome-get-started').addEventListener('click', () => {
     chrome.storage.local.set({ promptvault_hasSeenWelcome: true }, () => {
       window.close();

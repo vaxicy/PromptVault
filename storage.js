@@ -12,6 +12,7 @@ if (typeof window.PromptVaultStorage === 'undefined') {
   const defaultData = {
     prompts: [],
     tags: [],
+    trash: [],
     folders: [
       { id: 'default', name: 'Default', color: '#808080' }
     ],
@@ -22,7 +23,9 @@ if (typeof window.PromptVaultStorage === 'undefined') {
       showBadge: true,
       sortMode: 'smart',
       autoTopAfterUse: true,
-      groupSortMode: 'folderName'
+      groupSortMode: 'folderName',
+      // Opt-in: when false, deleting removes the prompt permanently
+      enableTrash: false
     }
   };
 
@@ -147,12 +150,80 @@ if (typeof window.PromptVaultStorage === 'undefined') {
   }
 
   /**
-   * Delete a prompt by ID
+   * Delete a prompt by ID.
+   * When the trash is enabled the prompt is moved to `trash` (recoverable);
+   * otherwise it is removed permanently.
    */
   async function deletePrompt(id) {
     const data = await getAll();
+    const prompt = data.prompts.find(p => p.id === id);
+    if (!prompt) return { trashed: false };
+
+    if (data.settings?.enableTrash === true) {
+      if (!data.trash) data.trash = [];
+      // Avoid duplicate entries if the same id somehow gets deleted twice
+      data.trash = data.trash.filter(t => t.id !== id);
+      data.trash.unshift({ ...cloneData(prompt), deletedAt: Date.now() });
+      data.prompts = data.prompts.filter(p => p.id !== id);
+      await saveAll(data);
+      return { trashed: true };
+    }
+
     data.prompts = data.prompts.filter(p => p.id !== id);
     await saveAll(data);
+    return { trashed: false };
+  }
+
+  /**
+   * Get all prompts currently in the trash (newest first).
+   */
+  async function getTrash() {
+    const data = await getAll();
+    return data.trash || [];
+  }
+
+  /**
+   * Restore a trashed prompt back into the prompt list.
+   * If its original folder no longer exists, it falls back to 'default'.
+   */
+  async function restoreFromTrash(id) {
+    const data = await getAll();
+    const index = (data.trash || []).findIndex(p => p.id === id);
+    if (index === -1) return false;
+
+    const item = data.trash[index];
+    const restored = cloneData(item);
+    delete restored.deletedAt;
+
+    const folderExists = (data.folders || []).some(f => f.id === restored.folder);
+    if (!folderExists) restored.folder = 'default';
+
+    data.trash.splice(index, 1);
+    if (!data.prompts.some(p => p.id === restored.id)) {
+      data.prompts.push(restored);
+    }
+    await saveAll(data);
+    return true;
+  }
+
+  /**
+   * Permanently remove a single item from the trash.
+   */
+  async function deleteFromTrash(id) {
+    const data = await getAll();
+    data.trash = (data.trash || []).filter(p => p.id !== id);
+    await saveAll(data);
+  }
+
+  /**
+   * Empty the entire trash.
+   */
+  async function emptyTrash() {
+    const data = await getAll();
+    const count = (data.trash || []).length;
+    data.trash = [];
+    await saveAll(data);
+    return count;
   }
 
   /**
@@ -629,6 +700,10 @@ if (typeof window.PromptVaultStorage === 'undefined') {
     getPrompt,
     savePrompt,
     deletePrompt,
+    getTrash,
+    restoreFromTrash,
+    deleteFromTrash,
+    emptyTrash,
     togglePin,
     reorderPrompts,
     recordUsage,

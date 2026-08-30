@@ -23,6 +23,9 @@
   let tagModalMode = 'create';
   let tagModalOriginalName = '';
   const PAYPAL_DONATION_URL = 'https://www.paypal.com/ncp/payment/3ZZGQLA3U2GZQ';
+  // True while a trash-related confirm dialog is pending, so the generic
+  // cancel handler knows to only dismiss the dialog (not every modal)
+  let pendingTrashConfirm = false;
 
   // Settings snapshot (for Apply/Cancel)
   let settingsSnapshot = null;
@@ -34,6 +37,7 @@
       autoTopAfterUse: document.getElementById('setting-auto-top')?.checked,
       defaultFolder: document.getElementById('setting-default-folder').value,
       displayMode: document.getElementById('setting-display-mode').value,
+      enableTrash: document.getElementById('setting-enable-trash')?.checked ?? false,
     };
   }
 
@@ -164,8 +168,6 @@
     if (dataMgmtHeading) dataMgmtHeading.textContent = i18n.t('data_management');
     const preferencesHeading = document.querySelector('[data-i18n="settings_preferences"]');
     if (preferencesHeading) preferencesHeading.textContent = i18n.t('settings_preferences');
-    const shortcutHeading = document.querySelector('[data-i18n="shortcut_title"]');
-    if (shortcutHeading) shortcutHeading.textContent = i18n.t('shortcut_title');
     const importBtnText = document.querySelector('#btn-import span[data-i18n]');
     if (importBtnText) importBtnText.textContent = i18n.t('btn_import');
     const exportBtnText = document.querySelector('#btn-export span[data-i18n]');
@@ -175,10 +177,6 @@
       const text = i18n.t(key);
       if (text && text !== key) el.textContent = text;
     });
-    document.querySelectorAll('.shortcut-copy-btn').forEach(btn => {
-      setTooltip(btn, i18n.t('shortcut_copy_tooltip'));
-    });
-
     // Confirm dialog defaults
     document.getElementById('confirm-ok').textContent = i18n.t('btn_confirm');
 
@@ -287,20 +285,6 @@
    * Initialize all event listeners
    */
   function initEventListeners() {
-    // Shortcut copy buttons
-    document.querySelectorAll('.shortcut-copy-btn').forEach(btn => {
-      btn.addEventListener('click', () => {
-        const shortcut = btn.dataset.shortcut;
-        if (shortcut) {
-          navigator.clipboard.writeText(shortcut).then(() => {
-            const originalText = btn.textContent;
-            btn.textContent = i18n.getLocale() === 'zh' ? '已复制' : 'Copied';
-            setTimeout(() => { btn.textContent = originalText; }, 1500);
-          });
-        }
-      });
-    });
-
     // Navigation tabs
     document.querySelectorAll('.nav-tab').forEach(tab => {
       tab.addEventListener('click', () => switchTab(tab.dataset.tab));
@@ -337,6 +321,10 @@
       }
       handleSearch();
     });
+
+    initPromptEditorEnhancements();
+    initExportFormatMenu();
+    initTrashControls();
 
     // New prompt button
     document.getElementById('btn-new-prompt').addEventListener('click', () => openPromptModal());
@@ -436,9 +424,9 @@
     // Clear all recent usage
     const btnClearRecent = document.getElementById('btn-clear-recent');
     if (btnClearRecent) {
-      btnClearRecent.addEventListener('click', (e) => {
+      btnClearRecent.addEventListener('click', async (e) => {
         e.stopPropagation();
-        confirmDelete('clear_recent');
+        await confirmDelete('clear_recent');
       });
     }
 
@@ -874,7 +862,7 @@
     `).join('');
 
     container.querySelectorAll('[data-action]').forEach(button => {
-      button.addEventListener('click', (event) => {
+      button.addEventListener('click', async (event) => {
         const item = event.target.closest('.tag-manager-item');
         const tag = item?.dataset.tag;
         if (!tag) return;
@@ -887,7 +875,7 @@
         } else if (action === 'rename-tag') {
           renameTag(tag);
         } else if (action === 'delete-tag') {
-          confirmDelete('tag', tag);
+          await confirmDelete('tag', tag);
         }
       });
     });
@@ -1554,9 +1542,9 @@
       });
 
       container.querySelectorAll('.prompt-card-action.delete').forEach(btn => {
-        btn.addEventListener('click', (e) => {
+        btn.addEventListener('click', async (e) => {
           e.stopPropagation();
-          confirmDelete('prompt', btn.dataset.id);
+          await confirmDelete('prompt', btn.dataset.id);
         });
       });
     }
@@ -1780,9 +1768,9 @@
     });
 
     container.querySelectorAll('.folder-card .delete').forEach(btn => {
-      btn.addEventListener('click', (e) => {
+      btn.addEventListener('click', async (e) => {
         e.stopPropagation();
-        confirmDelete('folder', btn.dataset.id);
+        await confirmDelete('folder', btn.dataset.id);
       });
     });
 
@@ -1918,9 +1906,9 @@
       });
     });
     container.querySelectorAll('.prompt-card-action.delete').forEach(btn => {
-      btn.addEventListener('click', (e) => {
+      btn.addEventListener('click', async (e) => {
         e.stopPropagation();
-        confirmDelete('prompt', btn.dataset.id);
+        await confirmDelete('prompt', btn.dataset.id);
       });
     });
   }
@@ -2035,6 +2023,157 @@
   }
 
   /**
+   * Editor enhancements for the prompt modal:
+   * - Ctrl/Cmd + Enter saves
+   * - Esc closes (warns about unsaved changes)
+   * - Tab inserts an indent inside the textarea instead of moving focus
+   * - Live character count
+   */
+  function initPromptEditorEnhancements() {
+    const modal = document.getElementById('prompt-modal');
+    if (!modal) return;
+
+    const contentEl = document.getElementById('prompt-content');
+
+    // Live character count
+    contentEl?.addEventListener('input', () => {
+      updatePromptContentCount();
+      promptEditorDirty = true;
+    });
+    ['prompt-title', 'prompt-folder'].forEach(id => {
+      document.getElementById(id)?.addEventListener('input', () => {
+        promptEditorDirty = true;
+      });
+    });
+
+    modal.addEventListener('keydown', (e) => {
+      // Ctrl/Cmd + Enter → save
+      if ((e.ctrlKey || e.metaKey) && e.key === 'Enter') {
+        e.preventDefault();
+        savePrompt();
+        return;
+      }
+
+      // Esc → close (with unsaved-changes guard)
+      if (e.key === 'Escape') {
+        e.preventDefault();
+        requestClosePromptModal();
+        return;
+      }
+
+      // Tab → insert indent inside the content textarea
+      if (e.key === 'Tab' && e.target === contentEl) {
+        e.preventDefault();
+        const start = contentEl.selectionStart;
+        const end = contentEl.selectionEnd;
+        const value = contentEl.value;
+        const indent = '    ';
+        contentEl.value = value.substring(0, start) + indent + value.substring(end);
+        contentEl.selectionStart = contentEl.selectionEnd = start + indent.length;
+        updatePromptContentCount();
+        promptEditorDirty = true;
+      }
+    });
+
+    // Intercept close affordances (cancel button and ×) to guard unsaved changes.
+    // Capture phase + stopImmediatePropagation is required because generic
+    // `.modal-close` / `.modal-cancel` handlers call closeAllModals() directly.
+    const interceptClose = (e) => {
+      e.stopImmediatePropagation();
+      e.preventDefault();
+      requestClosePromptModal();
+    };
+    modal.querySelector('.modal-cancel')?.addEventListener('click', interceptClose, true);
+    modal.querySelector('.modal-close')?.addEventListener('click', interceptClose, true);
+    modal.addEventListener('click', (e) => {
+      if (e.target === modal) {
+        e.stopImmediatePropagation();
+        requestClosePromptModal();
+      }
+    }, true);
+
+    // The confirm dialog's generic cancel handler would also close the editor,
+    // so intercept it while a discard confirmation is pending.
+    const confirmCancel = document.querySelector('#confirm-dialog .modal-cancel');
+    confirmCancel?.addEventListener('click', (e) => {
+      if (!pendingDiscardConfirm) return;
+      e.stopImmediatePropagation();
+      e.preventDefault();
+      pendingDiscardConfirm = false;
+      document.getElementById('confirm-dialog').classList.add('hidden');
+    }, true);
+  }
+
+  // Snapshot of the prompt editor when the modal was opened, used to detect
+  // unsaved changes (so we can warn before discarding them).
+  let promptEditorSnapshot = null;
+  let promptEditorDirty = false;
+  // True while the "discard changes?" confirm dialog is showing for the editor
+  let pendingDiscardConfirm = false;
+
+  function capturePromptEditorSnapshot() {
+    promptEditorSnapshot = JSON.stringify({
+      title: document.getElementById('prompt-title').value,
+      content: document.getElementById('prompt-content').value,
+      folder: document.getElementById('prompt-folder').value,
+      tags: [...currentTags]
+    });
+    promptEditorDirty = false;
+  }
+
+  function isPromptEditorDirty() {
+    if (!promptEditorSnapshot) return false;
+    const current = JSON.stringify({
+      title: document.getElementById('prompt-title').value,
+      content: document.getElementById('prompt-content').value,
+      folder: document.getElementById('prompt-folder').value,
+      tags: [...currentTags]
+    });
+    return current !== promptEditorSnapshot;
+  }
+
+  function updatePromptContentCount() {
+    const el = document.getElementById('prompt-content-count');
+    if (!el) return;
+    const len = document.getElementById('prompt-content').value.length;
+    el.textContent = i18n.t('editor_char_count', len);
+  }
+
+  /**
+   * Close the prompt editor, warning first if there are unsaved changes.
+   */
+  function requestClosePromptModal() {
+    const resetEditorState = () => {
+      promptEditorSnapshot = null;
+      promptEditorDirty = false;
+      pendingDiscardConfirm = false;
+    };
+
+    if (promptEditorDirty || isPromptEditorDirty()) {
+      const title = document.getElementById('confirm-title');
+      const message = document.getElementById('confirm-message');
+      const okBtn = document.getElementById('confirm-ok');
+
+      title.textContent = i18n.t('confirm_discard_title');
+      message.textContent = i18n.t('confirm_discard_msg');
+
+      // Show the confirm dialog WITHOUT openModal(): openModal() calls
+      // closeAllModals(), which would hide the editor and lose the user's input
+      // even when they choose "cancel".
+      pendingDiscardConfirm = true;
+      document.getElementById('confirm-dialog').classList.remove('hidden');
+
+      okBtn.onclick = () => {
+        closeAllModals();
+        resetEditorState();
+      };
+      return;
+    }
+    closeAllModals();
+    resetEditorState();
+  }
+
+  /**
    * Open prompt modal (new or edit)
    */
   async function openPromptModal(promptId = null) {
@@ -2072,6 +2211,10 @@
     openModal('prompt-modal');
     // Ensure tag suggestions render immediately when modal opens
     renderAvailableTags();
+    updatePromptContentCount();
+    capturePromptEditorSnapshot();
+    // Focus the title field so the user can start typing immediately
+    setTimeout(() => document.getElementById('prompt-title')?.focus(), 0);
   }
 
   /**
@@ -2270,14 +2413,24 @@
     showToast(i18n.t('toast_fallback_copied'), 'info');
   }
 
-  function confirmDelete(type, id) {
+  async function confirmDelete(type, id) {
     const title = document.getElementById('confirm-title');
     const message = document.getElementById('confirm-message');
     const okBtn = document.getElementById('confirm-ok');
 
+    // Async, but some call sites don't await it — guard against unhandled rejections
+    let trashEnabled = false;
+    try {
+      trashEnabled = (await Storage.getSettings()).enableTrash === true;
+    } catch (err) {
+      console.warn('[PromptVault] Could not read trash setting:', err);
+    }
+
     if (type === 'prompt') {
       title.textContent = i18n.t('confirm_delete_prompt');
-      message.textContent = i18n.t('confirm_delete_prompt_msg');
+      message.textContent = trashEnabled
+        ? i18n.t('confirm_delete_prompt_msg_trash')
+        : i18n.t('confirm_delete_prompt_msg');
     } else if (type === 'folder') {
       title.textContent = i18n.t('confirm_delete_folder');
       message.textContent = i18n.t('confirm_delete_folder_msg');
@@ -2293,8 +2446,9 @@
 
     okBtn.onclick = async () => {
       if (type === 'prompt') {
-        await Storage.deletePrompt(id);
-        showToast(i18n.t('toast_deleted'), 'success');
+        const result = await Storage.deletePrompt(id);
+        showToast(i18n.t(result?.trashed ? 'toast_moved_to_trash' : 'toast_deleted'), 'success');
+        await updateTrashUI();
       } else if (type === 'folder') {
         await Storage.deleteFolder(id);
         showToast(i18n.t('toast_deleted'), 'success');
@@ -2309,18 +2463,321 @@
     };
   }
 
-  async function exportData() {
+  // ========== Trash (opt-in) ==========
+
+  function escapeAttr(value) {
+    return String(value ?? '').replace(/[&<>"']/g, c => (
+      { '&': '&amp;', '<': '&lt;', '>': '&gt;', '"': '&quot;', "'": '&#39;' }[c]
+    ));
+  }
+
+  /**
+   * Show the trash list only when the feature is enabled, and keep the
+   * item count badge in sync.
+   */
+  async function updateTrashUI() {
+    const settings = await Storage.getSettings();
+    const enabled = settings.enableTrash === true;
+    const group = document.getElementById('trash-entry-group');
+    if (group) group.hidden = !enabled;
+
+    const trash = await Storage.getTrash();
+    const badge = document.getElementById('trash-count-badge');
+    if (badge) badge.textContent = String(trash.length);
+
+    const emptyBtn = document.getElementById('btn-empty-trash');
+    if (emptyBtn) emptyBtn.disabled = trash.length === 0;
+  }
+
+  /**
+   * Promise-based confirm dialog used when turning the trash off with items
+   * still inside. Returns true when the user accepts.
+   */
+  function confirmTrashDisable(count) {
+    return new Promise((resolve) => {
+      const title = document.getElementById('confirm-title');
+      const message = document.getElementById('confirm-message');
+      const okBtn = document.getElementById('confirm-ok');
+      const cancelBtn = document.querySelector('#confirm-dialog .modal-cancel');
+
+      title.textContent = i18n.t('confirm_disable_trash_title');
+      message.textContent = i18n.t('confirm_disable_trash_msg', count);
+
+      // openModal() closes other modals, so show the dialog directly to keep
+      // the settings modal open underneath.
+      pendingTrashConfirm = true;
+      document.getElementById('confirm-dialog').classList.remove('hidden');
+
+      const cleanup = () => {
+        pendingTrashConfirm = false;
+        okBtn.onclick = null;
+        cancelBtn?.removeEventListener('click', onCancel, true);
+      };
+
+      const onCancel = (e) => {
+        if (!pendingTrashConfirm) return;
+        e.stopImmediatePropagation();
+        e.preventDefault();
+        cleanup();
+        document.getElementById('confirm-dialog').classList.add('hidden');
+        resolve(false);
+      };
+
+      cancelBtn?.addEventListener('click', onCancel, true);
+
+      okBtn.onclick = () => {
+        cleanup();
+        document.getElementById('confirm-dialog').classList.add('hidden');
+        resolve(true);
+      };
+    });
+  }
+
+  async function openTrashModal() {
+    await renderTrashList();
+    openModal('trash-modal');
+  }
+
+  async function renderTrashList() {
+    const container = document.getElementById('trash-list');
+    if (!container) return;
+
+    const trash = await Storage.getTrash();
+    const emptyBtn = document.getElementById('btn-empty-trash');
+    if (emptyBtn) emptyBtn.disabled = trash.length === 0;
+
+    if (trash.length === 0) {
+      container.innerHTML = `
+        <div class="trash-empty">
+          <p data-i18n="trash_empty">回收站是空的</p>
+          <p class="trash-empty-hint" data-i18n="trash_empty_hint">删除的提示词会出现在这里，可随时还原</p>
+        </div>`;
+      return;
+    }
+
+    container.innerHTML = trash.map(item => {
+      const deleted = item.deletedAt
+        ? new Date(item.deletedAt).toLocaleString()
+        : '';
+      const preview = (item.content || '').slice(0, 120);
+      return `
+        <div class="trash-item" data-id="${escapeAttr(item.id)}">
+          <div class="trash-item-main">
+            <div class="trash-item-title">${escapeHtml(item.title || i18n.t('untitled'))}</div>
+            <div class="trash-item-preview">${escapeHtml(preview)}</div>
+            <div class="trash-item-meta">${escapeHtml(deleted)}</div>
+          </div>
+          <div class="trash-item-actions">
+            <button class="secondary-btn trash-restore-btn" data-id="${escapeAttr(item.id)}">${escapeHtml(i18n.t('btn_restore'))}</button>
+            <button class="danger-btn trash-delete-btn" data-id="${escapeAttr(item.id)}">${escapeHtml(i18n.t('btn_delete_forever'))}</button>
+          </div>
+        </div>`;
+    }).join('');
+
+    container.querySelectorAll('.trash-restore-btn').forEach(btn => {
+      btn.addEventListener('click', async (e) => {
+        e.stopPropagation();
+        await Storage.restoreFromTrash(btn.dataset.id);
+        await renderAll();
+        await updateTrashUI();
+        await renderTrashList();
+        showToast(i18n.t('toast_restored'), 'success');
+      });
+    });
+
+    container.querySelectorAll('.trash-delete-btn').forEach(btn => {
+      btn.addEventListener('click', async (e) => {
+        e.stopPropagation();
+        await Storage.deleteFromTrash(btn.dataset.id);
+        await updateTrashUI();
+        await renderTrashList();
+        showToast(i18n.t('toast_deleted_forever'), 'success');
+      });
+    });
+  }
+
+  async function emptyTrash() {
+    const trash = await Storage.getTrash();
+    if (trash.length === 0) return;
+
+    const title = document.getElementById('confirm-title');
+    const message = document.getElementById('confirm-message');
+    const okBtn = document.getElementById('confirm-ok');
+
+    title.textContent = i18n.t('confirm_empty_trash_title');
+    message.textContent = i18n.t('confirm_empty_trash_msg', trash.length);
+
+    pendingTrashConfirm = true;
+    document.getElementById('confirm-dialog').classList.remove('hidden');
+
+    okBtn.onclick = async () => {
+      pendingTrashConfirm = false;
+      await Storage.emptyTrash();
+      document.getElementById('confirm-dialog').classList.add('hidden');
+      await updateTrashUI();
+      await renderTrashList();
+      showToast(i18n.t('toast_trash_emptied'), 'success');
+    };
+  }
+
+  function initTrashControls() {
+    document.getElementById('btn-open-trash')?.addEventListener('click', () => openTrashModal());
+    document.getElementById('btn-empty-trash')?.addEventListener('click', () => emptyTrash());
+
+    // Esc closes the trash modal
+    document.getElementById('trash-modal')?.addEventListener('keydown', (e) => {
+      if (e.key === 'Escape') {
+        e.preventDefault();
+        closeAllModals();
+      }
+    });
+
+    // Reflect enable/disable immediately so the entry appears without a reload
+    document.getElementById('setting-enable-trash')?.addEventListener('change', async (e) => {
+      const group = document.getElementById('trash-entry-group');
+      if (group) group.hidden = !e.target.checked;
+      await updateTrashUI();
+    });
+
+    // The generic confirm-cancel handler would close every modal; while a trash
+    // confirmation is pending we only want to dismiss the confirm dialog.
+    const confirmCancel = document.querySelector('#confirm-dialog .modal-cancel');
+    confirmCancel?.addEventListener('click', (e) => {
+      if (!pendingTrashConfirm) return;
+      e.stopImmediatePropagation();
+      e.preventDefault();
+      pendingTrashConfirm = false;
+      document.getElementById('confirm-dialog').classList.add('hidden');
+    }, true);
+  }
+
+  // Currently selected export format (persisted in memory for the session)
+  let currentExportFormat = 'json';
+
+  const EXPORT_FORMATS = {
+    json: { ext: 'json', mime: 'application/json;charset=utf-8' },
+    md: { ext: 'md', mime: 'text/markdown;charset=utf-8' },
+    csv: { ext: 'csv', mime: 'text/csv;charset=utf-8' },
+    txt: { ext: 'txt', mime: 'text/plain;charset=utf-8' }
+  };
+
+  /** Escape a CSV field (wrap in quotes and double any inner quotes). */
+  function csvCell(value) {
+    const str = String(value ?? '');
+    return `"${str.replace(/"/g, '""')}"`;
+  }
+
+  /** Build a Markdown document for all prompts. */
+  function buildMarkdown(data) {
+    const folderName = (id) => {
+      if (!id || id === 'default') return i18n.t('folder_uncategorized');
+      return data.folders?.find(f => f.id === id)?.name || i18n.t('folder_uncategorized');
+    };
+    const lines = [`# ${i18n.t('app_title')}`, '', `> ${i18n.t('export_generated_at')}: ${new Date().toLocaleString()}`, ''];
+    (data.prompts || []).forEach((p, i) => {
+      lines.push(`## ${i + 1}. ${p.title || i18n.t('untitled')}`);
+      if (p.tags?.length) lines.push(`${i18n.t('label_tags')}: ${p.tags.join(', ')}`);
+      lines.push(`${i18n.t('label_folder')}: ${folderName(p.folder)}`);
+      lines.push('', '```', p.content || '', '```', '');
+    });
+    return lines.join('\n');
+  }
+
+  /** Build a CSV document for all prompts. */
+  function buildCsv(data) {
+    const folderName = (id) => {
+      if (!id || id === 'default') return i18n.t('folder_uncategorized');
+      return data.folders?.find(f => f.id === id)?.name || i18n.t('folder_uncategorized');
+    };
+    const header = ['Title', 'Content', 'Folder', 'Tags', 'UsageCount', 'UpdatedAt'];
+    const rows = (data.prompts || []).map(p => [
+      p.title || '',
+      p.content || '',
+      folderName(p.folder),
+      (p.tags || []).join('; '),
+      p.usageCount || 0,
+      p.updatedAt ? new Date(p.updatedAt).toISOString() : ''
+    ]);
+    // BOM so Excel opens UTF-8 correctly
+    return '\uFEFF' + [header, ...rows].map(r => r.map(csvCell).join(',')).join('\r\n');
+  }
+
+  /** Build a plain-text document for all prompts. */
+  function buildPlainText(data) {
+    const folderName = (id) => {
+      if (!id || id === 'default') return i18n.t('folder_uncategorized');
+      return data.folders?.find(f => f.id === id)?.name || i18n.t('folder_uncategorized');
+    };
+    const out = (data.prompts || []).map((p, i) => {
+      const tags = p.tags?.length ? `\n${i18n.t('label_tags')}: ${p.tags.join(', ')}` : '';
+      return `# ${i + 1}. ${p.title || i18n.t('untitled')}\n${i18n.t('label_folder')}: ${folderName(p.folder)}${tags}\n\n${p.content || ''}`;
+    });
+    return out.join('\n\n---\n\n');
+  }
+
+  async function exportData(format = currentExportFormat) {
     const data = await Storage.exportData();
-    const blob = new Blob([JSON.stringify(data, null, 2)], { type: 'application/json' });
+    const meta = EXPORT_FORMATS[format] || EXPORT_FORMATS.json;
+
+    let content;
+    if (format === 'json') {
+      content = JSON.stringify(data, null, 2);
+    } else if (format === 'md') {
+      content = buildMarkdown(data);
+    } else if (format === 'csv') {
+      content = buildCsv(data);
+    } else {
+      content = buildPlainText(data);
+    }
+
+    const blob = new Blob([content], { type: meta.mime });
     const url = URL.createObjectURL(blob);
 
     const a = document.createElement('a');
     a.href = url;
-    a.download = `promptvault_export_${new Date().toISOString().slice(0, 10)}.json`;
+    a.download = `promptvault_export_${new Date().toISOString().slice(0, 10)}.${meta.ext}`;
     a.click();
 
     URL.revokeObjectURL(url);
     showToast(i18n.t('toast_exported'), 'success');
+  }
+
+  /**
+   * Export format dropdown: opens/closes the menu and applies the selection.
+   */
+  function initExportFormatMenu() {
+    const toggle = document.getElementById('btn-export-format');
+    const menu = document.getElementById('export-format-menu');
+    if (!toggle || !menu) return;
+
+    const closeMenu = () => {
+      menu.classList.add('hidden');
+      toggle.setAttribute('aria-expanded', 'false');
+    };
+
+    toggle.addEventListener('click', (e) => {
+      e.stopPropagation();
+      const willOpen = menu.classList.contains('hidden');
+      menu.classList.toggle('hidden', !willOpen);
+      toggle.setAttribute('aria-expanded', String(willOpen));
+    });
+
+    menu.querySelectorAll('.export-format-item').forEach(item => {
+      item.addEventListener('click', (e) => {
+        e.stopPropagation();
+        currentExportFormat = item.dataset.format;
+        const label = item.firstChild?.textContent?.trim() || item.dataset.format.toUpperCase();
+        document.getElementById('btn-export').title = label;
+        closeMenu();
+        exportData(currentExportFormat);
+      });
+    });
+
+    document.addEventListener('click', (e) => {
+      if (!menu.classList.contains('hidden') && !menu.contains(e.target) && e.target !== toggle) {
+        closeMenu();
+      }
+    });
   }
 
   async function importData() {
@@ -2416,6 +2873,11 @@
     const autoTopCheckbox = document.getElementById('setting-auto-top');
     if (autoTopCheckbox) autoTopCheckbox.checked = settings.autoTopAfterUse !== false;
 
+    // Load trash setting (opt-in, defaults to false)
+    const enableTrashCheckbox = document.getElementById('setting-enable-trash');
+    if (enableTrashCheckbox) enableTrashCheckbox.checked = settings.enableTrash === true;
+    await updateTrashUI();
+
     // Also populate and select default folder
     await updateFolderSelects(await Storage.getFolders());
     const defaultFolderSelect = document.getElementById('setting-default-folder');
@@ -2434,12 +2896,29 @@
     const newAutoTop = document.getElementById('setting-auto-top')?.checked;
     const newDefaultFolder = document.getElementById('setting-default-folder').value;
     const newDisplayMode = document.getElementById('setting-display-mode').value;
+    const newEnableTrash = document.getElementById('setting-enable-trash')?.checked ?? false;
 
     // Detect what changed
     const langChanged = newLang !== settings.locale;
     const badgeChanged = newShowBadge !== (settings.showBadge !== false);
     const recentChanged = newShowRecent !== (settings.showRecent !== false);
     const displayModeChanged = newDisplayMode !== (settings.displayMode || 'list');
+    const trashChanged = newEnableTrash !== (settings.enableTrash === true);
+
+    // Turning the trash OFF permanently deletes everything currently in it.
+    // Confirm first so we never silently destroy recoverable data.
+    if (trashChanged && !newEnableTrash) {
+      const trashItems = await Storage.getTrash();
+      if (trashItems.length > 0) {
+        const confirmed = await confirmTrashDisable(trashItems.length);
+        if (!confirmed) {
+          // Revert the checkbox and abort applying settings
+          const cb = document.getElementById('setting-enable-trash');
+          if (cb) cb.checked = true;
+          return;
+        }
+      }
+    }
 
     // Update settings object
     settings.locale = newLang;
@@ -2448,8 +2927,15 @@
     settings.autoTopAfterUse = newAutoTop;
     settings.defaultFolder = newDefaultFolder;
     settings.displayMode = newDisplayMode;
+    settings.enableTrash = newEnableTrash;
 
     await Storage.saveSettings(settings);
+
+    // Apply trash setting change
+    if (trashChanged) {
+      if (!newEnableTrash) await Storage.emptyTrash();
+      await updateTrashUI();
+    }
 
     // Apply language change immediately
     if (langChanged) {

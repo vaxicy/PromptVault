@@ -1,7 +1,7 @@
 {
   "manifest_version": 3,
   "name": "PromptVault - AI提示词管理助手",
-  "version": "1.2.0",
+  "version": "1.3.0",
   "description": "保存、整理和快速访问你的 AI 提示词 | Save, organize, and quickly access your AI prompts",
   "permissions": [
     "storage",
@@ -23,15 +23,7 @@
       "run_at": "document_end"
     }
   ],
-  "commands": {
-    "open-command-palette": {
-      "suggested_key": {
-        "default": "Ctrl+Shift+P",
-        "mac": "MacCtrl+Shift+P"
-      },
-      "description": "Open PromptVault Command Palette"
-    }
-  },
+
   "background": {
     "service_worker": "background.js"
   },

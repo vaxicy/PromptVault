@@ -217,6 +217,10 @@
         <div class="form-group">
           <label for="prompt-content">提示词内容</label>
           <textarea id="prompt-content" placeholder="输入提示词内容..." rows="8"></textarea>
+          <div class="editor-meta">
+            <span id="prompt-content-count">0 字</span>
+            <span class="editor-hint" data-i18n="editor_save_hint">Ctrl + Enter 保存</span>
+          </div>
         </div>
         <div class="form-group">
           <label for="prompt-folder">文件夹</label>
@@ -283,6 +287,23 @@
     </div>
   </div>
 
+  <!-- Trash Modal -->
+  <div id="trash-modal" class="modal hidden">
+    <div class="modal-content large">
+      <div class="modal-header">
+        <h2 id="trash-modal-title" data-i18n="trash_title">回收站</h2>
+        <button class="modal-close">&times;</button>
+      </div>
+      <div class="modal-body">
+        <div id="trash-list" class="trash-list"></div>
+      </div>
+      <div class="modal-footer">
+        <button id="btn-empty-trash" class="danger-btn" data-i18n="btn_empty_trash">清空回收站</button>
+        <button class="secondary-btn modal-cancel" data-i18n="btn_close">关闭</button>
+      </div>
+    </div>
+  </div>
+
   <!-- Settings Modal -->
   <div id="settings-modal" class="modal hidden">
     <div class="modal-content">
@@ -334,20 +355,22 @@
               <option value="grouped" data-i18n="display_mode_grouped">按文件夹分组</option>
             </select>
           </div>
-        </div>
-        <div class="settings-section">
-          <h3 data-i18n="shortcut_title">快捷键</h3>
-          <div class="shortcut-info">
-            <div class="shortcut-row">
-              <span data-i18n="shortcut_windows">Windows</span>
-              <code>Ctrl + Shift + P</code>
-              <button class="shortcut-copy-btn" data-shortcut="Ctrl + Shift + P" data-tooltip="复制快捷键" aria-label="复制快捷键" data-i18n="shortcut_copy">复制</button>
-            </div>
-            <div class="shortcut-row">
-              <span data-i18n="shortcut_mac">Mac</span>
-              <code>⌘ + Shift + P</code>
-              <button class="shortcut-copy-btn" data-shortcut="⌘ + Shift + P" data-tooltip="复制快捷键" aria-label="复制快捷键" data-i18n="shortcut_copy">复制</button>
-            </div>
+          <div class="form-group">
+            <label class="checkbox-label">
+              <input type="checkbox" id="setting-enable-trash">
+              <span data-i18n="label_enable_trash">启用回收站</span>
+            </label>
+            <p class="setting-hint" data-i18n="settings_enable_trash_hint">删除的提示词先进入回收站，可随时还原；关闭后删除即永久删除</p>
+          </div>
+          <div class="form-group" id="trash-entry-group" hidden>
+            <button id="btn-open-trash" class="secondary-btn trash-entry-btn">
+              <svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2">
+                <polyline points="3 6 5 6 21 6"></polyline>
+                <path d="M19 6v14a2 2 0 0 1-2 2H7a2 2 0 0 1-2-2V6m3 0V4a2 2 0 0 1 2-2h4a2 2 0 0 1 2 2v2"></path>
+              </svg>
+              <span data-i18n="btn_open_trash">回收站</span>
+              <span id="trash-count-badge" class="trash-count-badge">0</span>
+            </button>
           </div>
         </div>
         <div class="settings-section">
@@ -361,14 +384,27 @@
               </svg>
               <span data-i18n="btn_import">导入</span>
             </button>
-            <button id="btn-export" class="secondary-btn">
-              <svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2">
-                <path d="M21 15v4a2 2 0 0 1-2 2H5a2 2 0 0 1-2-2v-4"></path>
-                <polyline points="17 8 12 3 7 8"></polyline>
-                <line x1="12" y1="3" x2="12" y2="15"></line>
-              </svg>
-              <span data-i18n="btn_export">导出</span>
-            </button>
+            <div class="export-split">
+              <button id="btn-export" class="secondary-btn" title="JSON">
+                <svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2">
+                  <path d="M21 15v4a2 2 0 0 1-2 2H5a2 2 0 0 1-2-2v-4"></path>
+                  <polyline points="17 8 12 3 7 8"></polyline>
+                  <line x1="12" y1="3" x2="12" y2="15"></line>
+                </svg>
+                <span data-i18n="btn_export">导出</span>
+              </button>
+              <button id="btn-export-format" class="secondary-btn export-format-toggle" aria-haspopup="true" aria-expanded="false" aria-label="选择导出格式">
+                <svg width="12" height="12" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.5">
+                  <polyline points="6 9 12 15 18 9"></polyline>
+                </svg>
+              </button>
+              <div id="export-format-menu" class="export-format-menu hidden">
+                <button class="export-format-item" data-format="json">JSON<span class="export-format-desc" data-i18n="export_format_json_desc">完整备份</span></button>
+                <button class="export-format-item" data-format="md">Markdown<span class="export-format-desc" data-i18n="export_format_md_desc">适合 Notion / 语雀</span></button>
+                <button class="export-format-item" data-format="csv">CSV<span class="export-format-desc" data-i18n="export_format_csv_desc">适合 Excel</span></button>
+                <button class="export-format-item" data-format="txt">纯文本<span class="export-format-desc" data-i18n="export_format_txt_desc">简单可读</span></button>
+              </div>
+            </div>
           </div>
           <p class="setting-hint no-indent" data-i18n="settings_data_management_hint">导入会合并数据；清除会删除所有提示词、文件夹和标签</p>
           <button id="btn-clear-data" class="danger-btn settings-danger-btn">清除所有数据</button>
