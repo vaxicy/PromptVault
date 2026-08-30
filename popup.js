@@ -988,8 +988,145 @@
     return prefix + text.slice(start, end) + suffix;
   }
 
+  // ========== Variable (template placeholder) support ==========
+  //
+  // Syntax: {{variable name}}
+  // When a prompt containing placeholders is copied or inserted, the user is
+  // asked to fill in each variable. Empty values are replaced with ''.
+
+  const VARIABLE_PATTERN = /\{\{\s*([^{}]+)\s*\}\}/g;
+
   function promptHasVariables(prompt) {
     return /\{\{\s*[^{}]+\s*\}\}/.test(prompt.content || '');
+  }
+
+  /** Extract unique variable names (trimmed), preserving first-seen order. */
+  function extractVariables(content) {
+    const names = [];
+    const re = new RegExp(VARIABLE_PATTERN.source, 'g');
+    let m;
+    while ((m = re.exec(content || '')) !== null) {
+      const name = m[1].trim();
+      if (name && !names.includes(name)) names.push(name);
+    }
+    return names;
+  }
+
+  /**
+   * Replace every {{name}} with the matching value.
+   * Unfilled variables become empty strings (user chose "leave blank").
+   */
+  function applyVariables(content, values) {
+    return (content || '').replace(VARIABLE_PATTERN, (match, name) => {
+      const key = name.trim();
+      return values && Object.prototype.hasOwnProperty.call(values, key) ? values[key] : '';
+    });
+  }
+
+  /** Load previously used variable values from settings. */
+  async function getVariableHistory() {
+    const settings = await Storage.getSettings();
+    return settings.variableHistory || {};
+  }
+
+  /** Persist variable values so the next run can prefill them. */
+  async function saveVariableHistory(values) {
+    const history = await getVariableHistory();
+    Object.entries(values).forEach(([key, value]) => {
+      if (String(value).trim() !== '') history[key] = value;
+    });
+    await Storage.saveSettings({ variableHistory: history });
+  }
+
+  /**
+   * Show the variable fill-in dialog.
+   * Resolves to an object of {name: value} when confirmed, or null when cancelled.
+   */
+  function openVariableDialog(variableNames, prefills = {}) {
+    return new Promise((resolve) => {
+      const form = document.getElementById('variable-form');
+      const modal = document.getElementById('variable-modal');
+      const okBtn = document.getElementById('btn-variable-ok');
+      const cancelBtn = document.getElementById('btn-variable-cancel');
+
+      form.innerHTML = variableNames.map(name => {
+        const value = prefills[name] || '';
+        return `
+          <div class="form-group">
+            <label for="var-${escapeAttr(name)}">${escapeHtml(name)}</label>
+            <input type="text" id="var-${escapeAttr(name)}" class="variable-input"
+                   data-variable="${escapeAttr(name)}" value="${escapeAttr(value)}"
+                   placeholder="${escapeHtml(i18n.t('variable_input_placeholder'))}">
+          </div>`;
+      }).join('');
+
+      const collect = () => {
+        const values = {};
+        form.querySelectorAll('.variable-input').forEach(input => {
+          values[input.dataset.variable] = input.value;
+        });
+        return values;
+      };
+
+      const cleanup = () => {
+        okBtn.onclick = null;
+        modal.removeEventListener('keydown', onKeydown);
+      };
+
+      const onKeydown = (e) => {
+        if (e.key === 'Enter' && e.target.classList.contains('variable-input')) {
+          e.preventDefault();
+          okBtn.click();
+        }
+        if (e.key === 'Escape') {
+          e.preventDefault();
+          cleanup();
+          closeAllModals();
+          resolve(null);
+        }
+      };
+
+      // Show directly (not via openModal) so the underlying context stays intact
+      modal.classList.remove('hidden');
+      modal.addEventListener('keydown', onKeydown);
+
+      const inputs = form.querySelectorAll('.variable-input');
+      if (inputs.length) inputs[0].focus();
+
+      okBtn.onclick = () => {
+        const values = collect();
+        cleanup();
+        closeAllModals();
+        resolve(values);
+      };
+
+      cancelBtn.onclick = () => {
+        cleanup();
+        closeAllModals();
+        resolve(null);
+      };
+    });
+  }
+
+  /**
+   * Resolve prompt content: if it has variables, ask the user to fill them.
+   * Returns the filled content, or null if the user cancelled.
+   */
+  async function resolvePromptContent(prompt) {
+    const names = extractVariables(prompt.content);
+    if (names.length === 0) return prompt.content;
+
+    const prefills = {};
+    const history = await getVariableHistory();
+    names.forEach(n => {
+      if (history[n]) prefills[n] = history[n];
+    });
+
+    const values = await openVariableDialog(names, prefills);
+    if (values === null) return null;
+
+    await saveVariableHistory(values);
+    return applyVariables(prompt.content, values);
   }
 
   function renderPromptStatusChips(prompt) {
@@ -2035,9 +2172,10 @@
 
     const contentEl = document.getElementById('prompt-content');
 
-    // Live character count
+    // Live character count + variable detection
     contentEl?.addEventListener('input', () => {
       updatePromptContentCount();
+      updateEditorVariableHint();
       promptEditorDirty = true;
     });
     ['prompt-title', 'prompt-folder'].forEach(id => {
@@ -2139,6 +2277,22 @@
     el.textContent = i18n.t('editor_char_count', len);
   }
 
+  /** Show the variables detected in the editor so the user sees them while writing. */
+  function updateEditorVariableHint() {
+    const el = document.getElementById('prompt-variable-hint');
+    const contentEl = document.getElementById('prompt-content');
+    if (!el || !contentEl) return;
+
+    const names = extractVariables(contentEl.value);
+    if (names.length === 0) {
+      el.classList.add('hidden');
+      el.textContent = '';
+      return;
+    }
+    el.textContent = i18n.t('editor_variables_detected', names.length, names.join(' / '));
+    el.classList.remove('hidden');
+  }
+
   /**
    * Close the prompt editor, warning first if there are unsaved changes.
    */
@@ -2197,6 +2351,7 @@
       document.getElementById('prompt-title').value = prompt.title;
       document.getElementById('prompt-content').value = prompt.content;
       document.getElementById('prompt-folder').value = prompt.folder || 'default';
+      updateEditorVariableHint();
       // Load tags
       setTags(prompt.tags || []);
     } else {
@@ -2204,6 +2359,8 @@
       document.getElementById('prompt-title').value = '';
       document.getElementById('prompt-content').value = '';
       document.getElementById('prompt-folder').value = 'default';
+      updatePromptContentCount();
+      updateEditorVariableHint();
       // Clear tags
       setTags([]);
     }
@@ -2331,12 +2488,23 @@
   }
 
   /**
-   * Copy prompt to clipboard directly
+   * Copy prompt to clipboard directly.
+   * @param {string} promptId
+   * @param {string|null} resolvedContent - already-filled content, to avoid
+   *        asking the user twice when this is used as an insert fallback.
    */
-  async function copyPromptToClipboard(promptId) {
+  async function copyPromptToClipboard(promptId, resolvedContent = null) {
     const prompt = await Storage.getPrompt(promptId);
     if (!prompt) return;
-    await navigator.clipboard.writeText(prompt.content);
+
+    let content = resolvedContent;
+    if (content === null) {
+      // Ask the user to fill {{variables}} before copying
+      content = await resolvePromptContent(prompt);
+      if (content === null) return; // user cancelled
+    }
+
+    await navigator.clipboard.writeText(content);
     // Record usage (updates lastUsedAt so smart sort puts it on top)
     await Storage.recordUsage(promptId);
     showCardCopiedFeedback(promptId);
@@ -2358,6 +2526,11 @@
     const prompt = await Storage.getPrompt(promptId);
     if (!prompt) return;
 
+    // Ask the user to fill {{variables}} first, so we only prompt once even
+    // if we later fall back to copying.
+    const content = await resolvePromptContent(prompt);
+    if (content === null) return; // user cancelled
+
     const tabs = await chrome.tabs.query({ active: true, currentWindow: true });
     const tab = tabs[0];
     if (!tab?.id) {
@@ -2370,7 +2543,7 @@
     try {
       const response = await chrome.tabs.sendMessage(tab.id, {
         action: 'insertPrompt',
-        text: prompt.content
+        text: content
       });
       if (response?.success) {
         await Storage.recordUsage(promptId);
@@ -2395,7 +2568,7 @@
             }
             return { success: false, error: 'UniversalInsert not loaded' };
           },
-          args: [prompt.content]
+          args: [content]
         });
         const result = results?.[0]?.result;
         if (result?.success) {
@@ -2408,8 +2581,9 @@
       }
     }
 
-    // 3) Last resort: copy to clipboard so the user still gets the prompt
-    await copyPromptToClipboard(promptId);
+    // 3) Last resort: copy to clipboard so the user still gets the prompt.
+    // Pass the already-filled content so the variable dialog is not shown twice.
+    await copyPromptToClipboard(promptId, content);
     showToast(i18n.t('toast_fallback_copied'), 'info');
   }
 

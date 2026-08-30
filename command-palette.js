@@ -451,17 +451,190 @@
     if (selected) selected.scrollIntoView({ block: 'nearest' });
   }
 
+  // ========== Variables ({{name}} placeholders) ==========
+  const VARIABLE_PATTERN = /\{\{\s*([^{}]+)\s*\}\}/g;
+
+  function extractVariables(content) {
+    const names = [];
+    const re = new RegExp(VARIABLE_PATTERN.source, 'g');
+    let m;
+    while ((m = re.exec(content || '')) !== null) {
+      const name = m[1].trim();
+      if (name && !names.includes(name)) names.push(name);
+    }
+    return names;
+  }
+
+  function applyVariables(content, values) {
+    return (content || '').replace(VARIABLE_PATTERN, (match, name) => {
+      const key = name.trim();
+      return values && Object.prototype.hasOwnProperty.call(values, key) ? values[key] : '';
+    });
+  }
+
+  async function getVariableHistory() {
+    try {
+      if (typeof Storage !== 'undefined' && typeof Storage.getAll === 'function') {
+        const data = await Storage.getAll();
+        return (data.settings && data.settings.variableHistory) || {};
+      }
+    } catch (e) {
+      console.warn('[PromptVault] Failed to read variable history:', e);
+    }
+    return {};
+  }
+
+  async function saveVariableHistory(values) {
+    const history = await getVariableHistory();
+    Object.entries(values).forEach(([key, value]) => {
+      if (String(value).trim() !== '') history[key] = value;
+    });
+    try {
+      if (typeof Storage !== 'undefined' && typeof Storage.saveSettings === 'function') {
+        await Storage.saveSettings({ variableHistory: history });
+      }
+    } catch (e) {
+      console.warn('[PromptVault] Failed to save variable history:', e);
+    }
+  }
+
+  /**
+   * Floating dialog asking the user to fill in {{variables}}.
+   * Resolves to an object of values, or null when cancelled.
+   */
+  function showVariableDialog(names, prefills) {
+    return new Promise((resolve) => {
+      const c = paletteColors || getThemeColors();
+      const overlay = document.createElement('div');
+      overlay.id = 'pv-variable-dialog';
+      overlay.style.cssText = `
+        position: fixed;
+        top: 0; left: 0;
+        width: 100vw; height: 100vh;
+        background: ${c.overlayBg};
+        z-index: 2147483647;
+        display: flex;
+        align-items: center;
+        justify-content: center;
+        opacity: 0;
+        transition: opacity 0.15s ease;
+      `;
+
+      const inputsHtml = names
+        .map(
+          (name) => `
+          <div style="margin-bottom: 12px;">
+            <label style="display:block; font-size:12px; font-weight:600; color:${c.textColor}; margin-bottom:4px;">${escapeHtml(name)}</label>
+            <input type="text" data-variable="${escapeHtml(name)}" value="${escapeHtml(prefills[name] || '')}"
+              placeholder="${escapeHtml(i18n.t('variable_input_placeholder') || '在此输入...')}"
+              style="width:100%; box-sizing:border-box; padding:8px 10px; font-size:13px; font-family:inherit;
+                     color:${c.textColor}; background:${c.selectedBg}; border:1px solid ${c.borderColor};
+                     border-radius:6px; outline:none;">
+          </div>`
+        )
+        .join('');
+
+      overlay.innerHTML = `
+        <div style="width:400px; max-width:90vw; background:${c.containerBg}; border:1px solid ${c.borderColor};
+                    border-radius:12px; box-shadow:0 16px 48px rgba(0,0,0,0.25); padding:20px;">
+          <div style="font-size:15px; font-weight:700; color:${c.textColor}; margin-bottom:4px;">
+            ${escapeHtml(i18n.t('variable_fill_title') || '填写变量')}
+          </div>
+          <div style="font-size:12px; color:${c.textMuted}; margin-bottom:16px;">
+            ${escapeHtml(i18n.t('variable_fill_hint') || '填入内容后插入，留空的变量会被移除')}
+          </div>
+          <div>${inputsHtml}</div>
+          <div style="display:flex; justify-content:flex-end; gap:8px; margin-top:16px;">
+            <button class="pv-var-cancel" style="padding:8px 14px; font-size:13px; font-family:inherit; font-weight:500;
+                    color:${c.textColor}; background:transparent; border:1px solid ${c.borderColor};
+                    border-radius:6px; cursor:pointer;">${escapeHtml(i18n.t('btn_cancel') || '取消')}</button>
+            <button class="pv-var-ok" style="padding:8px 14px; font-size:13px; font-family:inherit; font-weight:600;
+                    color:#ffffff; background:${c.accentColor}; border:none; border-radius:6px; cursor:pointer;">
+                    ${escapeHtml(i18n.t('variable_confirm') || '插入')}</button>
+          </div>
+        </div>`;
+
+      document.body.appendChild(overlay);
+      requestAnimationFrame(() => {
+        overlay.style.opacity = '1';
+        const first = overlay.querySelector('input[data-variable]');
+        if (first) first.focus();
+      });
+
+      const close = () => overlay.remove();
+
+      const collect = () => {
+        const values = {};
+        overlay.querySelectorAll('input[data-variable]').forEach((input) => {
+          values[input.dataset.variable] = input.value;
+        });
+        return values;
+      };
+
+      const confirm = () => {
+        const values = collect();
+        close();
+        resolve(values);
+      };
+
+      overlay.querySelector('.pv-var-cancel').addEventListener('click', () => {
+        close();
+        resolve(null);
+      });
+      overlay.querySelector('.pv-var-ok').addEventListener('click', confirm);
+
+      overlay.addEventListener('keydown', (e) => {
+        if (e.key === 'Enter') {
+          e.preventDefault();
+          confirm();
+        } else if (e.key === 'Escape') {
+          e.preventDefault();
+          close();
+          resolve(null);
+        }
+      });
+
+      // Clicking the backdrop cancels
+      overlay.addEventListener('click', (e) => {
+        if (e.target === overlay) {
+          close();
+          resolve(null);
+        }
+      });
+    });
+  }
+
   // ========== Insert Prompt ==========
-  function insertPromptById(promptId) {
+  async function insertPromptById(promptId) {
     const prompt = allPrompts.find((p) => p.id === promptId);
     if (!prompt) return;
 
+    let content = prompt.content;
+
+    // Ask the user to fill {{variables}} before inserting
+    const names = extractVariables(content);
+    if (names.length > 0) {
+      const history = await getVariableHistory();
+      const prefills = {};
+      names.forEach((n) => {
+        if (history[n]) prefills[n] = history[n];
+      });
+
+      closePalette();
+
+      const values = await showVariableDialog(names, prefills);
+      if (values === null) return; // cancelled
+
+      await saveVariableHistory(values);
+      content = applyVariables(content, values);
+    }
+
     // Use UniversalInsert if available
     if (window.UniversalInsert) {
-      UniversalInsert.insertText(prompt.content);
+      UniversalInsert.insertText(content);
     } else {
       // Fallback: send message to content script
-      chrome.runtime.sendMessage({ action: 'insertPrompt', text: prompt.content });
+      chrome.runtime.sendMessage({ action: 'insertPrompt', text: content });
     }
 
     // Record usage

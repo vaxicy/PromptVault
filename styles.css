@@ -914,6 +914,32 @@ body {
   white-space: nowrap;
 }
 
+/* Variable detection hint in the prompt editor */
+.editor-variable-hint {
+  color: var(--accent-primary);
+  font-weight: 500;
+  overflow: hidden;
+  text-overflow: ellipsis;
+  white-space: nowrap;
+  text-align: center;
+}
+
+.editor-variable-hint.hidden {
+  display: none !important;
+}
+
+/* Variable fill dialog */
+.variable-modal-hint {
+  margin-bottom: 12px;
+  font-size: 12px;
+  color: var(--text-muted);
+}
+
+.variable-input {
+  width: 100%;
+  box-sizing: border-box;
+}
+
 .form-group select {
   cursor: pointer;
 }

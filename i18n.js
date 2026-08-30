@@ -54,6 +54,11 @@ if (typeof window.PromptVaultI18n === 'undefined') {
       card_click_to_copy: '点击复制',
       card_copied: '已复制',
       card_has_variables: '含变量',
+      variable_fill_title: '填写变量',
+      variable_fill_hint: '填入内容后插入，留空的变量会被移除',
+      variable_input_placeholder: '在此输入...',
+      variable_confirm: '插入',
+      editor_variables_detected: '检测到 {0} 个变量：{1}',
 
       // Labels
       label_title: '提示词名称',
@@ -356,6 +361,11 @@ if (typeof window.PromptVaultI18n === 'undefined') {
       card_click_to_copy: 'Click to copy',
       card_copied: 'Copied',
       card_has_variables: 'Variables',
+      variable_fill_title: 'Fill in Variables',
+      variable_fill_hint: 'Fill in the values, blank ones will be removed',
+      variable_input_placeholder: 'Type here...',
+      variable_confirm: 'Insert',
+      editor_variables_detected: '{0} variables: {1}',
 
       // Labels
       label_title: 'Prompt Name',

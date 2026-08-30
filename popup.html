@@ -219,6 +219,7 @@
           <textarea id="prompt-content" placeholder="输入提示词内容..." rows="8"></textarea>
           <div class="editor-meta">
             <span id="prompt-content-count">0 字</span>
+            <span id="prompt-variable-hint" class="editor-variable-hint hidden"></span>
             <span class="editor-hint" data-i18n="editor_save_hint">Ctrl + Enter 保存</span>
           </div>
         </div>
@@ -300,6 +301,24 @@
       <div class="modal-footer">
         <button id="btn-empty-trash" class="danger-btn" data-i18n="btn_empty_trash">清空回收站</button>
         <button class="secondary-btn modal-cancel" data-i18n="btn_close">关闭</button>
+      </div>
+    </div>
+  </div>
+
+  <!-- Variable Fill Modal -->
+  <div id="variable-modal" class="modal hidden">
+    <div class="modal-content">
+      <div class="modal-header">
+        <h2 data-i18n="variable_fill_title">填写变量</h2>
+        <button class="modal-close">&times;</button>
+      </div>
+      <div class="modal-body">
+        <p class="variable-modal-hint" data-i18n="variable_fill_hint">填入内容后插入，留空的变量会被移除</p>
+        <div id="variable-form"></div>
+      </div>
+      <div class="modal-footer">
+        <button id="btn-variable-cancel" class="secondary-btn" data-i18n="btn_cancel">取消</button>
+        <button id="btn-variable-ok" class="primary-btn" data-i18n="variable_confirm">插入</button>
       </div>
     </div>
   </div>
