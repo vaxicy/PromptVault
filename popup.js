@@ -1016,8 +1016,15 @@
     showToast(i18n.t('toast_sample_created'), 'success');
   }
 
+  /** Hide the guide only, leaving the settings modal underneath open. */
+  function closeVariableGuide() {
+    const modal = document.getElementById('variable-guide-modal');
+    if (modal) modal.classList.add('hidden');
+  }
+
   function openVariableGuide() {
-    // openModal() would close the settings modal underneath, so show directly
+    // Show directly on top of the settings modal (z-index 1100) instead of
+    // openModal(), which would close the settings modal underneath.
     const modal = document.getElementById('variable-guide-modal');
     if (!modal) return;
     modal.classList.remove('hidden');
@@ -1049,12 +1056,29 @@
     document.getElementById('btn-variable-sample')?.addEventListener('click', createSample);
     document.getElementById('btn-guide-create-sample')?.addEventListener('click', createSample);
 
-    // Esc closes the guide
-    document.getElementById('variable-guide-modal')?.addEventListener('keydown', (e) => {
+    const modal = document.getElementById('variable-guide-modal');
+
+    // The generic .modal-close / .modal-cancel handlers call closeAllModals(),
+    // which would also hide the settings modal underneath. Intercept in the
+    // capture phase so only the guide closes.
+    const closeGuideOnly = (e) => {
+      e.stopImmediatePropagation();
+      e.preventDefault();
+      closeVariableGuide();
+    };
+    modal?.querySelector('.modal-close')?.addEventListener('click', closeGuideOnly, true);
+    modal?.querySelector('.modal-cancel')?.addEventListener('click', closeGuideOnly, true);
+
+    // Esc / backdrop click close the guide only
+    modal?.addEventListener('keydown', (e) => {
       if (e.key === 'Escape') {
         e.preventDefault();
-        closeAllModals();
+        e.stopImmediatePropagation();
+        closeVariableGuide();
       }
+    });
+    modal?.addEventListener('click', (e) => {
+      if (e.target === modal) closeVariableGuide();
     });
   }
 

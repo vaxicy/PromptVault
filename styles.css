@@ -941,6 +941,12 @@ body {
 }
 
 /* ========== Variable Guide ========== */
+/* Sits above the settings modal (both are .modal with z-index 1000, so this
+   one needs a higher value to stack on top of it). */
+#variable-guide-modal {
+  z-index: 1100;
+}
+
 .variable-guide {
   display: flex;
   flex-direction: column;
@@ -1860,8 +1866,8 @@ body {
 
 /* Settings Sections */
 .settings-section {
-  margin-top: 18px;
-  padding-top: 16px;
+  margin-top: 24px;
+  padding-top: 20px;
   border-top: 1px solid var(--border-color);
 }
 
@@ -2058,6 +2064,12 @@ body {
 
 .setting-hint.no-indent {
   margin-left: 0;
+}
+
+/* Breathing room when a hint is followed by action buttons (e.g. variable
+   settings: description then guide/sample buttons) */
+.setting-hint.no-indent + .data-actions {
+  margin-top: 12px;
 }
 
 /* Folder breadcrumb (compact back link) */
