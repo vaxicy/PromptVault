@@ -186,6 +186,7 @@ if (typeof window.PromptVaultI18n === 'undefined') {
       toast_inserted: '已插入提示词',
       toast_no_input: '未找到输入框，请先点击输入框',
       toast_insert_failed: '插入失败，请手动复制',
+      toast_fallback_copied: '无法插入，已复制到剪贴板',
 
       // Batch operations
       btn_batch: '批量',
@@ -194,7 +195,7 @@ if (typeof window.PromptVaultI18n === 'undefined') {
       btn_batch_move: '移动',
       btn_batch_cancel: '取消',
       batch_selected_count: '{0} 已选',
-      batch_move_to_folder: '移动到文件夹...',
+      batch_move_to_folder: '移动到...',
       batch_moved: '{0} 个提示词已移动',
 
       // Command Palette
@@ -452,6 +453,7 @@ if (typeof window.PromptVaultI18n === 'undefined') {
       toast_inserted: 'Prompt inserted',
       toast_no_input: 'No input found. Click the input box first.',
       toast_insert_failed: 'Insert failed. Please copy manually.',
+      toast_fallback_copied: 'Cannot insert, copied to clipboard instead.',
 
       // Batch operations
       btn_batch: 'Batch',
@@ -460,7 +462,7 @@ if (typeof window.PromptVaultI18n === 'undefined') {
       btn_batch_move: 'Move',
       btn_batch_cancel: 'Cancel',
       batch_selected_count: '{0} selected',
-      batch_move_to_folder: 'Move to folder...',
+      batch_move_to_folder: 'Move to...',
       batch_moved: '{0} prompts moved',
 
       // Command Palette

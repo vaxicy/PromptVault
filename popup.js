@@ -698,12 +698,12 @@
   async function updateBatchActionsBar() {
     const bar = document.getElementById('batch-actions-bar');
     const countEl = document.getElementById('batch-selected-count');
-    const moveBtn = document.getElementById('btn-batch-move');
     const selectAllBtn = document.getElementById('btn-batch-select-all');
 
     if (isBatchMode) {
       bar.classList.remove('hidden');
       countEl.textContent = i18n.t('batch_selected_count', selectedPromptIds.size);
+      countEl.classList.toggle('has-selection', selectedPromptIds.size > 0);
 
       // Update select all button text
       const prompts = await getVisiblePrompts();
@@ -741,7 +741,9 @@
   function updateBatchMoveButton() {
     const select = document.getElementById('batch-folder-select');
     const btn = document.getElementById('btn-batch-move');
-    btn.disabled = !select.value || selectedPromptIds.size === 0;
+    const hasSelection = selectedPromptIds.size > 0;
+    select.disabled = !hasSelection;
+    btn.disabled = !select.value || !hasSelection;
   }
 
   /**
@@ -2204,27 +2206,68 @@
   }
 
   /**
-   * Insert prompt into current page (for AI websites)
+   * Insert prompt into current page (for AI websites).
+   * Falls back to chrome.scripting.executeScript when the content script
+   * connection is lost (e.g. after extension update without page refresh).
+   * If insert still fails, copies the prompt to clipboard as last resort.
    */
   async function insertPromptIntoPage(promptId) {
     const prompt = await Storage.getPrompt(promptId);
     if (!prompt) return;
 
-    chrome.tabs.query({ active: true, currentWindow: true }, (tabs) => {
-      chrome.tabs.sendMessage(tabs[0].id, {
+    const tabs = await chrome.tabs.query({ active: true, currentWindow: true });
+    const tab = tabs[0];
+    if (!tab?.id) {
+      showToast(i18n.t('toast_error_cannot_insert'), 'error');
+      return;
+    }
+
+    // 1) Fast path: ask the already injected content script to insert
+    let sendMessageFailed = false;
+    try {
+      const response = await chrome.tabs.sendMessage(tab.id, {
         action: 'insertPrompt',
         text: prompt.content
-      }, (response) => {
-        if (chrome.runtime.lastError) {
-          showToast(i18n.t('toast_error_cannot_insert'), 'error');
-        } else {
-          showToast(i18n.t('toast_inserted'), 'success');
-        }
       });
-    });
+      if (response?.success) {
+        await Storage.recordUsage(promptId);
+        showToast(i18n.t('toast_inserted'), 'success');
+        return;
+      }
+    } catch (err) {
+      sendMessageFailed = true;
+      console.warn('[PromptVault] sendMessage insert failed:', err?.message || err);
+    }
 
-    // Record usage
-    await Storage.recordUsage(promptId);
+    // 2) Fallback: content script connection lost (e.g. after extension update).
+    // Re-inject scripts on demand and run insert directly.
+    if (sendMessageFailed) {
+      try {
+        const results = await chrome.scripting.executeScript({
+          target: { tabId: tab.id },
+          files: ['i18n.js', 'universal-insert.js'],
+          func: (text) => {
+            if (typeof UniversalInsert !== 'undefined') {
+              return { success: UniversalInsert.insertText(text) };
+            }
+            return { success: false, error: 'UniversalInsert not loaded' };
+          },
+          args: [prompt.content]
+        });
+        const result = results?.[0]?.result;
+        if (result?.success) {
+          await Storage.recordUsage(promptId);
+          showToast(i18n.t('toast_inserted'), 'success');
+          return;
+        }
+      } catch (scriptErr) {
+        console.warn('[PromptVault] executeScript fallback failed:', scriptErr);
+      }
+    }
+
+    // 3) Last resort: copy to clipboard so the user still gets the prompt
+    await copyPromptToClipboard(promptId);
+    showToast(i18n.t('toast_fallback_copied'), 'info');
   }
 
   function confirmDelete(type, id) {

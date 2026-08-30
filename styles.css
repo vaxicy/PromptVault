@@ -1099,12 +1099,13 @@ body {
   bottom: 0;
   background: var(--bg-secondary);
   border-top: 1px solid var(--border-color);
-  padding: 10px 12px;
+  padding: 12px 16px;
   display: flex;
   justify-content: space-between;
   align-items: center;
-  gap: 8px;
+  gap: 12px;
   z-index: 10;
+  box-shadow: 0 -4px 12px rgba(0, 0, 0, 0.08);
 }
 
 .batch-actions-bar.hidden {
@@ -1113,38 +1114,134 @@ body {
 
 #batch-selected-count {
   font-size: 13px;
-  color: var(--text-secondary);
+  font-weight: 600;
+  color: var(--text-primary);
   white-space: nowrap;
+  min-width: 48px;
+}
+
+#batch-selected-count.has-selection {
+  color: var(--accent-primary);
 }
 
 .batch-actions-right {
   display: flex;
-  gap: 6px;
+  gap: 10px;
   align-items: center;
 }
 
-.batch-actions-right select {
-  padding: 6px 8px;
-  background: var(--bg-tertiary);
-  border: 1px solid var(--border-color);
+.batch-text-btn {
+  padding: 7px 10px;
+  border: none;
   border-radius: var(--radius-sm);
-  color: var(--text-primary);
-  font-size: 12px;
+  background: transparent;
+  color: var(--text-secondary);
+  font-size: 13px;
+  font-weight: 500;
   cursor: pointer;
+  transition: var(--transition);
 }
 
-.batch-actions-right select:focus {
+.batch-text-btn:hover {
+  background: var(--bg-tertiary);
+  color: var(--text-primary);
+}
+
+.batch-move-group {
+  display: flex;
+  align-items: center;
+  gap: 0;
+}
+
+.batch-move-group select {
+  padding: 7px 8px 7px 10px;
+  background: var(--bg-tertiary);
+  border: 1px solid var(--border-color);
+  border-right: none;
+  border-radius: var(--radius-sm) 0 0 var(--radius-sm);
+  color: var(--text-primary);
+  font-size: 13px;
+  cursor: pointer;
+  max-width: 120px;
+  min-width: 90px;
+}
+
+.batch-move-group select:disabled {
+  opacity: 0.45;
+  cursor: not-allowed;
+}
+
+.batch-move-group select:focus {
   outline: none;
   border-color: var(--accent-primary);
 }
 
-.batch-actions-right .primary-btn:disabled {
-  opacity: 0.5;
+.batch-move-group .primary-btn {
+  padding: 7px 14px;
+  border-radius: 0 var(--radius-sm) var(--radius-sm) 0;
+  font-size: 13px;
+  white-space: nowrap;
+}
+
+.batch-move-group .primary-btn:disabled {
+  opacity: 0.35;
+  background: var(--bg-tertiary);
+  color: var(--text-muted);
+  border: 1px solid var(--border-color);
+  border-left: none;
   cursor: not-allowed;
 }
 
-.batch-actions-right .primary-btn:disabled:hover {
-  background: var(--accent-primary);
+.batch-move-group .primary-btn:disabled:hover {
+  background: var(--bg-tertiary);
+  color: var(--text-muted);
+}
+
+.batch-ghost-btn {
+  padding: 7px 12px;
+  border: 1px solid var(--border-color);
+  border-radius: var(--radius-sm);
+  background: transparent;
+  color: var(--text-secondary);
+  font-size: 13px;
+  font-weight: 500;
+  cursor: pointer;
+  transition: var(--transition);
+}
+
+.batch-ghost-btn:hover {
+  background: var(--bg-tertiary);
+  color: var(--text-primary);
+  border-color: var(--border-color);
+}
+
+@media (max-width: 360px) {
+  .batch-actions-bar {
+    padding: 10px 12px;
+    gap: 8px;
+  }
+
+  .batch-actions-right {
+    gap: 6px;
+  }
+
+  .batch-move-group select {
+    max-width: 90px;
+    min-width: 70px;
+    padding: 6px 6px 6px 8px;
+    font-size: 12px;
+  }
+
+  .batch-move-group .primary-btn {
+    padding: 6px 10px;
+    font-size: 12px;
+  }
+
+  .batch-text-btn,
+  .batch-ghost-btn {
+    padding: 6px 8px;
+    font-size: 12px;
+  }
 }
 
 /* Sort select */
