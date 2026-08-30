@@ -178,7 +178,7 @@ if (typeof window.PromptVaultUniversalInsert === 'undefined') {
     const activeEl = getActiveElement();
 
     if (!activeEl) {
-      showToast(i18n.t('sidebar_no_input'), 'error');
+      showToast(i18n.t('toast_no_input'), 'error');
       return false;
     }
 
@@ -186,7 +186,7 @@ if (typeof window.PromptVaultUniversalInsert === 'undefined') {
       if (activeEl.tagName === 'IFRAME') {
         if (insertIntoIframe(activeEl, text)) {
           recordUsage(text);
-          showToast(i18n.t('sidebar_inserted'));
+          showToast(i18n.t('toast_inserted'));
           return true;
         }
       }
@@ -207,17 +207,17 @@ if (typeof window.PromptVaultUniversalInsert === 'undefined') {
             insertIntoInput(fallback, text);
           }
         } else {
-          showToast(i18n.t('sidebar_insert_failed'), 'error');
+          showToast(i18n.t('toast_insert_failed'), 'error');
           return false;
         }
       }
 
       recordUsage(text);
-      showToast(i18n.t('sidebar_inserted'));
+      showToast(i18n.t('toast_inserted'));
       return true;
     } catch (err) {
       console.error('[PromptVault] Insert failed:', err);
-      showToast(i18n.t('sidebar_insert_failed'), 'error');
+      showToast(i18n.t('toast_insert_failed'), 'error');
       return false;
     }
   }
@@ -298,7 +298,7 @@ if (typeof window.PromptVaultUniversalInsert === 'undefined') {
    */
   function copyToClipboard(text) {
     return navigator.clipboard.writeText(text).then(() => {
-      showToast(i18n.t('sidebar_copied'));
+      showToast(i18n.t('toast_copied'));
     }).catch(() => {
       // Fallback
       const textarea = document.createElement('textarea');

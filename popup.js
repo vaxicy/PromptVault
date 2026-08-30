@@ -29,9 +29,6 @@
   function snapshotSettings() {
     return {
       language: document.getElementById('setting-language').value,
-      enableSidebar: document.getElementById('setting-enable-sidebar').checked,
-      sidebarCloseOnOutside: document.getElementById('setting-sidebar-close-outside').checked,
-      sidebarCardClickAction: document.getElementById('setting-sidebar-card-click').value,
       showBadge: document.getElementById('setting-show-badge').checked,
       showRecent: document.getElementById('setting-show-recent').checked,
       autoTopAfterUse: document.getElementById('setting-auto-top')?.checked,
@@ -2208,7 +2205,6 @@
 
   /**
    * Insert prompt into current page (for AI websites)
-   * This will be fully implemented with sidebar feature
    */
   async function insertPromptIntoPage(promptId) {
     const prompt = await Storage.getPrompt(promptId);
@@ -2357,13 +2353,6 @@
     const langSelect = document.getElementById('setting-language');
     if (langSelect) langSelect.value = i18n.getLocale();
 
-    const sidebarCheckbox = document.getElementById('setting-enable-sidebar');
-    if (sidebarCheckbox) sidebarCheckbox.checked = settings.enableSidebar !== false;
-    const sidebarCloseOutsideCheckbox = document.getElementById('setting-sidebar-close-outside');
-    if (sidebarCloseOutsideCheckbox) sidebarCloseOutsideCheckbox.checked = settings.sidebarCloseOnOutside !== false;
-    const sidebarCardClickSelect = document.getElementById('setting-sidebar-card-click');
-    if (sidebarCardClickSelect) sidebarCardClickSelect.value = settings.sidebarCardClickAction || 'copy';
-
     const badgeCheckbox = document.getElementById('setting-show-badge');
     if (badgeCheckbox) badgeCheckbox.checked = settings.showBadge !== false;
 
@@ -2397,9 +2386,6 @@
     const settings = await Storage.getSettings();
 
     const newLang = document.getElementById('setting-language').value;
-    const newEnableSidebar = document.getElementById('setting-enable-sidebar').checked;
-    const newSidebarCloseOnOutside = document.getElementById('setting-sidebar-close-outside').checked;
-    const newSidebarCardClickAction = document.getElementById('setting-sidebar-card-click').value;
     const newShowBadge = document.getElementById('setting-show-badge').checked;
     const newShowRecent = document.getElementById('setting-show-recent').checked;
     const newAutoTop = document.getElementById('setting-auto-top')?.checked;
@@ -2414,9 +2400,6 @@
 
     // Update settings object
     settings.locale = newLang;
-    settings.enableSidebar = newEnableSidebar;
-    settings.sidebarCloseOnOutside = newSidebarCloseOnOutside;
-    settings.sidebarCardClickAction = newSidebarCardClickAction;
     settings.showBadge = newShowBadge;
     settings.showRecent = newShowRecent;
     settings.autoTopAfterUse = newAutoTop;

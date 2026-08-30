@@ -19,9 +19,6 @@ if (typeof window.PromptVaultStorage === 'undefined') {
       darkMode: true,
       defaultFolder: 'default',
       locale: 'zh',
-      enableSidebar: true,
-      sidebarCloseOnOutside: true,
-      sidebarCardClickAction: 'copy',
       showBadge: true,
       sortMode: 'smart',
       autoTopAfterUse: true,
@@ -306,7 +303,7 @@ if (typeof window.PromptVaultStorage === 'undefined') {
   }
 
   /**
-   * Filter and rank prompt arrays. Used by popup, sidebar, and command palette.
+   * Filter and rank prompt arrays. Used by popup and command palette.
    */
   function filterAndRankPrompts(prompts, query, options = {}) {
     const trimmedQuery = String(query || '').trim();
@@ -444,12 +441,21 @@ if (typeof window.PromptVaultStorage === 'undefined') {
     return data.settings || defaultData.settings;
   }
 
+  // Legacy sidebar settings removed in v1.2.0 — stripped on save to keep stored data clean
+  const LEGACY_SIDEBAR_SETTING_KEYS = [
+    'enableSidebar',
+    'sidebarCloseOnOutside',
+    'sidebarCardClickAction'
+  ];
+
   /**
    * Save settings
    */
   async function saveSettings(settings) {
     const data = await getAll();
-    data.settings = { ...data.settings, ...settings };
+    const merged = { ...data.settings, ...settings };
+    LEGACY_SIDEBAR_SETTING_KEYS.forEach(key => delete merged[key]);
+    data.settings = merged;
     await saveAll(data);
   }
 

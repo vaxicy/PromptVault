@@ -1,0 +1,10 @@
+# AI assistant working memory (local only)
+.codebuddy/
+
+# Editor / OS
+.vscode/
+.DS_Store
+Thumbs.db
+
+# Dependencies
+node_modules/

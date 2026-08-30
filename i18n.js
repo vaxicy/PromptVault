@@ -171,13 +171,6 @@ if (typeof window.PromptVaultI18n === 'undefined') {
       // Data management
       data_management: '数据管理',
       settings_preferences: '偏好设置',
-      settings_sidebar: '侧边栏设置',
-      label_sidebar_close_outside: '点击空白处关闭侧边栏',
-      settings_sidebar_close_outside_hint: '侧边栏打开时，点击网页空白区域会自动收起',
-      label_sidebar_card_click: '侧边栏卡片点击',
-      sidebar_card_click_copy: '复制到剪贴板',
-      sidebar_card_click_insert: '插入页面输入框',
-      settings_sidebar_card_click_hint: '建议保持复制，避免误插入当前页面',
       settings_data_management_hint: '导入会合并数据；清除会删除所有提示词和文件夹',
       settings_support: '感谢支持',
       settings_support_intro_short: '❤️ 如果 PromptVault 对你有帮助，欢迎支持开发者继续维护优化。',
@@ -188,22 +181,11 @@ if (typeof window.PromptVaultI18n === 'undefined') {
       btn_import: '导入',
       btn_export: '导出',
 
-      // Sidebar
-      sidebar_all: '全部',
-      sidebar_recent: '最近',
-      sidebar_pinned: '置顶',
-      sidebar_search_placeholder: '搜索提示词...',
-      sidebar_no_prompts: '暂无提示词',
-      sidebar_no_prompts_hint: '在扩展中创建你的第一个提示词',
-      sidebar_no_recent: '暂无最近使用',
-      sidebar_no_recent_hint: '使用提示词后会显示在这里',
-      sidebar_no_pinned: '暂无置顶',
-      sidebar_no_pinned_hint: '将提示词置顶方便快速访问',
-      sidebar_loading: '加载中...',
-      sidebar_copied: '已复制到剪贴板！',
-      sidebar_inserted: '已插入提示词',
-      sidebar_no_input: '未找到输入框，请先点击输入框',
-      sidebar_insert_failed: '插入失败，请手动复制',
+      // Toast messages (used by insert / copy flows)
+      toast_copied: '已复制到剪贴板！',
+      toast_inserted: '已插入提示词',
+      toast_no_input: '未找到输入框，请先点击输入框',
+      toast_insert_failed: '插入失败，请手动复制',
 
       // Batch operations
       btn_batch: '批量',
@@ -239,9 +221,7 @@ if (typeof window.PromptVaultI18n === 'undefined') {
       btn_deselect_all: '取消全选',
 
       // Settings
-      label_enable_sidebar: '启用侧边栏',
       label_show_badge: '显示角标',
-      settings_enable_sidebar_hint: '在网页中显示 PromptVault 侧边栏',
       settings_show_badge_hint: '在扩展图标上显示提示词数量',
       back_to_all: '返回全部',
       btn_apply: '应用',
@@ -457,13 +437,6 @@ if (typeof window.PromptVaultI18n === 'undefined') {
       // Data management
       data_management: 'Data Management',
       settings_preferences: 'Preferences',
-      settings_sidebar: 'Sidebar',
-      label_sidebar_close_outside: 'Close sidebar by clicking outside',
-      settings_sidebar_close_outside_hint: 'When the sidebar is open, clicking the page area closes it',
-      label_sidebar_card_click: 'Sidebar card click',
-      sidebar_card_click_copy: 'Copy to clipboard',
-      sidebar_card_click_insert: 'Insert into page input',
-      settings_sidebar_card_click_hint: 'Copy is recommended to avoid accidental insertion',
       settings_data_management_hint: 'Import merges data; clear deletes all prompts and folders',
       settings_support: 'Thanks for Your Support',
       settings_support_intro_short: '❤️ If PromptVault helps you, consider supporting the developer to keep it maintained.',
@@ -474,22 +447,11 @@ if (typeof window.PromptVaultI18n === 'undefined') {
       btn_import: 'Import',
       btn_export: 'Export',
 
-      // Sidebar
-      sidebar_all: 'All',
-      sidebar_recent: 'Recent',
-      sidebar_pinned: 'Pinned',
-      sidebar_search_placeholder: 'Search prompts...',
-      sidebar_no_prompts: 'No prompts yet',
-      sidebar_no_prompts_hint: 'Create your first prompt in the extension',
-      sidebar_no_recent: 'No recent usage',
-      sidebar_no_recent_hint: 'Prompts you use will appear here',
-      sidebar_no_pinned: 'No pinned',
-      sidebar_no_pinned_hint: 'Pin prompts for quick access',
-      sidebar_loading: 'Loading...',
-      sidebar_copied: 'Copied to clipboard!',
-      sidebar_inserted: 'Prompt inserted',
-      sidebar_no_input: 'No input found. Click the input box first.',
-      sidebar_insert_failed: 'Insert failed. Please copy manually.',
+      // Toast messages (used by insert / copy flows)
+      toast_copied: 'Copied to clipboard!',
+      toast_inserted: 'Prompt inserted',
+      toast_no_input: 'No input found. Click the input box first.',
+      toast_insert_failed: 'Insert failed. Please copy manually.',
 
       // Batch operations
       btn_batch: 'Batch',
@@ -525,9 +487,7 @@ if (typeof window.PromptVaultI18n === 'undefined') {
       btn_deselect_all: 'Deselect All',
 
       // Settings
-      label_enable_sidebar: 'Enable Sidebar',
       label_show_badge: 'Show Badge',
-      settings_enable_sidebar_hint: 'Show PromptVault sidebar on web pages',
       settings_show_badge_hint: 'Show prompt count on extension icon',
       back_to_all: 'Back to all',
       btn_apply: 'Apply',

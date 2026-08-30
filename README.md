@@ -5,7 +5,7 @@
 
 > 保存、整理和快速访问你的 AI 提示词 | Save, organize, and quickly access your AI prompts
 
-**PromptVault** 是一款轻量级的 Chrome 扩展，帮助你高效管理 AI 提示词（Prompts）。支持文件夹/标签分类、搜索筛选、一键复制/插入到网页、导入导出、侧边栏快速访问等功能。兼容 ChatGPT、Claude、Gemini 等主流 AI 平台。
+**PromptVault** 是一款轻量级的 Chrome 扩展，帮助你高效管理 AI 提示词（Prompts）。支持文件夹/标签分类、搜索筛选、一键复制/插入到网页、导入导出等功能。兼容 ChatGPT、Claude、Gemini 等主流 AI 平台。
 
 ---
 
@@ -53,16 +53,6 @@
 - **最近使用**：显示最近使用的提示词
 - **使用统计**：记录每条提示词的使用次数和最后使用时间
 
-### 🧩 侧边栏
-- 在任意网页右侧打开 PromptVault 侧边栏（浮动按钮触发）
-- 三个标签：全部 / 最近 / 置顶
-- 实时搜索过滤
-- 卡片点击复制或插入
-- 行内编辑、置顶、删除
-- 拖拽排序
-- 独立深浅主题切换
-- 支持吸附左右边缘或自由浮动
-
 ### ⌨️ 命令面板
 - 快捷键 `Ctrl+Shift+P`（Mac: `⌘+Shift+P`）
 - 类似 VSCode/Raycast 风格
@@ -81,8 +71,6 @@
 | 显示最近使用 | 首页显示最近使用的提示词 |
 | 点击后置顶 | 复制提示词后自动置顶 |
 | 显示模式 | 列表 / 按文件夹分组 |
-| 启用侧边栏 | 在网页中显示侧边栏 |
-| 侧边栏卡片点击 | 复制到剪贴板 / 插入页面 |
 | 深浅主题 | 全局独立切换 |
 
 ### 🔄 兼容的 AI 平台
@@ -94,7 +82,6 @@
 
 ### 🌙 主题
 - 深色模式 / 浅色模式
-- 侧边栏独立主题切换
 
 ### 🌐 国际化
 - 中文（简体）
@@ -121,10 +108,6 @@ promptvault/
 ├── popup.html               # 弹出窗口 UI
 ├── popup.js                 # 弹出窗口逻辑
 ├── styles.css               # 主样式（深色/浅色主题）
-├── sidebar.js               # 侧边栏注入脚本 (iframe bridge)
-├── sidebar-frame.html       # 侧边栏 iframe UI
-├── sidebar-frame.js         # 侧边栏 iframe 逻辑
-├── sidebar.css              # 侧边栏样式
 ├── command-palette.js       # 命令面板
 ├── content.js               # 内容脚本（消息路由）
 ├── universal-insert.js      # 通用文本插入引擎

@@ -166,7 +166,7 @@ async function initializeStorage() {
     folders: [
       { id: 'default', name: 'Default', color: '#808080' }
     ],
-    settings: { darkMode: true, defaultFolder: 'default', locale: 'zh', enableSidebar: true, showBadge: true }
+    settings: { darkMode: true, defaultFolder: 'default', locale: 'zh', showBadge: true }
   };
 
   await chrome.storage.local.set({ promptvault_data: defaultData });
@@ -181,7 +181,7 @@ async function savePromptFromPage(promptData) {
       const store = data.promptvault_data || {
         prompts: [],
         folders: [{ id: 'default', name: 'Default', color: '#808080' }],
-        settings: { darkMode: true, defaultFolder: 'default', locale: 'zh', enableSidebar: true, showBadge: true }
+        settings: { darkMode: true, defaultFolder: 'default', locale: 'zh', showBadge: true }
       };
 
         const prompt = {
@@ -234,7 +234,7 @@ if (chrome.contextMenus && chrome.contextMenus.onClicked) {
         const store = data.promptvault_data || {
           prompts: [],
           folders: [{ id: 'default', name: 'Default', color: '#808080' }],
-          settings: { darkMode: true, defaultFolder: 'default', locale: 'zh', enableSidebar: true, showBadge: true }
+          settings: { darkMode: true, defaultFolder: 'default', locale: 'zh', showBadge: true }
         };
 
         const prompt = {
