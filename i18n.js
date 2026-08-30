@@ -13,6 +13,8 @@ if (typeof window.PromptVaultI18n === 'undefined') {
       app_title: 'PromptVault',
       settings_title: '设置',
       toggle_theme: '切换主题',
+      toggle_theme_dark: '切换为深色模式',
+      toggle_theme_light: '切换为浅色模式',
 
       // Tabs
       tab_prompts: '提示词',
@@ -313,6 +315,8 @@ if (typeof window.PromptVaultI18n === 'undefined') {
       app_title: 'PromptVault',
       settings_title: 'Settings',
       toggle_theme: 'Toggle Theme',
+      toggle_theme_dark: 'Switch to Dark Mode',
+      toggle_theme_light: 'Switch to Light Mode',
 
       // Tabs
       tab_prompts: 'Prompts',

@@ -221,7 +221,7 @@
     const btnSettings = document.getElementById('btn-settings');
     setTooltip(btnSettings, i18n.t('settings_title'), 'bottom');
     const btnTheme = document.getElementById('btn-theme');
-    setTooltip(btnTheme, i18n.t('toggle_theme'), 'bottom');
+    updateThemeTooltip(btnTheme);
     updateSortSelectOptions();
 
     // Settings modal close button
@@ -2831,11 +2831,19 @@
     openModal('support-modal');
   }
 
+  function updateThemeTooltip(btn = document.getElementById('btn-theme')) {
+    if (!btn) return;
+    const isLight = document.documentElement.getAttribute('data-theme') === 'light';
+    // In light mode the next click will switch to dark mode, so label accordingly
+    setTooltip(btn, i18n.t(isLight ? 'toggle_theme_dark' : 'toggle_theme_light'), 'bottom');
+  }
+
   async function toggleDarkMode() {
     const settings = await Storage.getSettings();
     settings.darkMode = !settings.darkMode;
     await Storage.saveSettings(settings);
     applyTheme(settings.darkMode);
+    updateThemeTooltip();
   }
 
   function applyTheme(darkMode) {
@@ -2849,6 +2857,7 @@
   async function loadSettings() {
     const settings = await Storage.getSettings();
     applyTheme(settings.darkMode);
+    updateThemeTooltip();
 
     const langSelect = document.getElementById('setting-language');
     if (langSelect) langSelect.value = i18n.getLocale();
