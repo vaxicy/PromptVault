@@ -1,0 +1,14 @@
+{
+  "extName": {
+    "message": "PromptVault - AI Prompt Manager",
+    "description": "Extension name shown in the Chrome Web Store and toolbar tooltip."
+  },
+  "extDescription": {
+    "message": "Save, organize, and quickly access your AI prompts",
+    "description": "Extension short description shown in the Chrome Web Store."
+  },
+  "extActionDefaultTitle": {
+    "message": "PromptVault - AI Prompt Manager",
+    "description": "Tooltip shown when hovering the extension toolbar icon."
+  }
+}

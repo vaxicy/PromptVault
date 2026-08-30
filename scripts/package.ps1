@@ -65,7 +65,8 @@ $Include = @(
     'welcome.js',
     'welcome.css',
     'assets',
-    'icons'
+    'icons',
+    '_locales'
 )
 
 # Build a staging folder with only the files that ship

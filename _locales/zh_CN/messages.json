@@ -1,0 +1,14 @@
+{
+  "extName": {
+    "message": "PromptVault - AI提示词管理助手",
+    "description": "Extension name shown in the Chrome Web Store and toolbar tooltip."
+  },
+  "extDescription": {
+    "message": "保存、整理和快速访问你的 AI 提示词",
+    "description": "Extension short description shown in the Chrome Web Store."
+  },
+  "extActionDefaultTitle": {
+    "message": "PromptVault - AI提示词管理助手",
+    "description": "Tooltip shown when hovering the extension toolbar icon."
+  }
+}
