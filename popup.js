@@ -279,6 +279,13 @@
     // Confirm dialog
     document.getElementById('confirm-message').textContent = i18n.t('confirm_delete_prompt_msg');
     document.querySelector('#confirm-dialog .modal-cancel').textContent = i18n.t('btn_cancel');
+
+    // Variable guide code samples (not covered by data-i18n since they are
+    // copied verbatim by the copy buttons)
+    const syntaxCode = document.getElementById('guide-syntax-code');
+    if (syntaxCode) syntaxCode.textContent = i18n.t('variable_guide_syntax_code');
+    const exampleCode = document.getElementById('guide-example-code');
+    if (exampleCode) exampleCode.textContent = i18n.t('variable_guide_example_code');
   }
 
   /**
@@ -325,6 +332,7 @@
     initPromptEditorEnhancements();
     initExportFormatMenu();
     initTrashControls();
+    initVariableGuide();
 
     // New prompt button
     document.getElementById('btn-new-prompt').addEventListener('click', () => openPromptModal());
@@ -986,6 +994,68 @@
     const prefix = start > 0 ? '...' : '';
     const suffix = end < text.length ? '...' : '';
     return prefix + text.slice(start, end) + suffix;
+  }
+
+  // ========== Variable Guide ==========
+
+  /** Sample prompt used by "Create sample" so users get something runnable. */
+  function buildSamplePrompt() {
+    return {
+      title: i18n.t('variable_sample_title'),
+      content: i18n.t('variable_sample_content'),
+      folder: 'default',
+      tags: []
+    };
+  }
+
+  /** Create the sample variable prompt and refresh the list. */
+  async function createVariableSample() {
+    const sample = buildSamplePrompt();
+    await Storage.savePrompt(sample);
+    await renderAll();
+    showToast(i18n.t('toast_sample_created'), 'success');
+  }
+
+  function openVariableGuide() {
+    // openModal() would close the settings modal underneath, so show directly
+    const modal = document.getElementById('variable-guide-modal');
+    if (!modal) return;
+    modal.classList.remove('hidden');
+
+    modal.querySelectorAll('.guide-copy-btn').forEach(btn => {
+      // Replace the node each time so we never stack duplicate listeners
+      const fresh = btn.cloneNode(true);
+      btn.parentNode.replaceChild(fresh, btn);
+      fresh.addEventListener('click', async () => {
+        const target = document.getElementById(fresh.dataset.copyTarget);
+        if (!target) return;
+        try {
+          await navigator.clipboard.writeText(target.textContent);
+          showToast(i18n.t('toast_copied'), 'success');
+        } catch (err) {
+          console.warn('[PromptVault] Copy failed:', err);
+        }
+      });
+    });
+  }
+
+  function initVariableGuide() {
+    document.getElementById('btn-variable-guide')?.addEventListener('click', () => openVariableGuide());
+
+    const createSample = async () => {
+      await createVariableSample();
+      closeAllModals();
+    };
+    document.getElementById('btn-variable-sample')?.addEventListener('click', createSample);
+    document.getElementById('btn-guide-create-sample')?.addEventListener('click', createSample);
+
+    // Esc closes the guide
+    document.getElementById('variable-guide-modal')?.addEventListener('keydown', (e) => {
+      if (e.key === 'Escape') {
+        e.preventDefault();
+        closeAllModals();
+      }
+    });
   }
 
   // ========== Variable (template placeholder) support ==========

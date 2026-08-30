@@ -323,6 +323,60 @@
     </div>
   </div>
 
+  <!-- Variable Guide Modal -->
+  <div id="variable-guide-modal" class="modal hidden">
+    <div class="modal-content large">
+      <div class="modal-header">
+        <h2 data-i18n="variable_guide_title">变量使用教程</h2>
+        <button class="modal-close">&times;</button>
+      </div>
+      <div class="modal-body variable-guide">
+        <p class="guide-intro" data-i18n="variable_guide_intro">变量让你的提示词变成可复用的模板：结构固定，只换几个词。</p>
+
+        <section class="guide-section">
+          <h4 class="guide-heading" data-i18n="variable_guide_syntax_title">语法</h4>
+          <p class="guide-text" data-i18n="variable_guide_syntax_desc">用两对花括号包住变量名，变量名可以是中文。</p>
+          <div class="guide-code">
+            <code id="guide-syntax-code">{{变量名}}</code>
+            <button class="guide-copy-btn" data-copy-target="guide-syntax-code" data-i18n="btn_copy_short">复制</button>
+          </div>
+        </section>
+
+        <section class="guide-section">
+          <h4 class="guide-heading" data-i18n="variable_guide_example_title">完整示例</h4>
+          <div class="guide-code guide-code-block">
+            <pre id="guide-example-code">请帮我写一篇关于 {{主题}} 的文章。
+字数约 {{字数}} 字，
+语气要 {{语气}}。</pre>
+            <button class="guide-copy-btn" data-copy-target="guide-example-code" data-i18n="btn_copy_short">复制</button>
+          </div>
+        </section>
+
+        <section class="guide-section">
+          <h4 class="guide-heading" data-i18n="variable_guide_steps_title">使用步骤</h4>
+          <ol class="guide-steps">
+            <li data-i18n="variable_guide_step1">新建提示词，在内容里写上 {{主题}} 这样的占位符</li>
+            <li data-i18n="variable_guide_step2">保存后，卡片上会出现「含变量」标签</li>
+            <li data-i18n="variable_guide_step3">点击复制或插入，会弹出填空框，填完自动替换</li>
+          </ol>
+        </section>
+
+        <section class="guide-section">
+          <h4 class="guide-heading" data-i18n="variable_guide_notes_title">注意事项</h4>
+          <ul class="guide-notes">
+            <li data-i18n="variable_guide_note1">留空的变量会被移除，不会把 {{}} 原样插进去</li>
+            <li data-i18n="variable_guide_note2">填过的值会自动记住，下次打开时预填</li>
+            <li data-i18n="variable_guide_note3">扩展弹窗、命令面板、右键菜单三处都支持</li>
+          </ul>
+        </section>
+      </div>
+      <div class="modal-footer">
+        <button id="btn-guide-create-sample" class="secondary-btn" data-i18n="btn_variable_sample">创建示例</button>
+        <button class="primary-btn modal-cancel" data-i18n="btn_got_it">知道了</button>
+      </div>
+    </div>
+  </div>
+
   <!-- Settings Modal -->
   <div id="settings-modal" class="modal hidden">
     <div class="modal-content">
@@ -389,6 +443,26 @@
               </svg>
               <span data-i18n="btn_open_trash">回收站</span>
               <span id="trash-count-badge" class="trash-count-badge">0</span>
+            </button>
+          </div>
+        </div>
+        <div class="settings-section">
+          <h3 data-i18n="settings_variables">变量模板</h3>
+          <p class="setting-hint no-indent" data-i18n="settings_variables_desc">用 {{变量}} 把提示词变成可复用的模板</p>
+          <div class="data-actions">
+            <button id="btn-variable-guide" class="secondary-btn">
+              <svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2">
+                <path d="M4 19.5A2.5 2.5 0 0 1 6.5 17H20"></path>
+                <path d="M6.5 2H20v20H6.5A2.5 2.5 0 0 1 4 19.5v-15A2.5 2.5 0 0 1 6.5 2z"></path>
+              </svg>
+              <span data-i18n="btn_variable_guide">使用教程</span>
+            </button>
+            <button id="btn-variable-sample" class="secondary-btn">
+              <svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2">
+                <path d="M15 4V2M15 16v-2M8 9h2M20 9h2M17.8 11.8L19 13M15 9h0M17.8 6.2L19 5"></path>
+                <path d="M3 21l9-9M12.5 8.5l3 3L6 21H3v-3z"></path>
+              </svg>
+              <span data-i18n="btn_variable_sample">创建示例</span>
             </button>
           </div>
         </div>
