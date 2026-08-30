@@ -1125,19 +1125,39 @@ body {
 }
 
 .batch-actions-right {
+  /* Single source of truth for all batch control heights */
+  --batch-control-height: 34px;
+  --batch-font-size: 13px;
+
   display: flex;
   gap: 10px;
   align-items: center;
 }
 
+/* Vertical separator between action groups */
+.batch-divider {
+  width: 1px;
+  height: 18px;
+  background: var(--border-color);
+  flex-shrink: 0;
+}
+
 .batch-text-btn {
-  padding: 7px 10px;
-  border: none;
+  display: inline-flex;
+  align-items: center;
+  justify-content: center;
+  height: var(--batch-control-height);
+  box-sizing: border-box;
+  padding: 0 10px;
+  border: 1px solid transparent;
   border-radius: var(--radius-sm);
   background: transparent;
   color: var(--text-secondary);
-  font-size: 13px;
+  font-size: var(--batch-font-size);
+  font-family: inherit;
   font-weight: 500;
+  line-height: 1;
+  white-space: nowrap;
   cursor: pointer;
   transition: var(--transition);
 }
@@ -1147,48 +1167,71 @@ body {
   color: var(--text-primary);
 }
 
+/* Connected "select folder + move" control group */
 .batch-move-group {
-  display: flex;
-  align-items: center;
+  display: inline-flex;
+  align-items: stretch;
   gap: 0;
 }
 
 .batch-move-group select {
-  padding: 7px 8px 7px 10px;
-  background: var(--bg-tertiary);
+  height: var(--batch-control-height);
+  box-sizing: border-box;
+  padding: 0 24px 0 10px;
+  background-color: var(--bg-secondary);
+  background-image: url("data:image/svg+xml,%3Csvg xmlns='http://www.w3.org/2000/svg' width='12' height='12' viewBox='0 0 24 24' fill='none' stroke='%23888888' stroke-width='2.5' stroke-linecap='round' stroke-linejoin='round'%3E%3Cpolyline points='6 9 12 15 18 9'%3E%3C/polyline%3E%3C/svg%3E");
+  background-repeat: no-repeat;
+  background-position: right 7px center;
   border: 1px solid var(--border-color);
-  border-right: none;
   border-radius: var(--radius-sm) 0 0 var(--radius-sm);
   color: var(--text-primary);
-  font-size: 13px;
+  font-size: var(--batch-font-size);
+  font-family: inherit;
+  line-height: 1;
   cursor: pointer;
   max-width: 120px;
   min-width: 90px;
+  /* Remove native arrow so the custom SVG shows */
+  appearance: none;
+  -webkit-appearance: none;
+  -moz-appearance: none;
 }
 
 .batch-move-group select:disabled {
-  opacity: 0.45;
+  opacity: 0.5;
   cursor: not-allowed;
 }
 
 .batch-move-group select:focus {
   outline: none;
   border-color: var(--accent-primary);
+  position: relative;
+  z-index: 1;
 }
 
 .batch-move-group .primary-btn {
-  padding: 7px 14px;
+  display: inline-flex;
+  align-items: center;
+  justify-content: center;
+  height: var(--batch-control-height);
+  box-sizing: border-box;
+  /* Overlap select's right border so the two read as one control */
+  margin-left: -1px;
+  padding: 0 14px;
   border-radius: 0 var(--radius-sm) var(--radius-sm) 0;
-  font-size: 13px;
+  font-size: var(--batch-font-size);
+  font-family: inherit;
+  line-height: 1;
   white-space: nowrap;
 }
 
+/* Base .primary-btn has `border: none`, so the disabled state must redeclare
+   the full border to keep the connected group visually seamless. */
 .batch-move-group .primary-btn:disabled {
-  opacity: 0.35;
   background: var(--bg-tertiary);
   color: var(--text-muted);
   border: 1px solid var(--border-color);
-  border-left: none;
+  opacity: 1;
   cursor: not-allowed;
 }
 
@@ -1198,13 +1241,21 @@ body {
 }
 
 .batch-ghost-btn {
-  padding: 7px 12px;
+  display: inline-flex;
+  align-items: center;
+  justify-content: center;
+  height: var(--batch-control-height);
+  box-sizing: border-box;
+  padding: 0 12px;
   border: 1px solid var(--border-color);
   border-radius: var(--radius-sm);
   background: transparent;
   color: var(--text-secondary);
-  font-size: 13px;
+  font-size: var(--batch-font-size);
+  font-family: inherit;
   font-weight: 500;
+  line-height: 1;
+  white-space: nowrap;
   cursor: pointer;
   transition: var(--transition);
 }
@@ -1212,7 +1263,6 @@ body {
 .batch-ghost-btn:hover {
   background: var(--bg-tertiary);
   color: var(--text-primary);
-  border-color: var(--border-color);
 }
 
 @media (max-width: 360px) {
@@ -1222,25 +1272,28 @@ body {
   }
 
   .batch-actions-right {
+    --batch-control-height: 30px;
+    --batch-font-size: 12px;
     gap: 6px;
   }
 
   .batch-move-group select {
     max-width: 90px;
     min-width: 70px;
-    padding: 6px 6px 6px 8px;
-    font-size: 12px;
+    padding: 0 20px 0 8px;
   }
 
   .batch-move-group .primary-btn {
-    padding: 6px 10px;
-    font-size: 12px;
+    padding: 0 10px;
   }
 
   .batch-text-btn,
   .batch-ghost-btn {
-    padding: 6px 8px;
-    font-size: 12px;
+    padding: 0 8px;
+  }
+
+  .batch-divider {
+    height: 16px;
   }
 }
 
