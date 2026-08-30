@@ -2766,7 +2766,7 @@
       item.addEventListener('click', (e) => {
         e.stopPropagation();
         currentExportFormat = item.dataset.format;
-        const label = item.firstChild?.textContent?.trim() || item.dataset.format.toUpperCase();
+        const label = item.querySelector('span[data-i18n]')?.textContent?.trim() || item.dataset.format.toUpperCase();
         document.getElementById('btn-export').title = label;
         closeMenu();
         exportData(currentExportFormat);
