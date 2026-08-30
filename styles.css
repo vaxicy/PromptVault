@@ -2172,8 +2172,13 @@ body {
   font-family: inherit;
   font-weight: 500;
   text-align: left;
+  white-space: nowrap;
   cursor: pointer;
   transition: var(--transition);
+}
+
+.export-format-item > span[data-i18n] {
+  white-space: nowrap;
 }
 
 .export-format-item:hover {

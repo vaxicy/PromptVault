@@ -366,7 +366,7 @@ if (typeof window.PromptVaultI18n === 'undefined') {
       export_format_md_desc: 'For Notion',
       export_format_csv: 'CSV',
       export_format_csv_desc: 'For Excel',
-      export_format_txt: 'Plain text',
+      export_format_txt: 'Text',
       export_format_txt_desc: 'Plain and readable',
       label_tag_name: 'Tag name',
       label_name: 'Name',
