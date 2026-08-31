@@ -2582,6 +2582,18 @@
   }
 
   /**
+   * Re-rank the list after a prompt was used (copied or inserted).
+   * Smart sort already orders by pinned first, then lastUsedAt — this just
+   * re-renders so the just-used prompt visibly moves up.
+   */
+  async function refreshAfterUse() {
+    const settings = await Storage.getSettings();
+    if (settings.autoTopAfterUse !== false) {
+      renderPrompts();
+    }
+  }
+
+  /**
    * Copy prompt to clipboard directly.
    * @param {string} promptId
    * @param {string|null} resolvedContent - already-filled content, to avoid
@@ -2603,11 +2615,7 @@
     await Storage.recordUsage(promptId);
     showCardCopiedFeedback(promptId);
     showToast(i18n.t('toast_copied'), 'success');
-    // Re-render so the just-used prompt moves to the top (if enabled)
-    const settings = await Storage.getSettings();
-    if (settings.autoTopAfterUse !== false) {
-      renderPrompts();
-    }
+    await refreshAfterUse();
   }
 
   /**
@@ -2642,6 +2650,8 @@
       if (response?.success) {
         await Storage.recordUsage(promptId);
         showToast(i18n.t('toast_inserted'), 'success');
+        // Same as copy: re-rank the list so the just-used prompt moves up
+        await refreshAfterUse();
         return;
       }
     } catch (err) {
@@ -2668,6 +2678,7 @@
         if (result?.success) {
           await Storage.recordUsage(promptId);
           showToast(i18n.t('toast_inserted'), 'success');
+          await refreshAfterUse();
           return;
         }
       } catch (scriptErr) {
