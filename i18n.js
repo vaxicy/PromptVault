@@ -336,8 +336,10 @@ if (typeof window.PromptVaultI18n === 'undefined') {
       label_show_recent: '显示最近使用',
       settings_show_recent_hint: '在首页显示最近使用的提示词',
       // Settings - auto top after use
-      settings_auto_top: '点击后置顶',
+      settings_auto_top: '复制后置顶',
       settings_auto_top_hint: '复制提示词后自动置顶（智能排序模式下生效）',
+      settings_insert_top: '插入后置顶',
+      settings_insert_top_hint: '插入提示词后自动置顶（智能排序模式下生效）',
     },
     en: {
       // Header
@@ -667,8 +669,10 @@ if (typeof window.PromptVaultI18n === 'undefined') {
       label_show_recent: 'Show Recent Usage',
       settings_show_recent_hint: 'Show recently used prompts on home page',
       // Settings - auto top after use
-      settings_auto_top: 'Auto Top After Use',
+      settings_auto_top: 'Auto Top After Copy',
       settings_auto_top_hint: 'Automatically pin to top after copying (works in smart sort mode)',
+      settings_insert_top: 'Auto Top After Insert',
+      settings_insert_top_hint: 'Automatically pin to top after inserting (works in smart sort mode)',
     },
   };
 

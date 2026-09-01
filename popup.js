@@ -35,6 +35,7 @@
       showBadge: document.getElementById('setting-show-badge').checked,
       showRecent: document.getElementById('setting-show-recent').checked,
       autoTopAfterUse: document.getElementById('setting-auto-top')?.checked,
+      insertTopAfterUse: document.getElementById('setting-insert-top')?.checked,
       defaultFolder: document.getElementById('setting-default-folder').value,
       displayMode: document.getElementById('setting-display-mode').value,
       enableTrash: document.getElementById('setting-enable-trash')?.checked ?? false,
@@ -2586,9 +2587,12 @@
    * Smart sort already orders by pinned first, then lastUsedAt — this just
    * re-renders so the just-used prompt visibly moves up.
    */
-  async function refreshAfterUse() {
+  async function refreshAfterUse(trigger = 'copy') {
     const settings = await Storage.getSettings();
-    if (settings.autoTopAfterUse !== false) {
+    const enabled = trigger === 'insert'
+      ? settings.insertTopAfterUse !== false
+      : settings.autoTopAfterUse !== false;
+    if (enabled) {
       renderPrompts();
     }
   }
@@ -2651,7 +2655,7 @@
         await Storage.recordUsage(promptId);
         showToast(i18n.t('toast_inserted'), 'success');
         // Same as copy: re-rank the list so the just-used prompt moves up
-        await refreshAfterUse();
+        await refreshAfterUse('insert');
         return;
       }
     } catch (err) {
@@ -2678,7 +2682,7 @@
         if (result?.success) {
           await Storage.recordUsage(promptId);
           showToast(i18n.t('toast_inserted'), 'success');
-          await refreshAfterUse();
+          await refreshAfterUse('insert');
           return;
         }
       } catch (scriptErr) {
@@ -3160,6 +3164,8 @@
     // Load auto top after use
     const autoTopCheckbox = document.getElementById('setting-auto-top');
     if (autoTopCheckbox) autoTopCheckbox.checked = settings.autoTopAfterUse !== false;
+    const insertTopCheckbox = document.getElementById('setting-insert-top');
+    if (insertTopCheckbox) insertTopCheckbox.checked = settings.insertTopAfterUse !== false;
 
     // Load trash setting (opt-in, defaults to false)
     const enableTrashCheckbox = document.getElementById('setting-enable-trash');
@@ -3182,6 +3188,7 @@
     const newShowBadge = document.getElementById('setting-show-badge').checked;
     const newShowRecent = document.getElementById('setting-show-recent').checked;
     const newAutoTop = document.getElementById('setting-auto-top')?.checked;
+    const newInsertTop = document.getElementById('setting-insert-top')?.checked;
     const newDefaultFolder = document.getElementById('setting-default-folder').value;
     const newDisplayMode = document.getElementById('setting-display-mode').value;
     const newEnableTrash = document.getElementById('setting-enable-trash')?.checked ?? false;
@@ -3213,6 +3220,7 @@
     settings.showBadge = newShowBadge;
     settings.showRecent = newShowRecent;
     settings.autoTopAfterUse = newAutoTop;
+    settings.insertTopAfterUse = newInsertTop;
     settings.defaultFolder = newDefaultFolder;
     settings.displayMode = newDisplayMode;
     settings.enableTrash = newEnableTrash;

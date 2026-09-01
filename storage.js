@@ -23,6 +23,7 @@ if (typeof window.PromptVaultStorage === 'undefined') {
       showBadge: true,
       sortMode: 'smart',
       autoTopAfterUse: true,
+      insertTopAfterUse: true,
       groupSortMode: 'folderName',
       // Opt-in: when false, deleting removes the prompt permanently
       enableTrash: false
