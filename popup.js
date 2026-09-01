@@ -2603,7 +2603,7 @@
    * @param {string|null} resolvedContent - already-filled content, to avoid
    *        asking the user twice when this is used as an insert fallback.
    */
-  async function copyPromptToClipboard(promptId, resolvedContent = null) {
+  async function copyPromptToClipboard(promptId, resolvedContent = null, skipRecordUsage = false) {
     const prompt = await Storage.getPrompt(promptId);
     if (!prompt) return;
 
@@ -2615,8 +2615,10 @@
     }
 
     await navigator.clipboard.writeText(content);
-    // Record usage (updates lastUsedAt so smart sort puts it on top)
-    await Storage.recordUsage(promptId);
+    // Record usage (updates lastUsedAt so smart sort puts it on top).
+    // skipRecordUsage is set when called as an insert fallback, because
+    // insertPromptIntoPage already recorded usage before attempting insert.
+    if (!skipRecordUsage) await Storage.recordUsage(promptId);
     showCardCopiedFeedback(promptId);
     showToast(i18n.t('toast_copied'), 'success');
     await refreshAfterUse();
@@ -2644,6 +2646,12 @@
       return;
     }
 
+    // Persist usage BEFORE attempting insert. chrome.tabs.sendMessage is async
+    // and the popup may close before the page script returns success, which
+    // would drop the persistent lastUsedAt update. Recording up front guarantees
+    // the prompt gets promoted even if the popup is dismissed immediately.
+    await Storage.recordUsage(promptId);
+
     // 1) Fast path: ask the already injected content script to insert
     let sendMessageFailed = false;
     try {
@@ -2652,7 +2660,6 @@
         text: content
       });
       if (response?.success) {
-        await Storage.recordUsage(promptId);
         showToast(i18n.t('toast_inserted'), 'success');
         // Same as copy: re-rank the list so the just-used prompt moves up
         await refreshAfterUse('insert');
@@ -2680,7 +2687,6 @@
         });
         const result = results?.[0]?.result;
         if (result?.success) {
-          await Storage.recordUsage(promptId);
           showToast(i18n.t('toast_inserted'), 'success');
           await refreshAfterUse('insert');
           return;
@@ -2692,7 +2698,8 @@
 
     // 3) Last resort: copy to clipboard so the user still gets the prompt.
     // Pass the already-filled content so the variable dialog is not shown twice.
-    await copyPromptToClipboard(promptId, content);
+    // skipRecordUsage=true because we already recorded usage up front.
+    await copyPromptToClipboard(promptId, content, true);
     showToast(i18n.t('toast_fallback_copied'), 'info');
   }
 
