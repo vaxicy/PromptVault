@@ -1128,7 +1128,7 @@
   async function saveVariableHistory(values) {
     const history = await getVariableHistory();
     Object.entries(values).forEach(([key, value]) => {
-      if (String(value).trim() !== '') history[key] = value;
+      history[key] = value;   // empty string also overwrites old value
     });
     await Storage.saveSettings({ variableHistory: history });
   }
@@ -1137,12 +1137,22 @@
    * Show the variable fill-in dialog.
    * Resolves to an object of {name: value} when confirmed, or null when cancelled.
    */
-  function openVariableDialog(variableNames, prefills = {}) {
+  function openVariableDialog(variableNames, prefills = {}, mode = 'insert') {
     return new Promise((resolve) => {
       const form = document.getElementById('variable-form');
       const modal = document.getElementById('variable-modal');
       const okBtn = document.getElementById('btn-variable-ok');
       const cancelBtn = document.getElementById('btn-variable-cancel');
+      const hintEl = document.getElementById('variable-fill-hint');
+
+      // Switch hint and confirm button text by mode (copy vs insert); title stays the same
+      if (mode === 'copy') {
+        if (hintEl) hintEl.textContent = i18n.t('variable_fill_hint_copy');
+        okBtn.textContent = i18n.t('variable_confirm_copy');
+      } else {
+        if (hintEl) hintEl.textContent = i18n.t('variable_fill_hint');
+        okBtn.textContent = i18n.t('variable_confirm');
+      }
 
       form.innerHTML = variableNames.map(name => {
         const value = prefills[name] || '';
@@ -1207,17 +1217,17 @@
    * Resolve prompt content: if it has variables, ask the user to fill them.
    * Returns the filled content, or null if the user cancelled.
    */
-  async function resolvePromptContent(prompt) {
+  async function resolvePromptContent(prompt, mode = 'insert') {
     const names = extractVariables(prompt.content);
     if (names.length === 0) return prompt.content;
 
     const prefills = {};
     const history = await getVariableHistory();
     names.forEach(n => {
-      if (history[n]) prefills[n] = history[n];
+      if (Object.prototype.hasOwnProperty.call(history, n)) prefills[n] = history[n];
     });
 
-    const values = await openVariableDialog(names, prefills);
+    const values = await openVariableDialog(names, prefills, mode);
     if (values === null) return null;
 
     await saveVariableHistory(values);
@@ -2610,7 +2620,7 @@
     let content = resolvedContent;
     if (content === null) {
       // Ask the user to fill {{variables}} before copying
-      content = await resolvePromptContent(prompt);
+      content = await resolvePromptContent(prompt, 'copy');
       if (content === null) return; // user cancelled
     }
 
@@ -2636,7 +2646,7 @@
 
     // Ask the user to fill {{variables}} first, so we only prompt once even
     // if we later fall back to copying.
-    const content = await resolvePromptContent(prompt);
+    const content = await resolvePromptContent(prompt, 'insert');
     if (content === null) return; // user cancelled
 
     const tabs = await chrome.tabs.query({ active: true, currentWindow: true });
