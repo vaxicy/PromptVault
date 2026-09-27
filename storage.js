@@ -26,7 +26,9 @@ if (typeof window.PromptVaultStorage === 'undefined') {
       insertTopAfterUse: true,
       groupSortMode: 'folderName',
       // Opt-in: when false, deleting removes the prompt permanently
-      enableTrash: false
+      enableTrash: false,
+      // Opt-in: auto-click the ChatGPT send button right after inserting
+      autoSendAfterInsert: false
     }
   };
 

@@ -187,6 +187,7 @@ if (typeof window.PromptVaultUniversalInsert === 'undefined') {
         if (insertIntoIframe(activeEl, text)) {
           recordUsage(text);
           showToast(i18n.t('toast_inserted'));
+          maybeAutoSend();
           return true;
         }
       }
@@ -214,6 +215,7 @@ if (typeof window.PromptVaultUniversalInsert === 'undefined') {
 
       recordUsage(text);
       showToast(i18n.t('toast_inserted'));
+      maybeAutoSend();
       return true;
     } catch (err) {
       console.error('[PromptVault] Insert failed:', err);
@@ -241,6 +243,105 @@ if (typeof window.PromptVaultUniversalInsert === 'undefined') {
       });
     } catch (e) {
       console.warn('[PromptVault] Failed to record usage:', e);
+    }
+  }
+
+  /**
+   * ------------------------------------------------------------------
+   * ChatGPT auto-send (opt-in)
+   * ------------------------------------------------------------------
+   * After a successful insert on chatgpt.com, click the composer's send
+   * button. Disabled by default; enabled via settings.autoSendAfterInsert.
+   */
+  const CHATGPT_HOSTS = ['chatgpt.com', 'chat.openai.com'];
+
+  function isChatGPTPage() {
+    const host = location.hostname;
+    return CHATGPT_HOSTS.some((h) => host === h || host.endsWith('.' + h));
+  }
+
+  // Ordered from most to least specific; the last one covers the current
+  // composer button markup (class "size-token-button-composer").
+  const SEND_BUTTON_SELECTORS = [
+    '#composer-submit-button',
+    'button[data-testid="send-button"]',
+    'button[aria-label="Send message"]',
+    'button[aria-label="发送消息"]',
+    'form button[type="submit"]',
+    // Current ChatGPT composer markup uses this utility class on the button.
+    // Keep the `button` prefix so a wrapping div cannot be matched by accident.
+    'button[class*="size-token-button-composer"]',
+  ];
+
+  function isButtonUsable(el) {
+    if (!el || !isVisible(el)) return false;
+    if (el.disabled) return false;
+    if (el.getAttribute('aria-disabled') === 'true') return false;
+    return true;
+  }
+
+  function findSendButton() {
+    for (const selector of SEND_BUTTON_SELECTORS) {
+      let nodes;
+      try {
+        nodes = document.querySelectorAll(selector);
+      } catch (e) {
+        continue;
+      }
+      for (const el of nodes) {
+        if (isButtonUsable(el)) return el;
+      }
+    }
+    return null;
+  }
+
+  /**
+   * Poll for the send button, then click it. React re-enables the button a
+   * tick after the editor state updates, so a single synchronous lookup is
+   * not enough. Gives up quietly after `timeout` ms.
+   */
+  function clickSendButtonWhenReady(timeout = 1500, interval = 100) {
+    const startedAt = Date.now();
+
+    const attempt = () => {
+      const button = findSendButton();
+      if (button) {
+        button.click();
+        return;
+      }
+      if (Date.now() - startedAt >= timeout) return;
+      setTimeout(attempt, interval);
+    };
+
+    attempt();
+  }
+
+  /**
+   * Read the opt-in flag and trigger the auto-send. Never throws: a failed
+   * auto-send must not break the insert that already succeeded.
+   */
+  function maybeAutoSend() {
+    if (!isChatGPTPage()) return;
+
+    let hasAccess = false;
+    try {
+      hasAccess = Boolean(
+        typeof chrome !== 'undefined' && chrome.runtime?.id && chrome.storage?.local
+      );
+    } catch (e) {
+      hasAccess = false;
+    }
+    if (!hasAccess) return;
+
+    try {
+      chrome.storage.local.get('promptvault_data', (data) => {
+        if (chrome.runtime.lastError) return;
+        const settings = data && data.promptvault_data && data.promptvault_data.settings;
+        if (!settings || settings.autoSendAfterInsert !== true) return;
+        clickSendButtonWhenReady();
+      });
+    } catch (e) {
+      console.warn('[PromptVault] Auto-send skipped:', e);
     }
   }
 

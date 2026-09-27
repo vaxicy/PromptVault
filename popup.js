@@ -36,6 +36,7 @@
       showRecent: document.getElementById('setting-show-recent').checked,
       autoTopAfterUse: document.getElementById('setting-auto-top')?.checked,
       insertTopAfterUse: document.getElementById('setting-insert-top')?.checked,
+      autoSendAfterInsert: document.getElementById('setting-auto-send')?.checked ?? false,
       defaultFolder: document.getElementById('setting-default-folder').value,
       displayMode: document.getElementById('setting-display-mode').value,
       enableTrash: document.getElementById('setting-enable-trash')?.checked ?? false,
@@ -3184,6 +3185,10 @@
     const insertTopCheckbox = document.getElementById('setting-insert-top');
     if (insertTopCheckbox) insertTopCheckbox.checked = settings.insertTopAfterUse !== false;
 
+    // Load auto send after insert (opt-in, defaults to false)
+    const autoSendCheckbox = document.getElementById('setting-auto-send');
+    if (autoSendCheckbox) autoSendCheckbox.checked = settings.autoSendAfterInsert === true;
+
     // Load trash setting (opt-in, defaults to false)
     const enableTrashCheckbox = document.getElementById('setting-enable-trash');
     if (enableTrashCheckbox) enableTrashCheckbox.checked = settings.enableTrash === true;
@@ -3206,6 +3211,7 @@
     const newShowRecent = document.getElementById('setting-show-recent').checked;
     const newAutoTop = document.getElementById('setting-auto-top')?.checked;
     const newInsertTop = document.getElementById('setting-insert-top')?.checked;
+    const newAutoSend = document.getElementById('setting-auto-send')?.checked ?? false;
     const newDefaultFolder = document.getElementById('setting-default-folder').value;
     const newDisplayMode = document.getElementById('setting-display-mode').value;
     const newEnableTrash = document.getElementById('setting-enable-trash')?.checked ?? false;
@@ -3238,6 +3244,7 @@
     settings.showRecent = newShowRecent;
     settings.autoTopAfterUse = newAutoTop;
     settings.insertTopAfterUse = newInsertTop;
+    settings.autoSendAfterInsert = newAutoSend;
     settings.defaultFolder = newDefaultFolder;
     settings.displayMode = newDisplayMode;
     settings.enableTrash = newEnableTrash;
