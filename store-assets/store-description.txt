@@ -1,0 +1,20 @@
+=== 中文详细说明 ===
+
+PromptVault - AI提示词管理助手
+
+PromptVault 是一款轻量、隐私优先的 AI 提示词管理工具，帮你保存、整理、搜索并快速复用常用提示词。如果你经常在 ChatGPT、Claude、Gemini、Grok 等 AI 工具之间切换，它会让你积累的提示词不再散落在聊天记录、笔记和文档里。
+
+你可以用文件夹和标签把提示词分门别类，通过关键词、标签、文件夹名或全文内容搜索快速找到它；常用提示词可以置顶，复制或插入后也会优先排到最前。使用时一键复制到剪贴板，或直接插入当前网页的输入框——支持 {{变量}} 模板，结构固定、只换几个词即可复用，配合命令面板与右键菜单随时调用。在 ChatGPT 上还能开启「插入后自动发送」，插入提示词后自动点击发送按钮，省去一次点击。此外还有明暗主题、中英文界面切换、多格式导入导出（JSON / Markdown / CSV / TXT）以及可选回收站。
+
+所有提示词默认保存在你的浏览器本地，不会上传到任何服务器，也无需注册账号；扩展不会在后台静默读取网页内容，只在你主动点击或调用时工作。如果你需要在多个 AI 工具、项目或写作任务之间反复使用提示词，PromptVault 能帮你建立一个清晰、可搜索、可分类的提示词库。
+
+
+=== English Detailed Description ===
+
+PromptVault - AI Prompt Manager
+
+PromptVault is a lightweight, privacy-first AI prompt manager that helps you save, organize, search, and reuse your prompts in seconds. If you work across ChatGPT, Claude, Gemini, Grok, and other AI tools, it keeps your prompts from scattering across chat logs, notes, and documents.
+
+Organize prompts with folders and tags, then find them by keyword, tag, folder name, or full-text search. Pin the ones you use most—prompts you copy or insert automatically move to the top. Copy a prompt with one click, or insert it straight into the input field of the page you are on, with {{variable}} templates so a fixed structure can be reused by swapping a few words. A command palette and context menu keep everything within reach, and on ChatGPT you can turn on Auto Send After Insert to have the send button clicked for you. Dark and light themes, a bilingual interface, import and export in JSON / Markdown / CSV / TXT, and an optional trash complete the picture.
+
+Everything stays in your browser by default—no servers, no account required. The extension never quietly reads pages in the background; it only works when you click or invoke it. If you reuse prompts across multiple AI tools, projects, or writing tasks, PromptVault gives you a clear, searchable, well-organized prompt library.
