@@ -353,6 +353,7 @@ if (typeof window.PromptVaultI18n === 'undefined') {
       toast_undo_failed: '撤销失败',
       undo_op_delete: '删除',
       undo_op_edit: '编辑',
+      undo_op_move: '移动到文件夹',
       // Empty state onboarding
       empty_action_import: '导入数据',
       empty_action_shortcut: '在任意网页按 Ctrl+Shift+P 快速调用提示词',
@@ -702,6 +703,7 @@ if (typeof window.PromptVaultI18n === 'undefined') {
       toast_undo_failed: 'Undo failed',
       undo_op_delete: 'Delete',
       undo_op_edit: 'Edit',
+      undo_op_move: 'Move to folder',
       // Empty state onboarding
       empty_action_import: 'Import',
       empty_action_shortcut: 'Press Ctrl+Shift+P on any page to insert a prompt',

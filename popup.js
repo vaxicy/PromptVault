@@ -1909,6 +1909,12 @@
       });
     });
 
+    // Cards are rebuilt on every render so their listeners are rebound above,
+    // but container-level listeners must only be attached once — otherwise
+    // they pile up and every drop runs the reorder several times.
+    if (container.dataset.pvDragBound === '1') return;
+    container.dataset.pvDragBound = '1';
+
     container.addEventListener('dragover', (e) => {
       e.preventDefault();
       e.dataTransfer.dropEffect = 'move';
@@ -1939,15 +1945,22 @@
         c.classList.remove('drag-over-top', 'drag-over-bottom');
       });
 
-      // Move the dragged card in the DOM to the correct position
+      // Move the dragged card in the DOM to the correct position.
+      // The `contains()` guard matters: a concurrent re-render can detach the
+      // reference node, and insertBefore then throws NotFoundError.
       const draggedCard = container.querySelector(`[data-id="${draggedId}"]`);
       const afterResult = _getDragAfterElement(container, e.clientY);
+      const reference = afterResult && afterResult.element;
+      const referenceIsUsable = Boolean(reference) &&
+        reference !== draggedCard &&
+        container.contains(reference);
+
       if (draggedCard) {
-        if (afterResult && afterResult.element) {
+        if (referenceIsUsable) {
           if (afterResult.position === 'before') {
-            container.insertBefore(draggedCard, afterResult.element);
+            container.insertBefore(draggedCard, reference);
           } else {
-            container.insertBefore(draggedCard, afterResult.element.nextSibling);
+            container.insertBefore(draggedCard, reference.nextSibling);
           }
         } else {
           // Dropped past the last card — land at the end of this group
@@ -1958,19 +1971,34 @@
       // Collect new order from DOM
       const orderedIds = [...container.querySelectorAll('.prompt-card')].map(c => c.dataset.id);
 
-      // Save new order
-      await Storage.reorderPrompts(orderedIds);
-
-      // Grouped mode: dropping into another group's list also moves the
-      // prompt into that folder.
+      // Grouped mode: dropping into another group's list also moves the prompt
+      // into that folder.
       const targetFolderId = container.closest('.folder-group')?.dataset.folderId;
-      if (targetFolderId) {
-        const moved = await Storage.getPrompt(draggedId);
-        if (moved && moved.folder !== targetFolderId) {
-          moved.folder = targetFolderId;
-          await Storage.savePrompt(moved);
-          showToast(i18n.t('toast_moved_to_folder'), 'success');
-        }
+      const movedPrompt = targetFolderId ? await Storage.getPrompt(draggedId) : null;
+      const movesFolder = Boolean(movedPrompt) && movedPrompt.folder !== targetFolderId;
+
+      if (movesFolder) {
+        const previousFolder = movedPrompt.folder;
+        movedPrompt.folder = targetFolderId;
+        await Storage.savePrompt(movedPrompt);
+
+        // Dropping into the wrong group is easy to do by accident, so make it
+        // undoable with Ctrl+Z.
+        pushUndo({
+          label: i18n.t('undo_op_move'),
+          undo: async () => {
+            const current = await Storage.getPrompt(draggedId);
+            if (!current) return;
+            current.folder = previousFolder;
+            await Storage.savePrompt(current);
+          },
+        });
+
+        showToast(i18n.t('toast_moved_to_folder'), 'success');
+      } else {
+        // Same group: persist the new manual order. A cross-group drop skips
+        // this so two groups never overwrite each other's sortOrder range.
+        await Storage.reorderPrompts(orderedIds);
       }
 
       // Dragging means "I want this order". Switch to the mode that honours
