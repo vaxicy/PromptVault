@@ -2801,17 +2801,25 @@
         return;
       }
     } catch (err) {
+      // Expected whenever the page was open before an extension reload, or on
+      // pages we cannot inject into — the fallback below handles it.
       sendMessageFailed = true;
-      console.warn('[PromptVault] sendMessage insert failed:', err?.message || err);
+      console.debug('[PromptVault] sendMessage insert failed:', err?.message || err);
     }
 
     // 2) Fallback: content script connection lost (e.g. after extension update).
-    // Re-inject scripts on demand and run insert directly.
+    // `files` and `func` are mutually exclusive in a single executeScript call,
+    // so the helpers are injected first and the insert runs right after — both
+    // land in the same isolated world, so `UniversalInsert` is visible.
     if (sendMessageFailed) {
       try {
-        const results = await chrome.scripting.executeScript({
+        await chrome.scripting.executeScript({
           target: { tabId: tab.id },
           files: ['i18n.js', 'universal-insert.js'],
+        });
+
+        const results = await chrome.scripting.executeScript({
+          target: { tabId: tab.id },
           func: (text) => {
             if (typeof UniversalInsert !== 'undefined') {
               return { success: UniversalInsert.insertText(text) };
@@ -2827,7 +2835,7 @@
           return;
         }
       } catch (scriptErr) {
-        console.warn('[PromptVault] executeScript fallback failed:', scriptErr);
+        console.debug('[PromptVault] executeScript fallback failed:', scriptErr);
       }
     }
 
