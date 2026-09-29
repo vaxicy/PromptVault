@@ -1607,6 +1607,19 @@ select.pv-select-native {
   height: 10px;
 }
 
+/* The sort trigger sits close to the popup's left edge, so the default
+   right-anchored bottom tooltip hangs off-screen and gets clipped.
+   Anchor the bubble to the trigger's left edge instead. */
+.pv-select--compact .pv-select-trigger[data-tooltip-placement="bottom"]::after {
+  right: auto;
+  left: 0;
+}
+
+.pv-select--compact .pv-select-trigger[data-tooltip-placement="bottom"]::before {
+  right: auto;
+  left: 10px;
+}
+
 /* Batch bar: reads as one control with the "move" button on its right */
 .pv-select--batch {
   display: flex;
