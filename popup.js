@@ -114,6 +114,9 @@
   // Event Listeners
   initEventListeners();
 
+  // Upgrade every native <select> to the custom dropdown
+  enhanceAllSelects();
+
   /**
    * Apply all translations to static DOM elements
    */
@@ -3384,6 +3387,330 @@
     if (days < 30) return i18n.t('time_weeks_ago', Math.floor(days / 7));
     if (days < 365) return i18n.t('time_months_ago', Math.floor(days / 30));
     return i18n.t('time_years_ago', Math.floor(days / 365));
+  }
+
+  /* ------------------------------------------------------------------
+   * Custom select
+   * ------------------------------------------------------------------
+   * Every native <select> stays in the DOM, so existing `.value` reads,
+   * `.value` writes and `change` listeners keep working untouched. We only
+   * hide it and paint a proxy trigger plus a portal menu on top of it.
+   */
+  const PV_SELECT_MENU_ID = 'pv-select-menu';
+  let pvSelectState = null; // { select, trigger, index }
+
+  function pvSelectContext(select) {
+    if (select.id === 'sort-select') return 'compact';
+    if (select.closest('.batch-move-group')) return 'batch';
+    if (select.closest('#settings-modal')) return 'settings';
+    return 'form';
+  }
+
+  function enhanceAllSelects(root) {
+    const scope = root || document;
+    scope.querySelectorAll('select:not([data-pv-select])').forEach(enhanceSelect);
+  }
+
+  function enhanceSelect(select) {
+    if (!select || select.dataset.pvSelect === 'on') return;
+    select.dataset.pvSelect = 'on';
+
+    const wrapper = document.createElement('div');
+    wrapper.className = 'pv-select pv-select--' + pvSelectContext(select);
+
+    const trigger = document.createElement('button');
+    trigger.type = 'button';
+    trigger.className = 'pv-select-trigger';
+    trigger.setAttribute('aria-haspopup', 'listbox');
+    trigger.setAttribute('aria-expanded', 'false');
+
+    const label = document.createElement('span');
+    label.className = 'pv-select-label';
+
+    const arrow = document.createElementNS('http://www.w3.org/2000/svg', 'svg');
+    arrow.setAttribute('class', 'pv-select-arrow');
+    arrow.setAttribute('viewBox', '0 0 12 12');
+    arrow.setAttribute('aria-hidden', 'true');
+    const arrowLine = document.createElementNS('http://www.w3.org/2000/svg', 'polyline');
+    arrowLine.setAttribute('points', '2.5 4.5 6 8 9.5 4.5');
+    arrowLine.setAttribute('fill', 'none');
+    arrowLine.setAttribute('stroke', 'currentColor');
+    arrowLine.setAttribute('stroke-width', '1.6');
+    arrowLine.setAttribute('stroke-linecap', 'round');
+    arrowLine.setAttribute('stroke-linejoin', 'round');
+    arrow.appendChild(arrowLine);
+
+    trigger.appendChild(label);
+    trigger.appendChild(arrow);
+    wrapper.appendChild(trigger);
+
+    select.parentNode.insertBefore(wrapper, select);
+    select.classList.add('pv-select-native');
+
+    function syncTrigger() {
+      const opt = select.options[select.selectedIndex] || null;
+      label.textContent = opt ? opt.textContent : '';
+      trigger.disabled = select.disabled === true;
+      trigger.setAttribute('aria-disabled', select.disabled ? 'true' : 'false');
+
+      // Carry over the custom tooltip the original select carried (if any).
+      const tip = select.dataset.tooltip;
+      if (tip) {
+        trigger.dataset.tooltip = tip;
+        trigger.dataset.tooltipPlacement = select.dataset.tooltipPlacement || 'top';
+        trigger.removeAttribute('title');
+      }
+    }
+
+    // Programmatic `select.value = x` emits no `change`, so mirror it here.
+    const valueDescriptor = Object.getOwnPropertyDescriptor(HTMLSelectElement.prototype, 'value');
+    if (valueDescriptor && valueDescriptor.get && valueDescriptor.set) {
+      Object.defineProperty(select, 'value', {
+        configurable: true,
+        get() { return valueDescriptor.get.call(this); },
+        set(next) {
+          valueDescriptor.set.call(this, next);
+          syncTrigger();
+        },
+      });
+    }
+
+    // Options get rebuilt (folders, sort modes) and re-translated at runtime.
+    const observer = new MutationObserver(() => {
+      syncTrigger();
+      if (pvSelectState && pvSelectState.select === select) renderSelectMenu();
+    });
+    observer.observe(select, {
+      childList: true,
+      subtree: true,
+      characterData: true,
+      attributes: true,
+      attributeFilter: ['disabled', 'data-tooltip', 'data-tooltip-placement'],
+    });
+
+    select.addEventListener('change', syncTrigger);
+
+    trigger.addEventListener('click', (event) => {
+      event.stopPropagation();
+      if (pvSelectState && pvSelectState.select === select) closeSelectMenu();
+      else openSelectMenu(select, trigger);
+    });
+
+    trigger.addEventListener('keydown', (event) => {
+      if (event.key === 'ArrowDown' || event.key === 'ArrowUp' ||
+          event.key === 'Enter' || event.key === ' ') {
+        event.preventDefault();
+        openSelectMenu(select, trigger);
+      }
+    });
+
+    syncTrigger();
+  }
+
+  function ensureSelectMenu() {
+    let menu = document.getElementById(PV_SELECT_MENU_ID);
+    if (menu) return menu;
+
+    menu = document.createElement('div');
+    menu.id = PV_SELECT_MENU_ID;
+    menu.className = 'pv-select-menu hidden';
+    menu.setAttribute('role', 'listbox');
+    menu.tabIndex = -1;
+
+    // Keep focus on the menu so arrow keys work, but never steal the click.
+    menu.addEventListener('mousedown', (event) => event.preventDefault());
+    menu.addEventListener('click', (event) => {
+      const item = event.target.closest('.pv-select-option');
+      if (!item || !pvSelectState) return;
+      chooseSelectOption(Number(item.dataset.index));
+    });
+    menu.addEventListener('keydown', onSelectMenuKeydown);
+
+    document.body.appendChild(menu);
+    return menu;
+  }
+
+  function renderSelectMenu() {
+    if (!pvSelectState) return;
+    const menu = ensureSelectMenu();
+    const { select, index } = pvSelectState;
+
+    menu.textContent = '';
+    Array.from(select.options).forEach((opt, i) => {
+      const item = document.createElement('div');
+      item.className = 'pv-select-option';
+      item.dataset.index = String(i);
+      item.setAttribute('role', 'option');
+      if (i === index) item.classList.add('active');
+      if (i === select.selectedIndex) {
+        item.classList.add('selected');
+        item.setAttribute('aria-selected', 'true');
+      }
+
+      const text = document.createElement('span');
+      text.className = 'pv-select-option-label';
+      text.textContent = opt.textContent;
+
+      const check = document.createElementNS('http://www.w3.org/2000/svg', 'svg');
+      check.setAttribute('class', 'pv-select-check');
+      check.setAttribute('viewBox', '0 0 12 12');
+      check.setAttribute('aria-hidden', 'true');
+      const mark = document.createElementNS('http://www.w3.org/2000/svg', 'polyline');
+      mark.setAttribute('points', '2 6.5 4.8 9.2 10 3.5');
+      mark.setAttribute('fill', 'none');
+      mark.setAttribute('stroke', 'currentColor');
+      mark.setAttribute('stroke-width', '1.8');
+      mark.setAttribute('stroke-linecap', 'round');
+      mark.setAttribute('stroke-linejoin', 'round');
+      check.appendChild(mark);
+
+      item.appendChild(text);
+      item.appendChild(check);
+      menu.appendChild(item);
+    });
+  }
+
+  function positionSelectMenu() {
+    if (!pvSelectState) return;
+    const menu = document.getElementById(PV_SELECT_MENU_ID);
+    if (!menu) return;
+
+    const rect = pvSelectState.trigger.getBoundingClientRect();
+    const menuRect = menu.getBoundingClientRect();
+    const gap = 4;
+    const viewportW = window.innerWidth;
+    const viewportH = window.innerHeight;
+
+    let top = rect.bottom + gap;
+    const roomBelow = viewportH - rect.bottom - gap;
+    if (menuRect.height > roomBelow && rect.top - gap - menuRect.height >= 8) {
+      top = rect.top - gap - menuRect.height;
+    }
+    top = Math.max(8, Math.min(top, viewportH - menuRect.height - 8));
+
+    let left = rect.left;
+    left = Math.max(8, Math.min(left, viewportW - menuRect.width - 8));
+
+    menu.style.top = Math.round(top) + 'px';
+    menu.style.left = Math.round(left) + 'px';
+  }
+
+  function scrollSelectOptionIntoView() {
+    const menu = document.getElementById(PV_SELECT_MENU_ID);
+    if (!menu || !pvSelectState) return;
+
+    const active = menu.querySelector('.pv-select-option.active');
+    if (!active) return;
+
+    // Scroll the menu itself only — scrollIntoView would also scroll the
+    // popup body behind it.
+    const top = active.offsetTop;
+    const bottom = top + active.offsetHeight;
+    if (top < menu.scrollTop) {
+      menu.scrollTop = top;
+    } else if (bottom > menu.scrollTop + menu.clientHeight) {
+      menu.scrollTop = bottom - menu.clientHeight;
+    }
+  }
+
+  function refreshSelectActive() {
+    const menu = document.getElementById(PV_SELECT_MENU_ID);
+    if (!menu || !pvSelectState) return;
+    menu.querySelectorAll('.pv-select-option').forEach((el, i) => {
+      el.classList.toggle('active', i === pvSelectState.index);
+    });
+    scrollSelectOptionIntoView();
+  }
+
+  function openSelectMenu(select, trigger) {
+    if (!select || select.disabled) return;
+    closeSelectMenu();
+
+    const menu = ensureSelectMenu();
+    pvSelectState = {
+      select,
+      trigger,
+      index: Math.max(0, select.selectedIndex),
+    };
+
+    renderSelectMenu();
+    menu.style.minWidth = Math.max(120, Math.round(trigger.getBoundingClientRect().width)) + 'px';
+    menu.classList.remove('hidden');
+    trigger.classList.add('open');
+    trigger.setAttribute('aria-expanded', 'true');
+
+    positionSelectMenu();
+    requestAnimationFrame(positionSelectMenu);
+    scrollSelectOptionIntoView();
+    menu.focus({ preventScroll: true });
+
+    document.addEventListener('mousedown', onSelectMenuOutsideClick, true);
+    window.addEventListener('resize', closeSelectMenu);
+    window.addEventListener('scroll', onSelectScroll, true);
+  }
+
+  function closeSelectMenu() {
+    const menu = document.getElementById(PV_SELECT_MENU_ID);
+    if (menu) menu.classList.add('hidden');
+
+    if (pvSelectState) {
+      pvSelectState.trigger.classList.remove('open');
+      pvSelectState.trigger.setAttribute('aria-expanded', 'false');
+    }
+    pvSelectState = null;
+
+    document.removeEventListener('mousedown', onSelectMenuOutsideClick, true);
+    window.removeEventListener('resize', closeSelectMenu);
+    window.removeEventListener('scroll', onSelectScroll, true);
+  }
+
+  function onSelectMenuOutsideClick(event) {
+    const menu = document.getElementById(PV_SELECT_MENU_ID);
+    if (menu && menu.contains(event.target)) return;
+    if (pvSelectState && pvSelectState.trigger.contains(event.target)) return;
+    closeSelectMenu();
+  }
+
+  // `scroll` does not bubble but still reaches a capture listener on window,
+  // so scrolling inside the menu itself would close it. Ignore that case.
+  function onSelectScroll(event) {
+    const menu = document.getElementById(PV_SELECT_MENU_ID);
+    if (menu && (event.target === menu || menu.contains(event.target))) return;
+    closeSelectMenu();
+  }
+
+  function chooseSelectOption(index) {
+    if (!pvSelectState) return;
+    const { select, trigger } = pvSelectState;
+    const opt = select.options[index];
+    if (!opt) return;
+
+    select.value = opt.value;
+    select.dispatchEvent(new Event('change', { bubbles: true }));
+
+    closeSelectMenu();
+    trigger.focus({ preventScroll: true });
+  }
+
+  function onSelectMenuKeydown(event) {
+    if (!pvSelectState) return;
+    const total = pvSelectState.select.options.length;
+
+    if (event.key === 'ArrowDown') {
+      event.preventDefault();
+      pvSelectState.index = Math.min(total - 1, pvSelectState.index + 1);
+      refreshSelectActive();
+    } else if (event.key === 'ArrowUp') {
+      event.preventDefault();
+      pvSelectState.index = Math.max(0, pvSelectState.index - 1);
+      refreshSelectActive();
+    } else if (event.key === 'Enter' || event.key === ' ') {
+      event.preventDefault();
+      chooseSelectOption(pvSelectState.index);
+    } else if (event.key === 'Escape' || event.key === 'Tab') {
+      event.preventDefault();
+      closeSelectMenu();
+    }
   }
 
   function debounce(func, wait) {

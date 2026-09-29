@@ -1484,6 +1484,217 @@ body {
   border-color: var(--accent-primary);
 }
 
+/* ===== Custom select (proxies the native <select>) ===== */
+
+/* The native element stays in the DOM for value/change semantics but is
+   taken out of the layout and painted over by the proxy below. */
+select.pv-select-native {
+  position: absolute !important;
+  width: 1px !important;
+  height: 1px !important;
+  margin: -1px !important;
+  padding: 0 !important;
+  border: 0 !important;
+  clip: rect(0 0 0 0) !important;
+  clip-path: inset(50%) !important;
+  overflow: hidden !important;
+  white-space: nowrap !important;
+  opacity: 0 !important;
+  pointer-events: none !important;
+}
+
+.pv-select {
+  position: relative;
+  width: 100%;
+}
+
+.pv-select-trigger {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  gap: 8px;
+  width: 100%;
+  box-sizing: border-box;
+  min-height: 44px;
+  padding: 10px 12px;
+  background: var(--bg-secondary);
+  border: 1px solid var(--border-color);
+  border-radius: var(--radius-sm);
+  color: var(--text-primary);
+  font-family: inherit;
+  font-size: 14px;
+  line-height: 1.35;
+  text-align: left;
+  cursor: pointer;
+  transition: var(--transition);
+}
+
+.pv-select-trigger:hover {
+  border-color: var(--accent-primary);
+}
+
+.pv-select-trigger:focus-visible,
+.pv-select-trigger.open {
+  outline: none;
+  border-color: var(--accent-primary);
+  box-shadow: 0 0 0 3px rgba(128, 128, 128, 0.14);
+}
+
+.pv-select-trigger:disabled {
+  opacity: 0.5;
+  cursor: not-allowed;
+}
+
+.pv-select-trigger:disabled:hover {
+  border-color: var(--border-color);
+}
+
+.pv-select-label {
+  flex: 1 1 auto;
+  min-width: 0;
+  overflow: hidden;
+  text-overflow: ellipsis;
+  white-space: nowrap;
+}
+
+.pv-select-arrow {
+  flex: none;
+  width: 12px;
+  height: 12px;
+  color: var(--text-muted);
+  transition: transform 0.18s ease;
+}
+
+.pv-select-trigger.open .pv-select-arrow {
+  transform: rotate(180deg);
+}
+
+/* --- context variants --- */
+
+/* Settings modal keeps its roomier control */
+.pv-select--settings .pv-select-trigger {
+  min-height: 44px;
+  border-radius: 7px;
+}
+
+/* Editor modal form groups */
+.pv-select--form .pv-select-trigger {
+  min-height: 42px;
+}
+
+/* Compact sort dropdown in the tab header */
+.pv-select--compact {
+  width: auto;
+  flex: none;
+}
+
+.pv-select--compact .pv-select-trigger {
+  min-height: 30px;
+  height: 30px;
+  padding: 4px 8px;
+  gap: 6px;
+  max-width: 100px;
+  font-size: 11px;
+  background: var(--bg-tertiary);
+  color: var(--text-secondary);
+}
+
+.pv-select--compact .pv-select-arrow {
+  width: 10px;
+  height: 10px;
+}
+
+/* Batch bar: reads as one control with the "move" button on its right */
+.pv-select--batch {
+  display: flex;
+  width: auto;
+  flex: none;
+}
+
+.pv-select--batch .pv-select-trigger {
+  height: var(--batch-control-height);
+  min-height: var(--batch-control-height);
+  padding: 0 8px 0 10px;
+  gap: 4px;
+  font-size: var(--batch-font-size);
+  line-height: 1;
+  border-radius: var(--radius-sm) 0 0 var(--radius-sm);
+  max-width: 120px;
+  min-width: 90px;
+}
+
+.pv-select--batch .pv-select-arrow {
+  width: 11px;
+  height: 11px;
+}
+
+@media (max-width: 380px) {
+  .pv-select--batch .pv-select-trigger {
+    max-width: 90px;
+    min-width: 70px;
+    padding: 0 6px 0 8px;
+  }
+}
+
+/* ===== Custom select menu (portal, fixed positioned) ===== */
+.pv-select-menu {
+  position: fixed;
+  z-index: 2147483000;
+  box-sizing: border-box;
+  min-width: 120px;
+  max-height: 260px;
+  overflow-y: auto;
+  padding: 4px;
+  background: var(--bg-primary);
+  border: 1px solid var(--border-color);
+  border-radius: var(--radius-sm);
+  box-shadow: 0 8px 24px rgba(0, 0, 0, 0.18);
+  font-family: inherit;
+  font-size: 13px;
+  outline: none;
+}
+
+.pv-select-option {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  gap: 10px;
+  padding: 8px 10px;
+  border-radius: 6px;
+  color: var(--text-primary);
+  cursor: pointer;
+  user-select: none;
+  white-space: nowrap;
+}
+
+.pv-select-option:hover,
+.pv-select-option.active {
+  background: var(--bg-hover);
+}
+
+.pv-select-option.selected {
+  color: var(--accent-primary);
+  font-weight: 600;
+}
+
+.pv-select-option-label {
+  flex: 1 1 auto;
+  min-width: 0;
+  overflow: hidden;
+  text-overflow: ellipsis;
+}
+
+.pv-select-check {
+  flex: none;
+  width: 12px;
+  height: 12px;
+  opacity: 0;
+}
+
+.pv-select-option.selected .pv-select-check {
+  opacity: 1;
+}
+
 /* Tab header button overrides - compact & aligned */
 .tab-header-right .secondary-btn.compact {
   padding: 5px 8px;
