@@ -126,16 +126,13 @@ function Generate-Marquee {
   Draw-Text $g "保存、搜索、复用你的 AI 提示词" 216 176 34 "#333333" "Regular" 650 48
   Draw-Text $g "Save, search, and reuse your AI prompts" 218 226 27 "#666666" "Regular" 650 40
   Fill-RoundRect $g (New-Brush "#111111") 216 300 272 52 12
-  Draw-Text $g "本地保存 / Local-first" 240 313 18 "#ffffff" "Bold" 230 28
+  Draw-Text $g "本地保存 / Local-first" 240 313 16 "#ffffff" "Bold" 230 28
   Fill-RoundRect $g (New-Brush "#f7f7f7") 508 300 290 52 12
   Draw-RoundRect $g (New-Pen "#dedede" 1) 508 300 290 52 12
-  Draw-Text $g "复制 · 插入 / Copy · Insert" 532 313 18 "#111111" "Bold" 260 28
-  Fill-RoundRect $g (New-Brush "#f7f7f7") 216 374 272 52 12
-  Draw-RoundRect $g (New-Pen "#dedede" 1) 216 374 272 52 12
-  Draw-Text $g "自动发送 / Auto-send" 240 387 18 "#111111" "Bold" 230 28
-  Fill-RoundRect $g (New-Brush "#f7f7f7") 508 374 290 52 12
-  Draw-RoundRect $g (New-Pen "#dedede" 1) 508 374 290 52 12
-  Draw-Text $g "中英双语 / Bilingual UI" 532 387 18 "#111111" "Bold" 260 28
+  Draw-Text $g "中英双语 / Bilingual UI" 532 313 16 "#111111" "Bold" 260 28
+  Fill-RoundRect $g (New-Brush "#f7f7f7") 216 374 600 52 12
+  Draw-RoundRect $g (New-Pen "#dedede" 1) 216 374 600 52 12
+  Draw-Text $g "复制 · 插入 · 可选自动发送 / Copy · Insert · Optional auto-send" 240 387 16 "#111111" "Bold" 560 28
   Fill-RoundRect $g (New-Brush "#111111") 850 94 360 420 22
   Fill-RoundRect $g (New-Brush "#181818") 878 126 304 54 12
   Draw-Text $g "搜索提示词..." 930 141 18 "#bdbdbd" "Regular" 160 28
