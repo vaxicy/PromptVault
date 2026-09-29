@@ -400,6 +400,21 @@
     // Empty-state onboarding reuses the same import flow
     document.getElementById('btn-empty-import')?.addEventListener('click', importData);
 
+    // Ctrl/Cmd+Z undoes the last destructive edit made in the popup.
+    // Inputs and textareas keep their native undo.
+    document.addEventListener('keydown', (event) => {
+      if (!(event.ctrlKey || event.metaKey) || event.shiftKey || event.altKey) return;
+      if (event.key.toLowerCase() !== 'z') return;
+
+      const target = event.target;
+      if (target && (target.tagName === 'INPUT' || target.tagName === 'TEXTAREA' || target.isContentEditable)) {
+        return;
+      }
+
+      event.preventDefault();
+      performUndo();
+    });
+
     document.getElementById('btn-open-wechat-support')?.addEventListener('click', openWechatSupport);
     document.getElementById('btn-paypal-support')?.addEventListener('click', openPaypalSupport);
 
@@ -1396,14 +1411,6 @@
       parts.push(`
         <span class="search-tip">
           ${i18n.t('search_syntax_tip')}
-        </span>
-      `);
-    }
-
-    if (!query && !currentFolderFilter && isDragSortEnabled() && currentTab === 'prompts') {
-      parts.push(`
-        <span class="search-tip sort-drag-tip">
-          ${i18n.t('sort_custom_hint')}
         </span>
       `);
     }
@@ -2575,15 +2582,25 @@
       updatedAt: Date.now()
     };
 
+    let previousVersion = null;
     if (editingPromptId) {
       const existing = await Storage.getPrompt(editingPromptId);
       prompt.pinned = existing.pinned || false;
       prompt.usageCount = existing.usageCount || 0;
       prompt.lastUsedAt = existing.lastUsedAt || 0;
       prompt.createdAt = existing.createdAt;
+      // Keep a copy so Ctrl+Z can restore the pre-edit version
+      previousVersion = JSON.parse(JSON.stringify(existing));
     }
 
     await Storage.savePrompt(prompt);
+
+    if (previousVersion) {
+      pushUndo({
+        label: i18n.t('undo_op_edit'),
+        undo: async () => { await Storage.savePrompt(previousVersion); },
+      });
+    }
 
     // Refresh all tags list so new tags appear in dropdown
     await loadAllTags();
@@ -2826,21 +2843,30 @@
 
     okBtn.onclick = async () => {
       if (type === 'prompt') {
-        // Snapshot before deleting so the toast can offer an undo.
+        // Snapshot before deleting so both the toast button and Ctrl+Z can
+        // bring the prompt back.
         const snapshot = await Storage.getPrompt(id);
         const result = await Storage.deletePrompt(id);
         const trashed = Boolean(result?.trashed);
 
+        const undo = snapshot
+          ? async () => {
+              if (trashed) await Storage.restoreFromTrash(id);
+              else await Storage.restorePrompt(snapshot);
+              await updateTrashUI();
+            }
+          : null;
+
+        if (undo) pushUndo({ label: i18n.t('undo_op_delete'), undo });
+
         showToast(
           i18n.t(trashed ? 'toast_moved_to_trash' : 'toast_deleted'),
           'success',
-          snapshot
+          undo
             ? {
                 label: i18n.t('toast_undo'),
                 onClick: async () => {
-                  if (trashed) await Storage.restoreFromTrash(id);
-                  else await Storage.restorePrompt(snapshot);
-                  await updateTrashUI();
+                  await undo();
                   await renderAll();
                   showToast(i18n.t('toast_restored'), 'success');
                 },
@@ -3461,6 +3487,39 @@
     if (tagNameInput) tagNameInput.value = '';
     tagModalMode = 'create';
     tagModalOriginalName = '';
+  }
+
+  /* ------------------------------------------------------------------
+   * Undo stack (Ctrl/Cmd+Z)
+   * ------------------------------------------------------------------
+   * Only destructive edits push entries here: delete and edit. Each entry is
+   * { label, undo } where undo() is async and restores the previous state.
+   */
+  const undoStack = [];
+  const UNDO_LIMIT = 20;
+
+  function pushUndo(entry) {
+    if (!entry || typeof entry.undo !== 'function') return;
+    undoStack.push(entry);
+    if (undoStack.length > UNDO_LIMIT) undoStack.shift();
+  }
+
+  async function performUndo() {
+    const entry = undoStack.pop();
+    if (!entry) {
+      showToast(i18n.t('toast_nothing_to_undo'), 'info');
+      return;
+    }
+
+    try {
+      await entry.undo();
+      await updateTrashUI();
+      await renderAll();
+      showToast(`${i18n.t('toast_undone')} · ${entry.label}`, 'success');
+    } catch (error) {
+      console.error('[PromptVault] Undo failed:', error);
+      showToast(i18n.t('toast_undo_failed'), 'error');
+    }
   }
 
   let toastTimer = null;

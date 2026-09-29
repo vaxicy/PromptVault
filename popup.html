@@ -391,6 +391,14 @@
       <div class="modal-body">
         <div class="settings-section">
           <h3 data-i18n="settings_preferences">偏好设置</h3>
+          <!-- View first: how the list is laid out -->
+          <div class="form-group">
+            <label for="setting-display-mode" data-i18n="label_display_mode">显示模式</label>
+            <select id="setting-display-mode">
+              <option value="list" data-i18n="display_mode_list">列表</option>
+              <option value="grouped" data-i18n="display_mode_grouped">按文件夹分组</option>
+            </select>
+          </div>
           <div class="form-group">
             <label for="setting-default-folder">默认文件夹</label>
             <select id="setting-default-folder">
@@ -404,6 +412,7 @@
               <option value="en">English</option>
             </select>
           </div>
+          <!-- Then what shows up in the UI -->
           <div class="form-group">
             <label class="checkbox-label">
               <input type="checkbox" id="setting-show-badge">
@@ -418,6 +427,15 @@
             </label>
             <p class="setting-hint" data-i18n="settings_show_recent_hint">在首页显示最近使用的提示词</p>
           </div>
+          <!-- How the list behaves -->
+          <div class="form-group">
+            <label class="checkbox-label">
+              <input type="checkbox" id="setting-drag-sort">
+              <span data-i18n="settings_drag_sort">拖拽排序</span>
+            </label>
+            <p class="setting-hint" data-i18n="settings_drag_sort_hint">开启后所有排序模式都可拖拽调整顺序；关闭后仅「智能」可拖拽</p>
+          </div>
+          <!-- Then what happens on copy / insert -->
           <div class="form-group">
             <label class="checkbox-label">
               <input type="checkbox" id="setting-auto-top">
@@ -439,20 +457,7 @@
             </label>
             <p class="setting-hint" data-i18n="settings_auto_send_hint">插入提示词后自动点击 ChatGPT 的发送按钮（仅 ChatGPT 页面生效）</p>
           </div>
-          <div class="form-group">
-            <label class="checkbox-label">
-              <input type="checkbox" id="setting-drag-sort">
-              <span data-i18n="settings_drag_sort">拖拽排序</span>
-            </label>
-            <p class="setting-hint" data-i18n="settings_drag_sort_hint">开启后所有排序模式都可拖拽调整顺序；关闭后仅「智能」可拖拽</p>
-          </div>
-          <div class="form-group">
-            <label for="setting-display-mode" data-i18n="label_display_mode">显示模式</label>
-            <select id="setting-display-mode">
-              <option value="list" data-i18n="display_mode_list">列表</option>
-              <option value="grouped" data-i18n="display_mode_grouped">按文件夹分组</option>
-            </select>
-          </div>
+          <!-- Data safety last -->
           <div class="form-group">
             <label class="checkbox-label">
               <input type="checkbox" id="setting-enable-trash">

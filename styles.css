@@ -255,13 +255,6 @@ body {
   color: var(--text-muted);
 }
 
-.sort-drag-tip {
-  padding: 3px 8px;
-  border-radius: 999px;
-  background: var(--bg-secondary);
-  border: 1px dashed var(--border-color);
-}
-
 /* Navigation Tabs */
 .nav-tabs {
   display: flex;

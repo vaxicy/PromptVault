@@ -314,13 +314,10 @@ if (typeof window.PromptVaultI18n === 'undefined') {
       sort_created: '创建',
       sort_title: '标题 A-Z',
       sort_usage: '使用',
-      sort_custom: '自定义',
-      sort_custom_hint: '拖拽卡片调整顺序',
       sort_group_folder: '文件夹名称',
       sort_group_recent: '最近使用',
       sort_group_updated: '最近更新',
       sort_group_usage: '使用次数',
-      sort_group_custom: '自定义顺序',
       sort_list_tooltip: '调整提示词排序',
       sort_group_tooltip: '调整文件夹和组内提示词排序',
       // Recent usage
@@ -349,14 +346,16 @@ if (typeof window.PromptVaultI18n === 'undefined') {
       // Settings - drag to reorder
       settings_drag_sort: '拖拽排序',
       settings_drag_sort_hint: '开启后所有排序模式都可拖拽调整顺序；关闭后仅「智能」可拖拽',
-      // Undo after delete
+      // Undo (Ctrl/Cmd+Z and the delete toast button)
       toast_undo: '撤销',
-      toast_deleted_undo: '已删除',
+      toast_undone: '已撤销',
+      toast_nothing_to_undo: '没有可撤销的操作',
+      toast_undo_failed: '撤销失败',
+      undo_op_delete: '删除',
+      undo_op_edit: '编辑',
       // Empty state onboarding
       empty_action_import: '导入数据',
       empty_action_shortcut: '在任意网页按 Ctrl+Shift+P 快速调用提示词',
-      // Context menu: use a prompt on the selected text
-      ctx_process_selection: '用提示词处理选中文字',
     },
     en: {
       // Header
@@ -664,13 +663,10 @@ if (typeof window.PromptVaultI18n === 'undefined') {
       sort_created: 'Created',
       sort_title: 'Title A-Z',
       sort_usage: 'Usage',
-      sort_custom: 'Custom',
-      sort_custom_hint: 'Drag cards to reorder',
       sort_group_folder: 'Folder Name',
       sort_group_recent: 'Recently Used',
       sort_group_updated: 'Recently Updated',
       sort_group_usage: 'Usage Count',
-      sort_group_custom: 'Custom Order',
       sort_list_tooltip: 'Sort prompts',
       sort_group_tooltip: 'Sort folders and prompts inside each group',
       // Recent usage
@@ -699,14 +695,16 @@ if (typeof window.PromptVaultI18n === 'undefined') {
       // Settings - drag to reorder
       settings_drag_sort: 'Drag to Reorder',
       settings_drag_sort_hint: 'Let every sort mode be reordered by dragging. When off, only Smart allows dragging.',
-      // Undo after delete
+      // Undo (Ctrl/Cmd+Z and the delete toast button)
       toast_undo: 'Undo',
-      toast_deleted_undo: 'Deleted',
+      toast_undone: 'Undone',
+      toast_nothing_to_undo: 'Nothing to undo',
+      toast_undo_failed: 'Undo failed',
+      undo_op_delete: 'Delete',
+      undo_op_edit: 'Edit',
       // Empty state onboarding
       empty_action_import: 'Import',
       empty_action_shortcut: 'Press Ctrl+Shift+P on any page to insert a prompt',
-      // Context menu: use a prompt on the selected text
-      ctx_process_selection: 'Process selection with a prompt',
     },
   };
 

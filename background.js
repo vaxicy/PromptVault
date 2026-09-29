@@ -9,14 +9,12 @@ const i18n = (() => {
     zh: {
       ctx_save_as_prompt: '保存为提示词',
       ctx_insert_prompt: '插入提示词',
-      ctx_process_selection: '用提示词处理选中文字',
       app_title: 'PromptVault',
       notif_prompt_saved: '提示词已保存！',
     },
     en: {
       ctx_save_as_prompt: 'Save as Prompt',
       ctx_insert_prompt: 'Insert Prompt',
-      ctx_process_selection: 'Process selection with a prompt',
       app_title: 'PromptVault',
       notif_prompt_saved: 'Prompt saved!',
     },
@@ -91,13 +89,6 @@ function createContextMenus() {
       title: '📋 ' + i18n.t('ctx_insert_prompt'),
       contexts: ['editable']
     });
-
-    // Process the selected text with one of the saved prompts
-    chrome.contextMenus.create({
-      id: 'processSelection',
-      title: '✨ ' + i18n.t('ctx_process_selection'),
-      contexts: ['selection']
-    });
   });
 }
 
@@ -113,9 +104,6 @@ chrome.storage.onChanged.addListener((changes, namespace) => {
       }).catch(() => {});
       chrome.contextMenus.update('insertPrompt', {
         title: i18n.t('ctx_insert_prompt')
-      }).catch(() => {});
-      chrome.contextMenus.update('processSelection', {
-        title: i18n.t('ctx_process_selection')
       }).catch(() => {});
     }
   }
@@ -290,22 +278,6 @@ if (chrome.contextMenus && chrome.contextMenus.onClicked) {
       }
     }
 
-    if (info.menuItemId === 'processSelection') {
-      const selectedText = info.selectionText || '';
-      if (!selectedText.trim()) return;
-
-      // Stash the selection so the palette can feed it into whichever prompt
-      // the user picks, then open the palette on that tab.
-      await chrome.storage.local.set({ promptvault_pendingSelection: selectedText });
-
-      if (tab && tab.id) {
-        try {
-          chrome.tabs.sendMessage(tab.id, { action: 'showPromptPicker' });
-        } catch (e) {
-          console.log('PromptVault: Content script not available in tab', tab.id);
-        }
-      }
-    }
   });
 }
 
