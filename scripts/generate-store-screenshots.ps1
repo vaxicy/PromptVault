@@ -344,15 +344,13 @@ function Screenshot-03($lang) {
   $c = New-Canvas (Join-Path (Join-Path $shotsRoot $lang) "03-search-organize.png")
   $g = $c.Graphics
   if ($zh) {
-    Draw-Text $g "搜索、标签、文件夹，一起整理" 72 62 42 "#111111" "Bold" 760 56
-    Draw-Text $g "多方式检索，一下就找到" 76 116 28 "#444444" "Regular" 760 42
-    Draw-Text $g "支持 folder: / tag: / title: / is:pinned 高级语法，结果关键词高亮。" 76 162 20 "#666666" "Regular" 780 30
-    Draw-Text $g "通过关键词、标签、文件夹或全文内容快速定位。" 76 190 17 "#777777" "Regular" 780 28
+    Draw-Text $g "搜索、标签、文件夹，一起整理" 72 70 42 "#111111" "Bold" 760 56
+    Draw-Text $g "多方式检索，一下就找到" 76 128 28 "#444444" "Regular" 760 42
+    Draw-Text $g "通过关键词、标签、文件夹或全文内容快速定位。" 76 182 19 "#666666" "Regular" 780 30
   } else {
-    Draw-Text $g "Search, tags, and folders" 72 62 42 "#111111" "Bold" 760 56
-    Draw-Text $g "Find any prompt in seconds" 76 116 28 "#444444" "Regular" 760 42
-    Draw-Text $g "Advanced syntax: folder:, tag:, title:, is:pinned - with highlighting." 76 162 20 "#666666" "Regular" 800 30
-    Draw-Text $g "Search by keyword, tag, folder, or full text." 76 190 17 "#777777" "Regular" 780 28
+    Draw-Text $g "Search, tags, and folders" 72 70 42 "#111111" "Bold" 760 56
+    Draw-Text $g "Find any prompt in seconds" 76 128 28 "#444444" "Regular" 760 42
+    Draw-Text $g "Search by keyword, tag, folder, or full text." 76 182 19 "#666666" "Regular" 780 30
   }
   Draw-Popup $g 70 216 $false
   $x = 610

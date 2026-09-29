@@ -262,7 +262,8 @@ if (typeof window.PromptVaultStorage === 'undefined') {
     const orders = data.prompts
       .map(p => p.sortOrder)
       .filter(v => Number.isFinite(v));
-    prompt.sortOrder = orders.length ? Math.min(...orders) - 1 : 0;
+    // Negative values form the promotion stack, always above drag order (0..N).
+    prompt.sortOrder = orders.length ? Math.min(...orders) - 1 : -1;
     await saveAll(data);
   }
 

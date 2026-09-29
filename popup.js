@@ -1318,10 +1318,18 @@
 
   function comparePromptsBySortMode(a, b, sortMode) {
     if (a.pinned !== b.pinned) return a.pinned ? -1 : 1;
+    // Manual order (drag-and-drop plus copy/insert promotion) wins in EVERY
+    // sort mode, so a dragged or just-used prompt is never re-sorted away.
+    const aHasOrder = Number.isFinite(a.sortOrder);
+    const bHasOrder = Number.isFinite(b.sortOrder);
+    if (aHasOrder && bHasOrder && a.sortOrder !== b.sortOrder) {
+      return a.sortOrder - b.sortOrder;
+    }
+    if (aHasOrder !== bHasOrder) return aHasOrder ? -1 : 1;
     switch (sortMode) {
       case 'smart':
       case 'custom': // legacy value: "custom" was merged into "smart"
-        return compareByManualOrder(a, b);
+        return compareSmartPrompts(a, b);
       case 'recent':
         return (b.lastUsedAt || 0) - (a.lastUsedAt || 0) ||
           (b.updatedAt || 0) - (a.updatedAt || 0);
@@ -2001,20 +2009,8 @@
         await Storage.reorderPrompts(orderedIds);
       }
 
-      // Dragging means "I want this order". Switch to the mode that honours
-      // manual order, otherwise the drop would be re-sorted away instantly.
-      if (isGroupedSortMode()) {
-        if (currentGroupSortMode !== 'folderName') {
-          currentGroupSortMode = 'folderName';
-          await persistSortModes();
-          updateSortSelectOptions();
-        }
-      } else if (currentSortMode !== 'smart') {
-        currentSortMode = 'smart';
-        await persistSortModes();
-        updateSortSelectOptions();
-      }
-
+      // Dragging only persists the new manual order — the chosen sort mode is
+      // left untouched, because manual order now takes priority in every mode.
       await renderAll();
     });
   }

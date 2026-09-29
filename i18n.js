@@ -337,9 +337,9 @@ if (typeof window.PromptVaultI18n === 'undefined') {
       settings_show_recent_hint: '在首页显示最近使用的提示词',
       // Settings - auto top after use
       settings_auto_top: '复制后置顶',
-      settings_auto_top_hint: '复制提示词后自动置顶（智能排序模式下生效）',
+      settings_auto_top_hint: '复制提示词后自动置顶（任意排序模式下生效）',
       settings_insert_top: '插入后置顶',
-      settings_insert_top_hint: '插入提示词后自动置顶（智能排序模式下生效）',
+      settings_insert_top_hint: '插入提示词后自动置顶（任意排序模式下生效）',
       // Settings - auto send after insert (ChatGPT)
       settings_auto_send: '插入后自动发送',
       settings_auto_send_hint: '插入提示词后自动点击 ChatGPT 的发送按钮（仅 ChatGPT 页面生效）',
@@ -689,7 +689,7 @@ if (typeof window.PromptVaultI18n === 'undefined') {
       settings_auto_top: 'Auto Top After Copy',
       settings_auto_top_hint: 'Automatically pin to top after copying (works in smart sort mode)',
       settings_insert_top: 'Auto Top After Insert',
-      settings_insert_top_hint: 'Automatically pin to top after inserting (works in smart sort mode)',
+      settings_insert_top_hint: 'Automatically pin to top after inserting (works in every sort mode)',
       // Settings - auto send after insert (ChatGPT)
       settings_auto_send: 'Auto Send After Insert',
       settings_auto_send_hint: 'Automatically click the ChatGPT send button after inserting (ChatGPT only)',
