@@ -345,6 +345,9 @@ if (typeof window.PromptVaultI18n === 'undefined') {
       // Settings - auto send after insert (ChatGPT)
       settings_auto_send: '插入后自动发送',
       settings_auto_send_hint: '插入提示词后自动点击 ChatGPT 的发送按钮（仅 ChatGPT 页面生效）',
+      // Settings - drag to reorder
+      settings_drag_sort: '拖拽排序',
+      settings_drag_sort_hint: '开启后所有排序模式都可拖拽调整顺序；关闭后仅「智能」可拖拽',
     },
     en: {
       // Header
@@ -683,6 +686,9 @@ if (typeof window.PromptVaultI18n === 'undefined') {
       // Settings - auto send after insert (ChatGPT)
       settings_auto_send: 'Auto Send After Insert',
       settings_auto_send_hint: 'Automatically click the ChatGPT send button after inserting (ChatGPT only)',
+      // Settings - drag to reorder
+      settings_drag_sort: 'Drag to Reorder',
+      settings_drag_sort_hint: 'Let every sort mode be reordered by dragging. When off, only Smart allows dragging.',
     },
   };
 

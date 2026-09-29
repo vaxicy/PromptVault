@@ -13,8 +13,9 @@
   let isBatchMode = false;
   let selectedPromptIds = new Set();
   let recentUsageCollapsed = false;
-  let currentSortMode = 'smart'; // smart | updatedAt | createdAt | title | usageCount | custom
-  let currentGroupSortMode = 'folderName'; // folderName | recent | updatedAt | usageCount | custom
+  let currentSortMode = 'smart'; // smart | updatedAt | createdAt | title | usageCount
+  let currentGroupSortMode = 'folderName'; // folderName | recent | updatedAt | usageCount
+  let enableDragSort = true; // allow drag-to-reorder in every sort mode
   let displayMode = 'list'; // list | grouped
   let isPromptDragSorting = false;
   let suppressPromptCardClickUntil = 0;
@@ -37,6 +38,7 @@
       autoTopAfterUse: document.getElementById('setting-auto-top')?.checked,
       insertTopAfterUse: document.getElementById('setting-insert-top')?.checked,
       autoSendAfterInsert: document.getElementById('setting-auto-send')?.checked ?? false,
+      enableDragSort: document.getElementById('setting-drag-sort')?.checked ?? false,
       defaultFolder: document.getElementById('setting-default-folder').value,
       displayMode: document.getElementById('setting-display-mode').value,
       enableTrash: document.getElementById('setting-enable-trash')?.checked ?? false,
@@ -59,6 +61,17 @@
     return isGroupedSortMode() ? currentGroupSortMode : currentSortMode;
   }
 
+  /**
+   * Drag-and-drop reordering.
+   * The standalone "custom" sort mode was merged into "smart", which is why
+   * smart always allows dragging. The setting widens that to every mode.
+   */
+  function isDragSortEnabled() {
+    if (isBatchMode) return false;
+    if (enableDragSort) return true;
+    return getActiveSortMode() === 'smart';
+  }
+
   function getSortOptions() {
     if (isGroupedSortMode()) {
       return [
@@ -66,7 +79,6 @@
         ['recent', i18n.t('sort_group_recent')],
         ['updatedAt', i18n.t('sort_group_updated')],
         ['usageCount', i18n.t('sort_group_usage')],
-        ['custom', i18n.t('sort_group_custom')],
       ];
     }
 
@@ -76,7 +88,6 @@
       ['createdAt', i18n.t('sort_created')],
       ['title', i18n.t('sort_title')],
       ['usageCount', i18n.t('sort_usage')],
-      ['custom', i18n.t('sort_custom')],
     ];
   }
 
@@ -1273,11 +1284,26 @@
     );
   }
 
+  /**
+   * Manual order first (drag-and-drop plus copy/insert promotion), then the
+   * automatic smart ranking for prompts that were never placed by hand.
+   */
+  function compareByManualOrder(a, b) {
+    const aHasOrder = Number.isFinite(a.sortOrder);
+    const bHasOrder = Number.isFinite(b.sortOrder);
+    if (aHasOrder && bHasOrder && a.sortOrder !== b.sortOrder) {
+      return a.sortOrder - b.sortOrder;
+    }
+    if (aHasOrder !== bHasOrder) return aHasOrder ? -1 : 1;
+    return compareSmartPrompts(a, b);
+  }
+
   function comparePromptsBySortMode(a, b, sortMode) {
     if (a.pinned !== b.pinned) return a.pinned ? -1 : 1;
     switch (sortMode) {
       case 'smart':
-        return compareSmartPrompts(a, b);
+      case 'custom': // legacy value: "custom" was merged into "smart"
+        return compareByManualOrder(a, b);
       case 'recent':
         return (b.lastUsedAt || 0) - (a.lastUsedAt || 0) ||
           (b.updatedAt || 0) - (a.updatedAt || 0);
@@ -1290,15 +1316,6 @@
       case 'usageCount':
         return (b.usageCount || 0) - (a.usageCount || 0) ||
           (b.lastUsedAt || 0) - (a.lastUsedAt || 0);
-      case 'custom': {
-        const aHasOrder = Number.isFinite(a.sortOrder);
-        const bHasOrder = Number.isFinite(b.sortOrder);
-        if (aHasOrder && bHasOrder && a.sortOrder !== b.sortOrder) {
-          return a.sortOrder - b.sortOrder;
-        }
-        if (aHasOrder !== bHasOrder) return aHasOrder ? -1 : 1;
-        return compareSmartPrompts(a, b);
-      }
       default:
         return compareSmartPrompts(a, b);
     }
@@ -1316,10 +1333,10 @@
         return 'updatedAt';
       case 'usageCount':
         return 'usageCount';
-      case 'custom':
-        return 'custom';
       case 'folderName':
       default:
+        // "folderName" is the default group mode and defers to smart, which
+        // honours the manual order built up by drag-and-drop.
         return 'smart';
     }
   }
@@ -1380,7 +1397,7 @@
       `);
     }
 
-    if (!query && !currentFolderFilter && getActiveSortMode() === 'custom' && currentTab === 'prompts') {
+    if (!query && !currentFolderFilter && isDragSortEnabled() && currentTab === 'prompts') {
       parts.push(`
         <span class="search-tip sort-drag-tip">
           ${i18n.t('sort_custom_hint')}
@@ -1831,12 +1848,12 @@
   }
 
   /**
-   * Initialize drag-and-drop for prompt cards (custom sort mode only)
+   * Initialize drag-and-drop for prompt cards.
+   * Enabled in every sort mode when the setting is on; "smart" always allows it.
    */
   function initDragAndDrop(container) {
     if (!container) return;
-    // Only enable in custom sort mode and not in batch mode
-    if (getActiveSortMode() !== 'custom' || isBatchMode) {
+    if (!isDragSortEnabled()) {
       container.querySelectorAll('.prompt-card').forEach(card => {
         card.removeAttribute('draggable');
         card.classList.remove('draggable-card');
@@ -1915,6 +1932,21 @@
 
       // Save new order
       await Storage.reorderPrompts(orderedIds);
+
+      // Dragging means "I want this order". Switch to the mode that honours
+      // manual order, otherwise the drop would be re-sorted away instantly.
+      if (isGroupedSortMode()) {
+        if (currentGroupSortMode !== 'folderName') {
+          currentGroupSortMode = 'folderName';
+          await persistSortModes();
+          updateSortSelectOptions();
+        }
+      } else if (currentSortMode !== 'smart') {
+        currentSortMode = 'smart';
+        await persistSortModes();
+        updateSortSelectOptions();
+      }
+
       await renderAll();
     });
   }
@@ -2601,12 +2633,15 @@
    * Smart sort already orders by pinned first, then lastUsedAt — this just
    * re-renders so the just-used prompt visibly moves up.
    */
-  async function refreshAfterUse(trigger = 'copy') {
+  async function isAutoTopEnabled(trigger = 'copy') {
     const settings = await Storage.getSettings();
-    const enabled = trigger === 'insert'
+    return trigger === 'insert'
       ? settings.insertTopAfterUse !== false
       : settings.autoTopAfterUse !== false;
-    if (enabled) {
+  }
+
+  async function refreshAfterUse(trigger = 'copy') {
+    if (await isAutoTopEnabled(trigger)) {
       renderPrompts();
     }
   }
@@ -2632,7 +2667,12 @@
     // Record usage (updates lastUsedAt so smart sort puts it on top).
     // skipRecordUsage is set when called as an insert fallback, because
     // insertPromptIntoPage already recorded usage before attempting insert.
-    if (!skipRecordUsage) await Storage.recordUsage(promptId);
+    if (!skipRecordUsage) {
+      await Storage.recordUsage(promptId);
+      // Keep the manual order in sync: the just-copied prompt goes on top
+      // (unless the user turned that off in settings).
+      if (await isAutoTopEnabled('copy')) await Storage.promotePrompt(promptId);
+    }
     showCardCopiedFeedback(promptId);
     showToast(i18n.t('toast_copied'), 'success');
     await refreshAfterUse();
@@ -2665,6 +2705,9 @@
     // would drop the persistent lastUsedAt update. Recording up front guarantees
     // the prompt gets promoted even if the popup is dismissed immediately.
     await Storage.recordUsage(promptId);
+    // Keep the manual order in sync: the just-inserted prompt goes on top
+    // (unless the user turned that off in settings).
+    if (await isAutoTopEnabled('insert')) await Storage.promotePrompt(promptId);
 
     // 1) Fast path: ask the already injected content script to insert
     let sendMessageFailed = false;
@@ -3169,8 +3212,12 @@
     const badgeCheckbox = document.getElementById('setting-show-badge');
     if (badgeCheckbox) badgeCheckbox.checked = settings.showBadge !== false;
 
+    // The standalone "custom" sort mode was merged into "smart": migrate the
+    // stored value so the dropdown can still show the active option.
     currentSortMode = settings.sortMode || currentSortMode;
+    if (currentSortMode === 'custom') currentSortMode = 'smart';
     currentGroupSortMode = settings.groupSortMode || currentGroupSortMode;
+    if (currentGroupSortMode === 'custom') currentGroupSortMode = 'folderName';
 
     // Load display mode
     displayMode = settings.displayMode || 'list';
@@ -3191,6 +3238,11 @@
     // Load auto send after insert (opt-in, defaults to false)
     const autoSendCheckbox = document.getElementById('setting-auto-send');
     if (autoSendCheckbox) autoSendCheckbox.checked = settings.autoSendAfterInsert === true;
+
+    // Load drag-to-reorder (defaults to on)
+    enableDragSort = settings.enableDragSort !== false;
+    const dragSortCheckbox = document.getElementById('setting-drag-sort');
+    if (dragSortCheckbox) dragSortCheckbox.checked = enableDragSort;
 
     // Load trash setting (opt-in, defaults to false)
     const enableTrashCheckbox = document.getElementById('setting-enable-trash');
@@ -3215,6 +3267,7 @@
     const newAutoTop = document.getElementById('setting-auto-top')?.checked;
     const newInsertTop = document.getElementById('setting-insert-top')?.checked;
     const newAutoSend = document.getElementById('setting-auto-send')?.checked ?? false;
+    const newDragSort = document.getElementById('setting-drag-sort')?.checked ?? false;
     const newDefaultFolder = document.getElementById('setting-default-folder').value;
     const newDisplayMode = document.getElementById('setting-display-mode').value;
     const newEnableTrash = document.getElementById('setting-enable-trash')?.checked ?? false;
@@ -3225,6 +3278,7 @@
     const recentChanged = newShowRecent !== (settings.showRecent !== false);
     const displayModeChanged = newDisplayMode !== (settings.displayMode || 'list');
     const trashChanged = newEnableTrash !== (settings.enableTrash === true);
+    const dragSortChanged = newDragSort !== (settings.enableDragSort !== false);
 
     // Turning the trash OFF permanently deletes everything currently in it.
     // Confirm first so we never silently destroy recoverable data.
@@ -3248,6 +3302,7 @@
     settings.autoTopAfterUse = newAutoTop;
     settings.insertTopAfterUse = newInsertTop;
     settings.autoSendAfterInsert = newAutoSend;
+    settings.enableDragSort = newDragSort;
     settings.defaultFolder = newDefaultFolder;
     settings.displayMode = newDisplayMode;
     settings.enableTrash = newEnableTrash;
@@ -3271,6 +3326,12 @@
     if (displayModeChanged) {
       displayMode = newDisplayMode;
       updateSortSelectOptions();
+      await renderPrompts();
+    }
+
+    // Apply drag-to-reorder change
+    if (dragSortChanged) {
+      enableDragSort = newDragSort;
       await renderPrompts();
     }
 

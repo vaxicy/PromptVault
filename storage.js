@@ -28,7 +28,9 @@ if (typeof window.PromptVaultStorage === 'undefined') {
       // Opt-in: when false, deleting removes the prompt permanently
       enableTrash: false,
       // Opt-in: auto-click the ChatGPT send button right after inserting
-      autoSendAfterInsert: false
+      autoSendAfterInsert: false,
+      // Drag-and-drop reordering in every sort mode ("smart" always allows it)
+      enableDragSort: true
     }
   };
 
@@ -145,6 +147,11 @@ if (typeof window.PromptVaultStorage === 'undefined') {
       prompt.id = generateId();
       prompt.createdAt = Date.now();
       prompt.updatedAt = Date.now();
+      // New prompts land on top of the manual order once one exists.
+      const orders = data.prompts
+        .map(p => p.sortOrder)
+        .filter(v => Number.isFinite(v));
+      if (orders.length) prompt.sortOrder = Math.min(...orders) - 1;
       data.prompts.push(prompt);
     }
 
@@ -239,6 +246,23 @@ if (typeof window.PromptVaultStorage === 'undefined') {
       const prompt = data.prompts.find(p => p.id === id);
       if (prompt) prompt.sortOrder = index;
     });
+    await saveAll(data);
+  }
+
+  /**
+   * Move a prompt to the very front of the manual order.
+   * Called after copy/insert so the just-used prompt stays on top even when
+   * the list has been reordered by hand.
+   */
+  async function promotePrompt(id) {
+    const data = await getAll();
+    const prompt = data.prompts.find(p => p.id === id);
+    if (!prompt) return;
+
+    const orders = data.prompts
+      .map(p => p.sortOrder)
+      .filter(v => Number.isFinite(v));
+    prompt.sortOrder = orders.length ? Math.min(...orders) - 1 : 0;
     await saveAll(data);
   }
 
@@ -709,6 +733,7 @@ if (typeof window.PromptVaultStorage === 'undefined') {
     emptyTrash,
     togglePin,
     reorderPrompts,
+    promotePrompt,
     recordUsage,
     searchPrompts,
     filterAndRankPrompts,

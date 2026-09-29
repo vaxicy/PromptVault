@@ -305,7 +305,15 @@ async function updateBadge() {
     const count = store.prompts.length;
     if (count > 0) {
       chrome.action.setBadgeText({ text: count.toString() });
-      chrome.action.setBadgeBackgroundColor({ color: '#4a9eff' });
+      // White badge with black digits. setBadgeTextColor only exists on
+      // Chrome 110+; without it the text would stay white on a white badge,
+      // so fall back to a dark badge instead.
+      chrome.action.setBadgeBackgroundColor({ color: '#FFFFFF' });
+      try {
+        chrome.action.setBadgeTextColor({ color: '#000000' });
+      } catch (error) {
+        chrome.action.setBadgeBackgroundColor({ color: '#1F1F1F' });
+      }
     } else {
       chrome.action.setBadgeText({ text: '' });
     }
