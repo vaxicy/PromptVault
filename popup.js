@@ -397,6 +397,23 @@
     // Import/Export
     document.getElementById('btn-import').addEventListener('click', importData);
     document.getElementById('btn-export').addEventListener('click', exportData);
+    // Empty-state onboarding reuses the same import flow
+    document.getElementById('btn-empty-import')?.addEventListener('click', importData);
+
+    // Search syntax chips append their prefix to the query and re-run search
+    document.addEventListener('click', (event) => {
+      const chip = event.target.closest('.search-chip');
+      if (!chip) return;
+      const input = document.getElementById('search-input');
+      if (!input) return;
+      const prefix = chip.dataset.insert || '';
+      const current = input.value.trim();
+      const next = current ? `${current} ${prefix}` : prefix;
+      input.value = next;
+      input.focus();
+      input.setSelectionRange(next.length, next.length);
+      handleSearch();
+    });
     document.getElementById('btn-open-wechat-support')?.addEventListener('click', openWechatSupport);
     document.getElementById('btn-paypal-support')?.addEventListener('click', openPaypalSupport);
 
@@ -407,6 +424,7 @@
       settingsSnapshot = snapshotSettings();
     });
     document.getElementById('btn-clear-data').addEventListener('click', clearAllData);
+    document.getElementById('btn-cleanup-unused')?.addEventListener('click', cleanupUnusedPrompts);
 
     // Theme toggle
     document.getElementById('btn-theme').addEventListener('click', toggleDarkMode);
@@ -1394,6 +1412,7 @@
         <span class="search-tip">
           ${i18n.t('search_syntax_tip')}
         </span>
+        <span class="search-chips">${renderSearchChips()}</span>
       `);
     }
 
@@ -1407,6 +1426,39 @@
 
     context.innerHTML = parts.join('');
     context.classList.toggle('hidden', parts.length === 0);
+  }
+
+  /**
+   * Clickable search-syntax chips. The raw prefixes are useful but nobody
+   * remembers them, so offer them as one-tap inserts.
+   */
+  function renderSearchChips() {
+    const chips = [
+      { insert: 'folder:', labelKey: 'search_chip_folder' },
+      { insert: 'tag:', labelKey: 'search_chip_tag' },
+      { insert: 'title:', labelKey: 'search_chip_title' },
+      { insert: 'is:pinned', labelKey: 'search_chip_pinned' },
+      { insert: 'is:unpinned', labelKey: 'search_chip_unpinned' },
+    ];
+
+    return chips
+      .map(chip => {
+        const insert = escapeHtml(chip.insert);
+        const label = escapeHtml(i18n.t(chip.labelKey));
+        return `<button type="button" class="search-chip" data-insert="${insert}" title="${insert}">${label}</button>`;
+      })
+      .join('');
+  }
+
+  /**
+   * The import button and the shortcut hint only make sense on a genuinely
+   * empty list — hide them when the list is empty because of a search/filter.
+   */
+  function toggleEmptyOnboarding(emptyState, show) {
+    const importBtn = emptyState.querySelector('#btn-empty-import');
+    if (importBtn) importBtn.classList.toggle('hidden', !show);
+    const hint = emptyState.querySelector('.empty-shortcut-hint');
+    if (hint) hint.classList.toggle('hidden', !show);
   }
 
   /**
@@ -1444,6 +1496,7 @@
         emptyState.querySelector('.empty-hint').textContent = i18n.t('empty_prompts_hint');
         if (emptyActionBtn) emptyActionBtn.textContent = i18n.t('empty_action_new_prompt');
       }
+      toggleEmptyOnboarding(emptyState, !query && !currentFolderFilter);
       document.getElementById('batch-actions-bar').classList.add('hidden');
       return;
     }
@@ -1662,6 +1715,7 @@
       emptyState.querySelector('.empty-hint').textContent = i18n.t('empty_prompts_hint');
       const emptyActionBtn = document.getElementById('btn-empty-new-prompt');
       if (emptyActionBtn) emptyActionBtn.textContent = i18n.t('empty_action_new_prompt');
+      toggleEmptyOnboarding(emptyState, true);
       return;
     }
 
@@ -1919,11 +1973,16 @@
       // Move the dragged card in the DOM to the correct position
       const draggedCard = container.querySelector(`[data-id="${draggedId}"]`);
       const afterResult = _getDragAfterElement(container, e.clientY);
-      if (draggedCard && afterResult && afterResult.element) {
-        if (afterResult.position === 'before') {
-          container.insertBefore(draggedCard, afterResult.element);
+      if (draggedCard) {
+        if (afterResult && afterResult.element) {
+          if (afterResult.position === 'before') {
+            container.insertBefore(draggedCard, afterResult.element);
+          } else {
+            container.insertBefore(draggedCard, afterResult.element.nextSibling);
+          }
         } else {
-          container.insertBefore(draggedCard, afterResult.element.nextSibling);
+          // Dropped past the last card — land at the end of this group
+          container.appendChild(draggedCard);
         }
       }
 
@@ -1932,6 +1991,18 @@
 
       // Save new order
       await Storage.reorderPrompts(orderedIds);
+
+      // Grouped mode: dropping into another group's list also moves the
+      // prompt into that folder.
+      const targetFolderId = container.closest('.folder-group')?.dataset.folderId;
+      if (targetFolderId) {
+        const moved = await Storage.getPrompt(draggedId);
+        if (moved && moved.folder !== targetFolderId) {
+          moved.folder = targetFolderId;
+          await Storage.savePrompt(moved);
+          showToast(i18n.t('toast_moved_to_folder'), 'success');
+        }
+      }
 
       // Dragging means "I want this order". Switch to the mode that honours
       // manual order, otherwise the drop would be re-sorted away instantly.
@@ -2793,8 +2864,27 @@
 
     okBtn.onclick = async () => {
       if (type === 'prompt') {
+        // Snapshot before deleting so the toast can offer an undo.
+        const snapshot = await Storage.getPrompt(id);
         const result = await Storage.deletePrompt(id);
-        showToast(i18n.t(result?.trashed ? 'toast_moved_to_trash' : 'toast_deleted'), 'success');
+        const trashed = Boolean(result?.trashed);
+
+        showToast(
+          i18n.t(trashed ? 'toast_moved_to_trash' : 'toast_deleted'),
+          'success',
+          snapshot
+            ? {
+                label: i18n.t('toast_undo'),
+                onClick: async () => {
+                  if (trashed) await Storage.restoreFromTrash(id);
+                  else await Storage.restorePrompt(snapshot);
+                  await updateTrashUI();
+                  await renderAll();
+                  showToast(i18n.t('toast_restored'), 'success');
+                },
+              }
+            : null
+        );
         await updateTrashUI();
       } else if (type === 'folder') {
         await Storage.deleteFolder(id);
@@ -3352,6 +3442,51 @@
     showToast(i18n.t('toast_settings_applied'), 'success');
   }
 
+  const UNUSED_PROMPT_DAYS = 90;
+
+  /**
+   * Prompts that have not been used for a long time. Never-used prompts are
+   * judged by their creation date so brand-new entries are not flagged.
+   */
+  async function findUnusedPrompts() {
+    const prompts = await Storage.getPrompts();
+    const cutoff = Date.now() - UNUSED_PROMPT_DAYS * 86400000;
+    return prompts.filter(prompt => {
+      const lastUsed = prompt.lastUsedAt || 0;
+      if (lastUsed) return lastUsed < cutoff;
+      return (prompt.createdAt || 0) < cutoff;
+    });
+  }
+
+  async function cleanupUnusedPrompts() {
+    const unused = await findUnusedPrompts();
+    if (unused.length === 0) {
+      showToast(i18n.t('cleanup_none'), 'info');
+      return;
+    }
+
+    const settings = await Storage.getSettings();
+    const trashEnabled = settings.enableTrash === true;
+
+    document.getElementById('confirm-title').textContent = i18n.t('cleanup_title');
+    document.getElementById('confirm-message').textContent = i18n.t(
+      trashEnabled ? 'cleanup_confirm_trash' : 'cleanup_confirm',
+      unused.length
+    );
+    document.getElementById('confirm-ok').textContent = i18n.t('btn_confirm');
+    openModal('confirm-dialog');
+
+    document.getElementById('confirm-ok').onclick = async () => {
+      for (const prompt of unused) {
+        await Storage.deletePrompt(prompt.id);
+      }
+      closeAllModals();
+      await updateTrashUI();
+      await renderAll();
+      showToast(i18n.t('cleanup_done', unused.length), 'success');
+    };
+  }
+
   function clearAllData() {
     const title = document.getElementById('confirm-title');
     const message = document.getElementById('confirm-message');
@@ -3411,14 +3546,43 @@
     tagModalOriginalName = '';
   }
 
-  function showToast(message, type = 'info') {
+  let toastTimer = null;
+
+  /**
+   * Show a transient toast. Pass `action` ({ label, onClick }) to add an
+   * inline button — used for "Undo" right after deleting a prompt.
+   */
+  function showToast(message, type = 'info', action = null) {
     const toast = document.getElementById('toast');
+    clearTimeout(toastTimer);
+
     toast.textContent = message;
     toast.className = `toast ${type}`;
     toast.classList.remove('hidden');
-    setTimeout(() => {
-      toast.classList.add('hidden');
-    }, 3000);
+
+    if (action && action.label && typeof action.onClick === 'function') {
+      const btn = document.createElement('button');
+      btn.type = 'button';
+      btn.className = 'toast-action';
+      btn.textContent = action.label;
+      btn.addEventListener('click', (event) => {
+        event.stopPropagation();
+        hideToast();
+        action.onClick();
+      });
+      toast.appendChild(btn);
+      toast.classList.add('has-action');
+    }
+
+    toastTimer = setTimeout(hideToast, action ? 6000 : 3000);
+  }
+
+  function hideToast() {
+    clearTimeout(toastTimer);
+    const toast = document.getElementById('toast');
+    if (!toast) return;
+    toast.classList.add('hidden');
+    toast.textContent = '';
   }
 
   function escapeHtml(text) {

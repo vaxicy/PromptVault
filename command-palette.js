@@ -604,10 +604,36 @@
     });
   }
 
+  // ========== Pending selection (context menu "process selection") ==========
+  let pendingSelection = '';
+
+  async function loadPendingSelection() {
+    try {
+      const data = await chrome.storage.local.get('promptvault_pendingSelection');
+      pendingSelection = data.promptvault_pendingSelection || '';
+    } catch (e) {
+      pendingSelection = '';
+    }
+    return pendingSelection;
+  }
+
+  async function clearPendingSelection() {
+    pendingSelection = '';
+    try {
+      await chrome.storage.local.remove('promptvault_pendingSelection');
+    } catch (e) {
+      // The selection is scoped to one palette session; failing to clear it is
+      // harmless.
+    }
+  }
+
   // ========== Insert Prompt ==========
   async function insertPromptById(promptId) {
     const prompt = allPrompts.find((p) => p.id === promptId);
     if (!prompt) return;
+
+    // Text the user selected before opening the palette from the context menu
+    const selection = await loadPendingSelection();
 
     let content = prompt.content;
 
@@ -620,6 +646,9 @@
         if (history[n]) prefills[n] = history[n];
       });
 
+      // A fresh selection wins over the remembered value of the first variable
+      if (selection) prefills[names[0]] = selection;
+
       closePalette();
 
       const values = await showVariableDialog(names, prefills);
@@ -627,6 +656,9 @@
 
       await saveVariableHistory(values);
       content = applyVariables(content, values);
+    } else if (selection) {
+      // No placeholders to fill — append the selection underneath
+      content = `${content}\n\n${selection}`;
     }
 
     // Use UniversalInsert if available
@@ -664,6 +696,9 @@
   }
 
   function closePalette() {
+    // A pending selection belongs to the palette session that consumed it
+    clearPendingSelection();
+
     const overlay = document.getElementById(PALETTE_ID);
     if (!overlay) return;
 

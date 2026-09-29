@@ -89,6 +89,13 @@ function createContextMenus() {
       title: '📋 ' + i18n.t('ctx_insert_prompt'),
       contexts: ['editable']
     });
+
+    // Process the selected text with one of the saved prompts
+    chrome.contextMenus.create({
+      id: 'processSelection',
+      title: '✨ ' + i18n.t('ctx_process_selection'),
+      contexts: ['selection']
+    });
   });
 }
 
@@ -104,6 +111,9 @@ chrome.storage.onChanged.addListener((changes, namespace) => {
       }).catch(() => {});
       chrome.contextMenus.update('insertPrompt', {
         title: i18n.t('ctx_insert_prompt')
+      }).catch(() => {});
+      chrome.contextMenus.update('processSelection', {
+        title: i18n.t('ctx_process_selection')
       }).catch(() => {});
     }
   }
@@ -269,6 +279,23 @@ if (chrome.contextMenus && chrome.contextMenus.onClicked) {
 
     if (info.menuItemId === 'insertPrompt') {
       // Content scripts are auto-injected via manifest, send message directly
+      if (tab && tab.id) {
+        try {
+          chrome.tabs.sendMessage(tab.id, { action: 'showPromptPicker' });
+        } catch (e) {
+          console.log('PromptVault: Content script not available in tab', tab.id);
+        }
+      }
+    }
+
+    if (info.menuItemId === 'processSelection') {
+      const selectedText = info.selectionText || '';
+      if (!selectedText.trim()) return;
+
+      // Stash the selection so the palette can feed it into whichever prompt
+      // the user picks, then open the palette on that tab.
+      await chrome.storage.local.set({ promptvault_pendingSelection: selectedText });
+
       if (tab && tab.id) {
         try {
           chrome.tabs.sendMessage(tab.id, { action: 'showPromptPicker' });

@@ -267,6 +267,18 @@ if (typeof window.PromptVaultStorage === 'undefined') {
   }
 
   /**
+   * Re-insert a previously deleted prompt, keeping its id and timestamps so
+   * the undo action on the delete toast restores the exact same entry.
+   */
+  async function restorePrompt(prompt) {
+    if (!prompt || !prompt.id) return;
+    const data = await getAll();
+    if (data.prompts.some(p => p.id === prompt.id)) return;
+    data.prompts.push(prompt);
+    await saveAll(data);
+  }
+
+  /**
    * Toggle pin status of a prompt
    */
   async function togglePin(id) {
@@ -308,6 +320,34 @@ if (typeof window.PromptVaultStorage === 'undefined') {
   function getFolderLabel(prompt, folderMap) {
     const folderId = prompt.folder || 'default';
     return folderMap[folderId] || folderId;
+  }
+
+  /**
+   * Only ascii terms can be pinyin initials, so Chinese queries skip the
+   * (relatively costly) conversion entirely.
+   */
+  function isAsciiQueryTerm(term) {
+    return /^[a-z0-9]+$/.test(term);
+  }
+
+  /**
+   * Pinyin initials for a string: "公司文案" -> "gswa". Latin letters and
+   * digits are kept so "公司文案 v2" -> "gswav2". Returns '' when the map is
+   * unavailable or the text has no convertible characters.
+   */
+  function toPinyinInitials(value) {
+    const map = typeof window !== 'undefined' ? window.PVPinyinMap : null;
+    if (!map) return '';
+
+    const text = String(value || '').toLowerCase();
+    let out = '';
+    for (const ch of text) {
+      const letter = map[ch];
+      if (letter) out += letter;
+      else if (ch >= 'a' && ch <= 'z') out += ch;
+      else if (ch >= '0' && ch <= '9') out += ch;
+    }
+    return out;
   }
 
   function parseSearchQuery(query) {
@@ -362,11 +402,17 @@ if (typeof window.PromptVaultStorage === 'undefined') {
     );
     if (!tagMatches) return false;
 
+    const needsInitials = filters.terms.some(isAsciiQueryTerm);
+    const titleInitials = needsInitials ? toPinyinInitials(prompt.title) : '';
+    const contentInitials = needsInitials ? toPinyinInitials(prompt.content) : '';
+
     return filters.terms.every(term =>
       title.includes(term) ||
       content.includes(term) ||
       folder.includes(term) ||
-      tags.some(tag => tag.includes(term))
+      tags.some(tag => tag.includes(term)) ||
+      (isAsciiQueryTerm(term) &&
+        (titleInitials.includes(term) || contentInitials.includes(term)))
     );
   }
 
@@ -383,11 +429,21 @@ if (typeof window.PromptVaultStorage === 'undefined') {
     const folder = normalizeSearchText(folderLabel);
     const allTerms = [...filters.terms, ...filters.titleTerms, ...filters.folders];
 
+    const needsInitials = allTerms.some(isAsciiQueryTerm);
+    const titleInitials = needsInitials ? toPinyinInitials(prompt.title) : '';
+    const contentInitials = needsInitials ? toPinyinInitials(prompt.content) : '';
+
     let score = 0;
     allTerms.forEach(term => {
       score += getFieldScore(title, term, { exact: 120, prefix: 90, contains: 65 });
       score += getFieldScore(folder, term, { exact: 45, prefix: 35, contains: 25 });
       score += getFieldScore(content, term, { exact: 30, prefix: 22, contains: 12 });
+
+      // Pinyin initials rank below a literal match but still surface results.
+      if (isAsciiQueryTerm(term)) {
+        score += getFieldScore(titleInitials, term, { exact: 70, prefix: 55, contains: 38 });
+        score += getFieldScore(contentInitials, term, { exact: 18, prefix: 14, contains: 8 });
+      }
     });
 
     if (prompt.pinned) score += 18;
@@ -734,6 +790,7 @@ if (typeof window.PromptVaultStorage === 'undefined') {
     togglePin,
     reorderPrompts,
     promotePrompt,
+    restorePrompt,
     recordUsage,
     searchPrompts,
     filterAndRankPrompts,

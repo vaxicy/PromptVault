@@ -122,7 +122,11 @@
           </svg>
           <p>暂无提示词</p>
           <p class="empty-hint">创建你的第一个提示词开始使用</p>
-          <button id="btn-empty-new-prompt" class="empty-action-btn" type="button">新建提示词</button>
+          <div class="empty-actions">
+            <button id="btn-empty-new-prompt" class="empty-action-btn" type="button">新建提示词</button>
+            <button id="btn-empty-import" class="empty-action-btn empty-action-secondary" type="button" data-i18n="empty_action_import">导入数据</button>
+          </div>
+          <p class="empty-shortcut-hint" data-i18n="empty_action_shortcut">在任意网页按 Ctrl+Shift+P 快速调用提示词</p>
         </div>
         <!-- Batch Actions Bar -->
         <div id="batch-actions-bar" class="batch-actions-bar hidden">
@@ -521,6 +525,10 @@
             </div>
           </div>
           <p class="setting-hint no-indent" data-i18n="settings_data_management_hint">导入会合并数据；清除会删除所有提示词、文件夹和标签</p>
+          <button id="btn-cleanup-unused" class="secondary-btn settings-cleanup-btn" type="button">
+            <span data-i18n="cleanup_unused">清理未使用</span>
+          </button>
+          <p class="setting-hint no-indent" data-i18n="cleanup_unused_hint">删除 90 天以上未使用过的提示词</p>
           <button id="btn-clear-data" class="danger-btn settings-danger-btn">清除所有数据</button>
         </div>
         <div class="settings-section support-section">
@@ -618,6 +626,7 @@
   <div id="toast" class="toast hidden"></div>
 
   <script src="i18n.js"></script>
+  <script src="pinyin-map.js"></script>
   <script src="storage.js"></script>
   <script src="popup.js"></script>
 </body>
