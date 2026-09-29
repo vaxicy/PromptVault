@@ -9,12 +9,14 @@ const i18n = (() => {
     zh: {
       ctx_save_as_prompt: '保存为提示词',
       ctx_insert_prompt: '插入提示词',
+      ctx_process_selection: '用提示词处理选中文字',
       app_title: 'PromptVault',
       notif_prompt_saved: '提示词已保存！',
     },
     en: {
       ctx_save_as_prompt: 'Save as Prompt',
       ctx_insert_prompt: 'Insert Prompt',
+      ctx_process_selection: 'Process selection with a prompt',
       app_title: 'PromptVault',
       notif_prompt_saved: 'Prompt saved!',
     },

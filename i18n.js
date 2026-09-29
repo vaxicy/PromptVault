@@ -355,20 +355,6 @@ if (typeof window.PromptVaultI18n === 'undefined') {
       // Empty state onboarding
       empty_action_import: '导入数据',
       empty_action_shortcut: '在任意网页按 Ctrl+Shift+P 快速调用提示词',
-      // Search syntax chips
-      search_chip_folder: '文件夹',
-      search_chip_tag: '标签',
-      search_chip_title: '标题',
-      search_chip_pinned: '已置顶',
-      search_chip_unpinned: '未置顶',
-      // Cleanup of long-unused prompts
-      cleanup_unused: '清理未使用',
-      cleanup_unused_hint: '删除 90 天以上未使用过的提示词',
-      cleanup_title: '清理未使用提示词',
-      cleanup_confirm: '有 {0} 条提示词超过 90 天未使用，确定要删除吗？',
-      cleanup_confirm_trash: '有 {0} 条提示词超过 90 天未使用，将移入回收站。继续吗？',
-      cleanup_none: '没有长期未使用的提示词',
-      cleanup_done: '已清理 {0} 条提示词',
       // Context menu: use a prompt on the selected text
       ctx_process_selection: '用提示词处理选中文字',
     },
@@ -719,20 +705,6 @@ if (typeof window.PromptVaultI18n === 'undefined') {
       // Empty state onboarding
       empty_action_import: 'Import',
       empty_action_shortcut: 'Press Ctrl+Shift+P on any page to insert a prompt',
-      // Search syntax chips
-      search_chip_folder: 'Folder',
-      search_chip_tag: 'Tag',
-      search_chip_title: 'Title',
-      search_chip_pinned: 'Pinned',
-      search_chip_unpinned: 'Not pinned',
-      // Cleanup of long-unused prompts
-      cleanup_unused: 'Clean Up Unused',
-      cleanup_unused_hint: 'Remove prompts that have not been used for 90+ days',
-      cleanup_title: 'Clean up unused prompts',
-      cleanup_confirm: '{0} prompts have not been used for over 90 days. Delete them?',
-      cleanup_confirm_trash: '{0} prompts have not been used for over 90 days. They will move to the trash. Continue?',
-      cleanup_none: 'No long-unused prompts',
-      cleanup_done: 'Cleaned up {0} prompts',
       // Context menu: use a prompt on the selected text
       ctx_process_selection: 'Process selection with a prompt',
     },

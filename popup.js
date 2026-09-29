@@ -400,20 +400,6 @@
     // Empty-state onboarding reuses the same import flow
     document.getElementById('btn-empty-import')?.addEventListener('click', importData);
 
-    // Search syntax chips append their prefix to the query and re-run search
-    document.addEventListener('click', (event) => {
-      const chip = event.target.closest('.search-chip');
-      if (!chip) return;
-      const input = document.getElementById('search-input');
-      if (!input) return;
-      const prefix = chip.dataset.insert || '';
-      const current = input.value.trim();
-      const next = current ? `${current} ${prefix}` : prefix;
-      input.value = next;
-      input.focus();
-      input.setSelectionRange(next.length, next.length);
-      handleSearch();
-    });
     document.getElementById('btn-open-wechat-support')?.addEventListener('click', openWechatSupport);
     document.getElementById('btn-paypal-support')?.addEventListener('click', openPaypalSupport);
 
@@ -424,7 +410,6 @@
       settingsSnapshot = snapshotSettings();
     });
     document.getElementById('btn-clear-data').addEventListener('click', clearAllData);
-    document.getElementById('btn-cleanup-unused')?.addEventListener('click', cleanupUnusedPrompts);
 
     // Theme toggle
     document.getElementById('btn-theme').addEventListener('click', toggleDarkMode);
@@ -1412,7 +1397,6 @@
         <span class="search-tip">
           ${i18n.t('search_syntax_tip')}
         </span>
-        <span class="search-chips">${renderSearchChips()}</span>
       `);
     }
 
@@ -1426,28 +1410,6 @@
 
     context.innerHTML = parts.join('');
     context.classList.toggle('hidden', parts.length === 0);
-  }
-
-  /**
-   * Clickable search-syntax chips. The raw prefixes are useful but nobody
-   * remembers them, so offer them as one-tap inserts.
-   */
-  function renderSearchChips() {
-    const chips = [
-      { insert: 'folder:', labelKey: 'search_chip_folder' },
-      { insert: 'tag:', labelKey: 'search_chip_tag' },
-      { insert: 'title:', labelKey: 'search_chip_title' },
-      { insert: 'is:pinned', labelKey: 'search_chip_pinned' },
-      { insert: 'is:unpinned', labelKey: 'search_chip_unpinned' },
-    ];
-
-    return chips
-      .map(chip => {
-        const insert = escapeHtml(chip.insert);
-        const label = escapeHtml(i18n.t(chip.labelKey));
-        return `<button type="button" class="search-chip" data-insert="${insert}" title="${insert}">${label}</button>`;
-      })
-      .join('');
   }
 
   /**
@@ -3440,51 +3402,6 @@
 
     closeAllModals();
     showToast(i18n.t('toast_settings_applied'), 'success');
-  }
-
-  const UNUSED_PROMPT_DAYS = 90;
-
-  /**
-   * Prompts that have not been used for a long time. Never-used prompts are
-   * judged by their creation date so brand-new entries are not flagged.
-   */
-  async function findUnusedPrompts() {
-    const prompts = await Storage.getPrompts();
-    const cutoff = Date.now() - UNUSED_PROMPT_DAYS * 86400000;
-    return prompts.filter(prompt => {
-      const lastUsed = prompt.lastUsedAt || 0;
-      if (lastUsed) return lastUsed < cutoff;
-      return (prompt.createdAt || 0) < cutoff;
-    });
-  }
-
-  async function cleanupUnusedPrompts() {
-    const unused = await findUnusedPrompts();
-    if (unused.length === 0) {
-      showToast(i18n.t('cleanup_none'), 'info');
-      return;
-    }
-
-    const settings = await Storage.getSettings();
-    const trashEnabled = settings.enableTrash === true;
-
-    document.getElementById('confirm-title').textContent = i18n.t('cleanup_title');
-    document.getElementById('confirm-message').textContent = i18n.t(
-      trashEnabled ? 'cleanup_confirm_trash' : 'cleanup_confirm',
-      unused.length
-    );
-    document.getElementById('confirm-ok').textContent = i18n.t('btn_confirm');
-    openModal('confirm-dialog');
-
-    document.getElementById('confirm-ok').onclick = async () => {
-      for (const prompt of unused) {
-        await Storage.deletePrompt(prompt.id);
-      }
-      closeAllModals();
-      await updateTrashUI();
-      await renderAll();
-      showToast(i18n.t('cleanup_done', unused.length), 'success');
-    };
   }
 
   function clearAllData() {
