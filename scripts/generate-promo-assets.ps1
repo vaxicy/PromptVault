@@ -105,13 +105,13 @@ function Generate-SmallTile {
   Draw-Text $g "PromptVault" 116 42 31 "#111111" "Bold" 270 42
   Draw-Text $g "AI 提示词管理器" 118 88 19 "#444444" "Regular" 240 28
   Draw-Text $g "AI Prompt Manager" 118 116 16 "#777777" "Regular" 240 24
-  Fill-RoundRect $g (New-Brush "#111111") 44 164 146 38 10
-  Draw-Text $g "保存 · 搜索 · 复用" 60 172 15 "#ffffff" "Bold" 120 22
-  Fill-RoundRect $g (New-Brush "#f7f7f7") 204 164 168 38 10
-  Draw-RoundRect $g (New-Pen "#dedede" 1) 204 164 168 38 10
-  Draw-Text $g "Save · Search · Reuse" 220 172 15 "#111111" "Bold" 140 22
-  Draw-Text $g "本地保存，不上传提示词" 46 224 14 "#666666" "Regular" 180 22
-  Draw-Text $g "Local-first, privacy-friendly" 226 224 14 "#666666" "Regular" 180 22
+  Fill-RoundRect $g (New-Brush "#111111") 42 164 158 38 10
+  Draw-Text $g "保存 · 搜索 · 复用" 56 172 15 "#ffffff" "Bold" 132 22
+  Fill-RoundRect $g (New-Brush "#f7f7f7") 214 164 184 38 10
+  Draw-RoundRect $g (New-Pen "#dedede" 1) 214 164 184 38 10
+  Draw-Text $g "Save · Search · Reuse" 228 172 14 "#111111" "Bold" 162 22
+  Draw-Text $g "本地保存，不上传" 46 224 14 "#666666" "Regular" 166 22
+  Draw-Text $g "Local-first, no upload" 230 224 14 "#666666" "Regular" 166 22
   Save-Canvas $c
 }
 
@@ -125,14 +125,17 @@ function Generate-Marquee {
   Draw-Text $g "PromptVault" 210 86 62 "#111111" "Bold" 480 78
   Draw-Text $g "保存、搜索、复用你的 AI 提示词" 216 176 34 "#333333" "Regular" 650 48
   Draw-Text $g "Save, search, and reuse your AI prompts" 218 226 27 "#666666" "Regular" 650 40
-  Fill-RoundRect $g (New-Brush "#111111") 216 306 238 52 12
-  Draw-Text $g "本地保存 / Local-first" 240 319 20 "#ffffff" "Bold" 200 28
-  Fill-RoundRect $g (New-Brush "#f7f7f7") 474 306 260 52 12
-  Draw-RoundRect $g (New-Pen "#dedede" 1) 474 306 260 52 12
-  Draw-Text $g "侧边栏 / Sidebar" 500 319 20 "#111111" "Bold" 210 28
-  Fill-RoundRect $g (New-Brush "#f7f7f7") 216 380 312 52 12
-  Draw-RoundRect $g (New-Pen "#dedede" 1) 216 380 312 52 12
-  Draw-Text $g "中英双语 / Bilingual UI" 242 393 20 "#111111" "Bold" 260 28
+  Fill-RoundRect $g (New-Brush "#111111") 216 300 272 52 12
+  Draw-Text $g "本地保存 / Local-first" 240 313 18 "#ffffff" "Bold" 230 28
+  Fill-RoundRect $g (New-Brush "#f7f7f7") 508 300 290 52 12
+  Draw-RoundRect $g (New-Pen "#dedede" 1) 508 300 290 52 12
+  Draw-Text $g "复制 · 插入 / Copy · Insert" 532 313 18 "#111111" "Bold" 260 28
+  Fill-RoundRect $g (New-Brush "#f7f7f7") 216 374 272 52 12
+  Draw-RoundRect $g (New-Pen "#dedede" 1) 216 374 272 52 12
+  Draw-Text $g "自动发送 / Auto-send" 240 387 18 "#111111" "Bold" 230 28
+  Fill-RoundRect $g (New-Brush "#f7f7f7") 508 374 290 52 12
+  Draw-RoundRect $g (New-Pen "#dedede" 1) 508 374 290 52 12
+  Draw-Text $g "中英双语 / Bilingual UI" 532 387 18 "#111111" "Bold" 260 28
   Fill-RoundRect $g (New-Brush "#111111") 850 94 360 420 22
   Fill-RoundRect $g (New-Brush "#181818") 878 126 304 54 12
   Draw-Text $g "搜索提示词..." 930 141 18 "#bdbdbd" "Regular" 160 28
