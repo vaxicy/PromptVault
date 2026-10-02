@@ -22,14 +22,22 @@ $Translations = @{
       @("修改方案", "请给我修改方案 我说行了再执行", "vibe coding", "使用 25 次 · 1 小时前"),
       @("修复错误", "请排查一下 统一修复", "vibe coding", "使用 7 次 · 3 小时前")
     )
-    PaletteQuery = "plan"
-    PaletteRows = @(
-      @("Plan 模式", "请给我优化方案 我说行了再执行"),
-      @("修改方案", "请给我修改方案 我说行了再执行"),
-      @("SEO 标题", "请帮我写标题和描述"),
-      @("用户反馈整理", "把这些反馈归类并总结")
+    VarTitle = "变量 + 关键词，填值只要点一下"
+    VarSubtitle = "把提示词变成能反复用的模板"
+    VarDesc = "复制或插入时弹出填空框，常用值点一下就填好。"
+    VarDialogTitle = "填写变量"
+    VarDialogHint = "填入内容后插入，留空的变量会被移除"
+    VarDialogPresetHint = "点击关键词即可一键填入，可添加、更新或删除"
+    VarName1 = "主题"; VarValue1 = "写一篇产品文案"
+    VarChips1 = @("产品文案", "SEO 标题", "用户反馈", "+ 添加关键词")
+    VarName2 = "语气"; VarValue2 = "在此输入..."
+    VarChips2 = @("正式", "轻松", "专业", "+ 添加关键词")
+    VarCancel = "取消"; VarInsert = "插入"
+    VarCards = @(
+      @("doc", "变量模板", "用 {{主题}} 这样的占位符代替每次要换的内容。", "变量名支持中文。"),
+      @("tag", "关键词一键填入", "常用值存成关键词，填变量时点一下即填入。", "每个变量最多 8 个，可随时增删改。"),
+      @("folder", "每条提示词独立", "关键词跟着提示词走，同名变量互不影响。", "导出、回收站还原都会带上。")
     )
-    PaletteHint = "↑↓ 选择     ↵ 插入     Esc 关闭"
   }
   en = @{
     Search = "Search prompts..."
@@ -40,14 +48,22 @@ $Translations = @{
       @("Revise plan", "Apply my feedback and update it", "vibe coding", "Used 25 times · 1h ago"),
       @("Fix this bug", "Find the root cause and fix it", "vibe coding", "Used 7 times · 3h ago")
     )
-    PaletteQuery = "plan"
-    PaletteRows = @(
-      @("Plan mode", "Optimize my plan, wait for my go"),
-      @("Revise plan", "Apply my feedback and update it"),
-      @("SEO titles", "Write titles and descriptions"),
-      @("Feedback digest", "Group and summarize feedback")
+    VarTitle = "Variables with one-click keywords"
+    VarSubtitle = "Turn prompts into reusable templates"
+    VarDesc = "A fill-in dialog appears on copy or insert; frequent values are one tap away."
+    VarDialogTitle = "Fill in Variables"
+    VarDialogHint = "Fill in the values; blank ones will be removed"
+    VarDialogPresetHint = "Click a keyword to fill it in; add, update or delete anytime"
+    VarName1 = "Topic"; VarValue1 = "Write product launch copy"
+    VarChips1 = @("Launch copy", "SEO titles", "+ Add keyword")
+    VarName2 = "Tone"; VarValue2 = "Type here..."
+    VarChips2 = @("Formal", "Casual", "Expert", "+ Add keyword")
+    VarCancel = "Cancel"; VarInsert = "Insert"
+    VarCards = @(
+      @("doc", "Variable templates", "Use {{topic}} for the parts that change.", "Variable names can be Chinese."),
+      @("tag", "One-click keywords", "Save frequent values as keywords.", "Fill them in with one tap (up to 8 each)."),
+      @("folder", "Per-prompt keywords", "Keywords belong to their own prompt.", "Exported and restored with it.")
     )
-    PaletteHint = "↑↓ Navigate     ↵ Insert     Esc Close"
   }
 }
 
@@ -200,37 +216,84 @@ function Draw-Popup($g, $x, $y, $dark = $false) {
   }
 }
 
-# The in-page command palette (Ctrl+Shift+P) — a floating card over the page.
-# Replaced the old sidebar mock: the sidebar feature was removed from the
-# extension, so the store art must not show it any more.
-function Draw-Palette($g, $x, $y, $w = 380) {
+# Chips are measured, not guessed: English labels are much wider than the CJK
+# ones at the same pixel size, so a hard-coded width always truncates one of
+# the two languages.
+function Measure-TextWidth($g, $text, $size, $style = "Regular") {
+  $font = New-Font $size $style
+  $w = $g.MeasureString($text, $font).Width
+  $font.Dispose()
+  return $w
+}
+
+# Draws one row of keyword chips (last item = the dashed "add" chip) and
+# returns the y coordinate just below the row.
+function Draw-ChipRow($g, $x, $y, $maxW, $items, $activeIndex = -1) {
+  $cx = $x
+  $cy = $y
+  $i = 0
+  foreach ($item in $items) {
+    $isAdd = ($i -eq ($items.Count - 1))
+    $chipW = [Math]::Round((Measure-TextWidth $g $item 15 "Bold")) + 34
+    if (($cx + $chipW) -gt ($x + $maxW)) { $cx = $x; $cy += 44 }
+    $isActive = (-not $isAdd) -and ($i -eq $activeIndex)
+    $fill = if ($isAdd) { "#1b1b1b" } elseif ($isActive) { "#f5f5f5" } else { "#262626" }
+    $stroke = if ($isAdd) { "#4a4a4a" } else { "#3a3a3a" }
+    $fg = if ($isActive) { "#111111" } else { "#e6e6e6" }
+    Fill-RoundRect $g (New-Brush $fill) $cx $cy $chipW 34 17
+    Draw-RoundRect $g (New-Pen $stroke 1) $cx $cy $chipW 34 17
+    Draw-Text $g $item ($cx + 17) ($cy + 8) 15 $fg "Bold" ($chipW - 24) 22
+    $cx += $chipW + 10
+    $i += 1
+  }
+  return $cy + 34
+}
+
+# The {{variable}} fill-in dialog — the feature this screenshot exists for.
+function Draw-VariableDialog($g, $x, $y, $w = 600) {
   $T = $script:T
-  $bg = "#1b1b1b"
-  $border = "#3a3a3a"
-  $rowBg = "#262626"
+  $bg = "#161616"
+  $card = "#1e1e1e"
+  $border = "#333333"
   $text = "#f5f5f5"
-  $muted = "#b3b3b3"
-  $h = 440
-  $shadow = New-Brush "#18000000"
-  Fill-RoundRect $g $shadow ($x + 10) ($y + 14) $w $h 18
+  $muted = "#a8a8a8"
+  $accent = "#8ab4f8"
+  $h = 500
+  $shadow = New-Brush "#20000000"
+  Fill-RoundRect $g $shadow ($x + 12) ($y + 16) $w $h 18
   $shadow.Dispose()
   Fill-RoundRect $g (New-Brush $bg) $x $y $w $h 18
   Draw-RoundRect $g (New-Pen $border 1) $x $y $w $h 18
-  Draw-Icon $g "search" ($x + 26) ($y + 24) 22 $muted
-  Draw-Text $g $T.PaletteQuery ($x + 64) ($y + 22) 19 $text "Regular" ($w - 90) 28
-  Fill-RoundRect $g (New-Brush "#303030") ($x + 18) ($y + 68) ($w - 36) 1 0
-  $cy = $y + 84
-  $idx = 0
-  foreach ($it in $T.PaletteRows) {
-    if ($idx -eq 0) { Fill-RoundRect $g (New-Brush $rowBg) ($x + 12) $cy ($w - 24) 64 8 }
-    Draw-Text $g $it[0] ($x + 28) ($cy + 10) 18 $text "Bold" ($w - 90) 26
-    Draw-Text $g $it[1] ($x + 28) ($cy + 34) 14 $muted "Regular" ($w - 100) 22
-    if ($idx -eq 0) { Draw-Text $g "↵" ($x + $w - 46) ($cy + 18) 18 $muted "Regular" 30 26 }
-    $cy += 72
-    $idx += 1
-  }
-  Fill-RoundRect $g (New-Brush "#303030") ($x + 18) ($y + 384) ($w - 36) 1 0
-  Draw-Text $g $T.PaletteHint ($x + 26) ($y + 398) 13 $muted "Regular" ($w - 52) 22
+
+  Draw-Text $g $T.VarDialogTitle ($x + 28) ($y + 22) 24 $text "Bold" ($w - 120) 34
+  Draw-Text $g $T.VarDialogHint ($x + 28) ($y + 62) 15 $muted "Regular" ($w - 56) 24
+  Draw-Text $g $T.VarDialogPresetHint ($x + 28) ($y + 88) 15 $accent "Regular" ($w - 56) 24
+
+  $fx = $x + 28
+  $fw = $w - 56
+
+  Draw-Text $g $T.VarName1 $fx ($y + 130) 16 $text "Bold" 220 24
+  Fill-RoundRect $g (New-Brush $card) $fx ($y + 156) $fw 46 10
+  Draw-RoundRect $g (New-Pen $border 1) $fx ($y + 156) $fw 46 10
+  Draw-Text $g $T.VarValue1 ($fx + 16) ($y + 168) 17 $text "Regular" ($fw - 32) 26
+  $after = Draw-ChipRow $g $fx ($y + 212) $fw $T.VarChips1 0
+
+  Draw-Text $g $T.VarName2 $fx ($after + 26) 16 $text "Bold" 220 24
+  Fill-RoundRect $g (New-Brush $card) $fx ($after + 52) $fw 46 10
+  Draw-RoundRect $g (New-Pen $border 1) $fx ($after + 52) $fw 46 10
+  Draw-Text $g $T.VarValue2 ($fx + 16) ($after + 64) 17 $muted "Regular" ($fw - 32) 26
+  $after2 = Draw-ChipRow $g $fx ($after + 108) $fw $T.VarChips2 -1
+
+  $by = $after2 + 34
+  $cancelW = [Math]::Round((Measure-TextWidth $g $T.VarCancel 16 "Bold")) + 48
+  $okW = [Math]::Round((Measure-TextWidth $g $T.VarInsert 16 "Bold")) + 56
+  $okX = $x + $w - 28 - $okW
+  $cancelX = $okX - 12 - $cancelW
+  Fill-RoundRect $g (New-Brush "#1b1b1b") $cancelX $by $cancelW 44 10
+  Draw-RoundRect $g (New-Pen $border 1) $cancelX $by $cancelW 44 10
+  Draw-Text $g $T.VarCancel ($cancelX + 24) ($by + 11) 16 $text "Bold" ($cancelW - 32) 24
+  Fill-RoundRect $g (New-Brush "#f5f5f5") $okX $by $okW 44 10
+  Draw-Text $g $T.VarInsert ($okX + 28) ($by + 11) 16 "#111111" "Bold" ($okW - 40) 24
 }
 
 function New-Canvas($path, $dark = $false) {
@@ -275,11 +338,11 @@ function Screenshot-01($lang) {
   if ($zh) {
     Draw-Text $g "保存、搜索、复用你的 AI 提示词" 76 148 29 "#333333" "Regular" 640 42
     Draw-Text $g "一个轻量、安静、隐私友好的提示词管理器。" 78 202 20 "#666666" "Regular" 600 30
-    Draw-Text $g "支持文件夹、标签、变量模板和命令面板。" 78 238 17 "#777777" "Regular" 620 28
+    Draw-Text $g "支持文件夹、标签、变量模板和关键词一键填入。" 78 238 17 "#777777" "Regular" 620 28
   } else {
     Draw-Text $g "Save, search, and reuse your AI prompts" 76 148 29 "#333333" "Regular" 640 42
     Draw-Text $g "A lightweight, quiet, privacy-friendly prompt manager." 78 202 20 "#666666" "Regular" 620 30
-    Draw-Text $g "Folders, tags, variables, and a command palette." 78 238 17 "#777777" "Regular" 620 28
+    Draw-Text $g "Folders, tags, variables, and keyword presets." 78 238 17 "#777777" "Regular" 620 28
   }
   Draw-Popup $g 744 86 $false
   # feature chips
@@ -316,22 +379,24 @@ function Screenshot-02($lang) {
   $key = if ($lang -like "zh*") { "zh" } else { "en" }
   $script:T = $Translations[$key]
   $zh = ($key -eq "zh")
-  $c = New-Canvas (Join-Path (Join-Path $shotsRoot $lang) "02-command-palette.png") $true
+  $c = New-Canvas (Join-Path (Join-Path $shotsRoot $lang) "02-variables-keywords.png") $true
   $g = $c.Graphics
-  Draw-BrowserMock $g 56 58 820 680 $true
-  Draw-Text $g "ChatGPT" 96 128 32 "#f5f5f5" "Bold" 220 44
-  if ($zh) {
-    Draw-Text $g "任何网页按 Ctrl+Shift+P 调出面板" 96 178 27 "#e5e5e5" "Regular" 680 40
-    Draw-Text $g "搜索提示词，回车直接插入当前输入框。" 96 218 22 "#bdbdbd" "Regular" 660 34
-    Draw-Text $g "告诉我这个方案哪里可以优化，并给出修改建议。" 126 306 22 "#d8d8d8" "Regular" 570 32
-    Draw-Text $g "贴入保存好的提示词，一步发送。" 126 340 18 "#9f9f9f" "Regular" 570 28
-  } else {
-    Draw-Text $g "Ctrl+Shift+P opens it on any page" 96 178 27 "#e5e5e5" "Regular" 680 40
-    Draw-Text $g "Search a prompt, press Enter, it is inserted." 96 218 22 "#bdbdbd" "Regular" 660 34
-    Draw-Text $g "Review this plan and suggest improvements." 126 306 22 "#d8d8d8" "Regular" 570 32
-    Draw-Text $g "Paste a saved prompt and send it in one click." 126 340 18 "#9f9f9f" "Regular" 570 28
+  Draw-Text $g $script:T.VarTitle 72 62 42 "#f5f5f5" "Bold" 940 56
+  Draw-Text $g $script:T.VarSubtitle 76 116 28 "#d0d0d0" "Regular" 940 42
+  Draw-Text $g $script:T.VarDesc 76 162 19 "#a8a8a8" "Regular" 940 30
+  Draw-VariableDialog $g 72 224 600
+  # right column: what keywords buy you
+  $x = 700
+  $y = 224
+  foreach ($card in $script:T.VarCards) {
+    Fill-RoundRect $g (New-Brush "#161616") $x $y 480 110 16
+    Draw-RoundRect $g (New-Pen "#333333" 1) $x $y 480 110 16
+    Draw-Icon $g $card[0] ($x + 26) ($y + 34) 28 "#f5f5f5"
+    Draw-Text $g $card[1] ($x + 74) ($y + 20) 21 "#f5f5f5" "Bold" 380 30
+    Draw-Text $g $card[2] ($x + 74) ($y + 54) 15 "#bdbdbd" "Regular" 380 24
+    Draw-Text $g $card[3] ($x + 74) ($y + 78) 14 "#8f8f8f" "Regular" 380 22
+    $y += 126
   }
-  Draw-Palette $g 820 170 380
   Save-Canvas $c
 }
 

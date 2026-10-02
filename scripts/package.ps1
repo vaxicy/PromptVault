@@ -65,7 +65,6 @@ $Include = @(
     'pinyin-map.js',
     'content.js',
     'universal-insert.js',
-    'command-palette.js',
     'welcome.html',
     'welcome.js',
     'welcome.css',

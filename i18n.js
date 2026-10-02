@@ -64,6 +64,7 @@ if (typeof window.PromptVaultI18n === 'undefined') {
       variable_preset_fill: '一键填入',
       variable_preset_add: '+ 添加关键词',
       variable_preset_update: '更新',
+      variable_preset_update_tip: '把输入框里的内容存回这个关键词',
       variable_preset_delete: '删除关键词',
       toast_preset_added: '关键词已添加',
       toast_preset_updated: '关键词已更新',
@@ -94,7 +95,7 @@ if (typeof window.PromptVaultI18n === 'undefined') {
       variable_guide_notes_title: '注意事项',
       variable_guide_note1: '留空的变量会被移除，不会把 {{}} 原样插进去',
       variable_guide_note2: '填过的值会自动记住，下次打开时预填',
-      variable_guide_note3: '扩展弹窗、命令面板、右键菜单三处都支持',
+      variable_guide_note3: '扩展弹窗和右键菜单两处都支持',
       variable_guide_note4: '常用值可以存成关键词，下次一键填入',
       variable_sample_title: '文章生成模板（示例）',
       variable_sample_content: '请帮我写一篇关于 {{主题}} 的文章。\n字数约 {{字数}} 字，\n语气要 {{语气}}。',
@@ -279,19 +280,8 @@ if (typeof window.PromptVaultI18n === 'undefined') {
       batch_move_to_folder: '移动到...',
       batch_moved: '{0} 个提示词已移动',
 
-      // Command Palette
-      cmd_search_placeholder: '搜索提示词...',
-      cmd_all: '所有',
-      cmd_favorites: '置顶',
-      cmd_recent: '最近',
-      cmd_no_prompts: '暂无提示词',
-      cmd_nav: '↑↓ 导航',
-      cmd_insert: 'Enter 插入',
-      cmd_close: 'Esc 关闭',
-
       // Context menu
       ctx_save_as_prompt: '保存为提示词',
-      ctx_insert_prompt: '插入提示词',
       ctx_pin: '置顶',
       default_prompt_title: '网页提示词',
 
@@ -370,7 +360,7 @@ if (typeof window.PromptVaultI18n === 'undefined') {
       undo_op_move: '移动到文件夹',
       // Empty state onboarding
       empty_action_import: '导入数据',
-      empty_action_shortcut: '在任意网页按 Ctrl+Shift+P 快速调用提示词',
+      empty_action_shortcut: '在任意网页点插入按钮，就能把提示词送进输入框',
     },
     en: {
       // Header
@@ -428,6 +418,7 @@ if (typeof window.PromptVaultI18n === 'undefined') {
       variable_preset_fill: 'Fill in with one click',
       variable_preset_add: '+ Add keyword',
       variable_preset_update: 'Update',
+      variable_preset_update_tip: 'Save the input back to this keyword',
       variable_preset_delete: 'Delete keyword',
       toast_preset_added: 'Keyword added',
       toast_preset_updated: 'Keyword updated',
@@ -458,7 +449,7 @@ if (typeof window.PromptVaultI18n === 'undefined') {
       variable_guide_notes_title: 'Notes',
       variable_guide_note1: 'Blank variables are removed — the {{}} will not be inserted as-is',
       variable_guide_note2: 'Values you enter are remembered and prefilled next time',
-      variable_guide_note3: 'Works in the popup, command palette and context menu',
+      variable_guide_note3: 'Works in the popup and the context menu',
       variable_guide_note4: 'Save frequent values as keywords and fill them with one click',
       variable_sample_title: 'Article Template (Sample)',
       variable_sample_content: 'Please write an article about {{topic}}.\nAround {{length}} words,\nwith a {{tone}} tone.',
@@ -643,19 +634,8 @@ if (typeof window.PromptVaultI18n === 'undefined') {
       batch_move_to_folder: 'Move to...',
       batch_moved: '{0} prompts moved',
 
-      // Command Palette
-      cmd_search_placeholder: 'Search prompts...',
-      cmd_all: 'All',
-      cmd_favorites: 'Pinned',
-      cmd_recent: 'Recent',
-      cmd_no_prompts: 'No prompts',
-      cmd_nav: '↑↓ Nav',
-      cmd_insert: 'Enter Insert',
-      cmd_close: 'Esc Close',
-
       // Context menu
       ctx_save_as_prompt: 'Save as Prompt',
-      ctx_insert_prompt: 'Insert Prompt',
       ctx_pin: 'Pin',
       default_prompt_title: 'Web Prompt',
 
@@ -734,7 +714,7 @@ if (typeof window.PromptVaultI18n === 'undefined') {
       undo_op_move: 'Move to folder',
       // Empty state onboarding
       empty_action_import: 'Import',
-      empty_action_shortcut: 'Press Ctrl+Shift+P on any page to insert a prompt',
+      empty_action_shortcut: 'Hit insert on any page to drop a prompt into the input',
     },
   };
 

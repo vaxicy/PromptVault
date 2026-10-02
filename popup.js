@@ -1228,12 +1228,12 @@
 
         group.list.innerHTML = keywordsOf(name).map(keyword => `
           <span class="variable-preset${keyword === active ? ' is-active' : ''}" data-value="${escapeAttr(keyword)}">
-            <button type="button" class="variable-preset-chip" data-value="${escapeAttr(keyword)}"
-                    title="${escapeHtml(i18n.t('variable_preset_fill'))}">${escapeHtml(keyword)}</button>
-            <button type="button" class="variable-preset-update" data-value="${escapeAttr(keyword)}"
-                    title="${escapeHtml(i18n.t('variable_preset_update'))}">${escapeHtml(i18n.t('variable_preset_update'))}</button>
-            <button type="button" class="variable-preset-del" data-value="${escapeAttr(keyword)}"
-                    title="${escapeHtml(i18n.t('variable_preset_delete'))}">&times;</button>
+            <button type="button" class="variable-preset-chip pv-tip" data-value="${escapeAttr(keyword)}"
+                    data-tip="${escapeAttr(i18n.t('variable_preset_fill'))}">${escapeHtml(keyword)}</button>
+            <button type="button" class="variable-preset-update pv-tip" data-value="${escapeAttr(keyword)}"
+                    data-tip="${escapeAttr(i18n.t('variable_preset_update_tip'))}">${escapeHtml(i18n.t('variable_preset_update'))}</button>
+            <button type="button" class="variable-preset-del pv-tip" data-value="${escapeAttr(keyword)}"
+                    data-tip="${escapeAttr(i18n.t('variable_preset_delete'))}">&times;</button>
           </span>`).join('') +
           `<button type="button" class="variable-preset-add" data-variable="${escapeAttr(name)}">${escapeHtml(i18n.t('variable_preset_add'))}</button>`;
 

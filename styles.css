@@ -1013,6 +1013,62 @@ body {
   font-weight: 600;
 }
 
+/* Custom tooltip — replaces the native title="" bubble, which cannot be styled
+   and looked out of place next to the chips. Purely CSS: the text lives in
+   data-tip and is rendered through ::after. */
+.pv-tip {
+  position: relative;
+}
+
+.pv-tip::after {
+  content: attr(data-tip);
+  position: absolute;
+  left: 50%;
+  top: calc(100% + 9px);
+  transform: translateX(-50%) translateY(-2px);
+  background: #1f1f1f;
+  color: #f5f5f5;
+  font-size: 11px;
+  font-weight: 500;
+  line-height: 1.2;
+  padding: 5px 9px;
+  border-radius: 6px;
+  white-space: nowrap;
+  opacity: 0;
+  visibility: hidden;
+  transition: opacity 0.15s ease, transform 0.15s ease;
+  pointer-events: none;
+  z-index: 20;
+}
+
+.pv-tip::before {
+  content: "";
+  position: absolute;
+  left: 50%;
+  top: calc(100% + 4px);
+  transform: translateX(-50%);
+  border: 5px solid transparent;
+  border-bottom-color: #1f1f1f;
+  opacity: 0;
+  visibility: hidden;
+  transition: opacity 0.15s ease;
+  pointer-events: none;
+  z-index: 20;
+}
+
+.pv-tip:hover::after,
+.pv-tip:focus-visible::after {
+  opacity: 1;
+  visibility: visible;
+  transform: translateX(-50%) translateY(0);
+}
+
+.pv-tip:hover::before,
+.pv-tip:focus-visible::before {
+  opacity: 1;
+  visibility: visible;
+}
+
 /* "Update" only shows while the row is edited into something new */
 .variable-preset-update {
   display: none;

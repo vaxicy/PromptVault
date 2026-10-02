@@ -458,7 +458,7 @@ if (typeof window.PromptVaultStorage === 'undefined') {
   }
 
   /**
-   * Filter and rank prompt arrays. Used by popup and command palette.
+   * Filter and rank prompt arrays. Used by the popup list and search.
    */
   function filterAndRankPrompts(prompts, query, options = {}) {
     const trimmedQuery = String(query || '').trim();

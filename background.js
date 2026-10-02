@@ -8,13 +8,11 @@ const i18n = (() => {
   const translations = {
     zh: {
       ctx_save_as_prompt: '保存为提示词',
-      ctx_insert_prompt: '插入提示词',
       app_title: 'PromptVault',
       notif_prompt_saved: '提示词已保存！',
     },
     en: {
       ctx_save_as_prompt: 'Save as Prompt',
-      ctx_insert_prompt: 'Insert Prompt',
       app_title: 'PromptVault',
       notif_prompt_saved: 'Prompt saved!',
     },
@@ -82,13 +80,6 @@ function createContextMenus() {
       title: '💾 ' + i18n.t('ctx_save_as_prompt'),
       contexts: ['selection']
     });
-
-    // Insert prompt (when in editable area)
-    chrome.contextMenus.create({
-      id: 'insertPrompt',
-      title: '📋 ' + i18n.t('ctx_insert_prompt'),
-      contexts: ['editable']
-    });
   });
 }
 
@@ -101,9 +92,6 @@ chrome.storage.onChanged.addListener((changes, namespace) => {
       // Update context menu titles (MV3: returns promise, need .catch)
       chrome.contextMenus.update('saveAsPrompt', {
         title: i18n.t('ctx_save_as_prompt')
-      }).catch(() => {});
-      chrome.contextMenus.update('insertPrompt', {
-        title: i18n.t('ctx_insert_prompt')
       }).catch(() => {});
     }
   }
@@ -263,17 +251,6 @@ if (chrome.contextMenus && chrome.contextMenus.onClicked) {
           } catch (e) {
             console.log('Notification failed:', e.message);
           }
-        }
-      }
-    }
-
-    if (info.menuItemId === 'insertPrompt') {
-      // Content scripts are auto-injected via manifest, send message directly
-      if (tab && tab.id) {
-        try {
-          chrome.tabs.sendMessage(tab.id, { action: 'showPromptPicker' });
-        } catch (e) {
-          console.log('PromptVault: Content script not available in tab', tab.id);
         }
       }
     }

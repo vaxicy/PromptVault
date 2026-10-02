@@ -29,14 +29,5 @@ chrome.runtime.onMessage.addListener((message, sender, sendResponse) => {
     return true; // Keep channel open for async
   }
 
-  if (message.action === 'showPromptPicker') {
-    // Open command palette
-    if (window.PromptVaultCommandPalette) {
-      window.PromptVaultCommandPalette.open();
-    }
-    sendResponse({ success: true });
-    return false;
-  }
-
   return false;
 });
