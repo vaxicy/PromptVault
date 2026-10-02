@@ -6,6 +6,10 @@ $root = Split-Path -Parent $PSScriptRoot
 $outDir = Join-Path $root "store-assets\promo"
 New-Item -ItemType Directory -Force -Path $outDir | Out-Null
 
+# The promo badges use the real extension icon, not a hand-drawn lookalike.
+$script:IconPath = Join-Path $root "icons\icon128.png"
+if (-not (Test-Path $script:IconPath)) { throw "Extension icon not found: $($script:IconPath)" }
+
 function New-Font($size, $style = "Regular") {
   $fontStyle = [System.Drawing.FontStyle]::$style
   return [System.Drawing.Font]::new("Microsoft YaHei UI", $size, $fontStyle, [System.Drawing.GraphicsUnit]::Pixel)
@@ -64,13 +68,11 @@ function Draw-Text($g, $text, $x, $y, $size, $color = "#111111", $style = "Regul
   $brush.Dispose()
 }
 
-function Draw-Icon($g, $x, $y, $size, $color) {
-  $pen = New-Pen $color ([Math]::Max(2, [int]($size / 10)))
-  $pen.StartCap = [System.Drawing.Drawing2D.LineCap]::Round
-  $pen.EndCap = [System.Drawing.Drawing2D.LineCap]::Round
-  Draw-RoundRect $g $pen $x $y $size $size ([Math]::Max(4, [int]($size / 8)))
-  $g.DrawLine($pen, $x + $size * 0.36, $y + $size * 0.18, $x + $size * 0.36, $y + $size * 0.82)
-  $pen.Dispose()
+# Draws the shipped extension icon (icons/icon128.png) at the given size.
+function Draw-AppIcon($g, $x, $y, $size) {
+  $img = [System.Drawing.Image]::FromFile($script:IconPath)
+  $g.DrawImage($img, [System.Drawing.Rectangle]::new($x, $y, $size, $size))
+  $img.Dispose()
 }
 
 # One prompt row of the popup: title, description and the two card actions.
@@ -91,6 +93,9 @@ function New-Canvas($path, $w, $h) {
   $g = [System.Drawing.Graphics]::FromImage($bmp)
   $g.SmoothingMode = [System.Drawing.Drawing2D.SmoothingMode]::AntiAlias
   $g.TextRenderingHint = [System.Drawing.Text.TextRenderingHint]::ClearTypeGridFit
+  # the app icon is scaled down from 128px, so ask for a smooth resample
+  $g.InterpolationMode = [System.Drawing.Drawing2D.InterpolationMode]::HighQualityBicubic
+  $g.PixelOffsetMode = [System.Drawing.Drawing2D.PixelOffsetMode]::HighQuality
   $g.Clear([System.Drawing.ColorTranslator]::FromHtml("#f4f4f4"))
   return @{ Bitmap = $bmp; Graphics = $g; Path = $path }
 }
@@ -106,8 +111,7 @@ function Generate-SmallTile {
   $g = $c.Graphics
   Fill-RoundRect $g (New-Brush "#ffffff") 18 18 404 244 22
   Draw-RoundRect $g (New-Pen "#dedede" 1) 18 18 404 244 22
-  Fill-RoundRect $g (New-Brush "#111111") 42 42 58 58 14
-  Draw-Icon $g 58 56 28 "#ffffff"
+  Draw-AppIcon $g 42 42 58
   Draw-Text $g "PromptVault" 116 42 31 "#111111" "Bold" 270 42
   Draw-Text $g "AI 提示词管理器" 116 88 19 "#444444" "Regular" 240 28
   Draw-Text $g "AI Prompt Manager" 116 116 16 "#777777" "Regular" 240 24
@@ -126,8 +130,7 @@ function Generate-Marquee {
   $g = $c.Graphics
   Fill-RoundRect $g (New-Brush "#ffffff") 52 44 1296 472 34
   Draw-RoundRect $g (New-Pen "#dedede" 1) 52 44 1296 472 34
-  Fill-RoundRect $g (New-Brush "#111111") 96 88 82 82 20
-  Draw-Icon $g 118 108 42 "#ffffff"
+  Draw-AppIcon $g 96 88 82
   Draw-Text $g "PromptVault" 216 86 62 "#111111" "Bold" 480 78
   Draw-Text $g "保存、搜索、复用你的 AI 提示词" 216 176 34 "#333333" "Regular" 650 48
   Draw-Text $g "Save, search, and reuse your AI prompts" 216 226 27 "#666666" "Regular" 650 40
