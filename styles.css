@@ -1093,12 +1093,18 @@ body {
 }
 
 .variable-preset-del {
+  /* The × must be centred both ways: the chip row stretches its children, so
+     without flex centring the glyph sits at the top-left of the button. */
+  display: inline-flex;
+  align-items: center;
+  justify-content: center;
+  min-width: 28px;
+  padding: 0 6px;
   border: none;
   border-left: 1px solid var(--border-color);
   background: transparent;
-  padding: 0 7px;
   font-family: inherit;
-  font-size: 14px;
+  font-size: 15px;
   line-height: 1;
   color: var(--text-muted);
   cursor: pointer;
