@@ -22,13 +22,14 @@ $Translations = @{
       @("修改方案", "请给我修改方案 我说行了再执行", "vibe coding", "使用 25 次 · 1 小时前"),
       @("修复错误", "请排查一下 统一修复", "vibe coding", "使用 7 次 · 3 小时前")
     )
-    SideAll = "全部"; SideRecent = "最近"; SidePinned = "置顶"
-    SideCards = @(
-      @("Plan 模式", "请给我优化方案 我说行了再执行", "vibe coding", "使用 44 次 · 刚刚"),
-      @("修改方案", "请给我修改方案 我说行了再执行", "vibe coding", "使用 25 次 · 1 小时前"),
-      @("生成pin图", "我要做这个的 请给我生成pin图", "Amazon Affiliate Pinterest", "使用 3 次")
+    PaletteQuery = "plan"
+    PaletteRows = @(
+      @("Plan 模式", "请给我优化方案 我说行了再执行"),
+      @("修改方案", "请给我修改方案 我说行了再执行"),
+      @("SEO 标题", "请帮我写标题和描述"),
+      @("用户反馈整理", "把这些反馈归类并总结")
     )
-    SideFooter = "快捷键打开   Ctrl + Shift + P"
+    PaletteHint = "↑↓ 选择     ↵ 插入     Esc 关闭"
   }
   en = @{
     Search = "Search prompts..."
@@ -39,13 +40,14 @@ $Translations = @{
       @("Revise plan", "Apply my feedback and update it", "vibe coding", "Used 25 times · 1h ago"),
       @("Fix this bug", "Find the root cause and fix it", "vibe coding", "Used 7 times · 3h ago")
     )
-    SideAll = "All"; SideRecent = "Recent"; SidePinned = "Pinned"
-    SideCards = @(
-      @("Plan mode", "Optimize my plan, wait for my go", "Amazon Affiliate Pinterest", "Used 44 times"),
-      @("Revise plan", "Apply my feedback and update it", "vibe coding", "Used 25 times"),
-      @("Fix this bug", "Find the root cause and fix it", "vibe coding", "Used 7 times")
+    PaletteQuery = "plan"
+    PaletteRows = @(
+      @("Plan mode", "Optimize my plan, wait for my go"),
+      @("Revise plan", "Apply my feedback and update it"),
+      @("SEO titles", "Write titles and descriptions"),
+      @("Feedback digest", "Group and summarize feedback")
     )
-    SideFooter = "Open with   Ctrl + Shift + P"
+    PaletteHint = "↑↓ Navigate     ↵ Insert     Esc Close"
   }
 }
 
@@ -183,8 +185,10 @@ function Draw-Popup($g, $x, $y, $dark = $false) {
   Draw-Text $g $T.Sort ($x + 30) ($y + 258) 18 $muted "Regular" 80 28
   Fill-RoundRect $g (New-Brush $text) ($x + 352) ($y + 246) 42 46 7
   Draw-Text $g "+" ($x + 365) ($y + 249) 32 $(if ($dark) { "#111111" } else { "#ffffff" }) "Bold" 34 40
+  # Only two cards fit inside the 610px panel — a third one would poke out of
+  # the bottom edge (the mock is a static picture, not a scrollable list).
   $cy = $y + 318
-  foreach ($it in $T.PopupCards) {
+  foreach ($it in @($T.PopupCards)[0..1]) {
     Fill-RoundRect $g (New-Brush $card) ($x + 24) $cy 382 112 10
     Draw-RoundRect $g (New-Pen $border 1) ($x + 24) $cy 382 112 10
     Draw-Text $g $it[0] ($x + 42) ($cy + 22) 21 $text "Bold" 230 30
@@ -196,40 +200,37 @@ function Draw-Popup($g, $x, $y, $dark = $false) {
   }
 }
 
-function Draw-Sidebar($g, $x, $y, $dark = $false) {
+# The in-page command palette (Ctrl+Shift+P) — a floating card over the page.
+# Replaced the old sidebar mock: the sidebar feature was removed from the
+# extension, so the store art must not show it any more.
+function Draw-Palette($g, $x, $y, $w = 380) {
   $T = $script:T
-  $bg = if ($dark) { "#121212" } else { "#ffffff" }
-  $card = if ($dark) { "#181818" } else { "#ffffff" }
-  $hover = if ($dark) { "#242424" } else { "#f5f5f5" }
-  $border = if ($dark) { "#353535" } else { "#dedede" }
-  $text = if ($dark) { "#f5f5f5" } else { "#111111" }
-  $muted = if ($dark) { "#bdbdbd" } else { "#666666" }
-  Fill-RoundRect $g (New-Brush $bg) $x $y 360 700 0
-  Draw-RoundRect $g (New-Pen $border 1) $x $y 360 700 0
-  Draw-Text $g "PromptVault" ($x + 26) ($y + 28) 28 $text "Bold" 230 40
-  Draw-Icon $g "search" ($x + 34) ($y + 126) 24 $muted
-  Fill-RoundRect $g (New-Brush $card) ($x + 18) ($y + 112) 324 60 12
-  Draw-RoundRect $g (New-Pen $border 1) ($x + 18) ($y + 112) 324 60 12
-  Draw-Text $g $T.Search ($x + 74) ($y + 130) 18 $muted "Regular" 220 28
-  Draw-Text $g $T.SideAll ($x + 38) ($y + 206) 18 $text "Bold" 64 28
-  Draw-Text $g $T.SideRecent ($x + 120) ($y + 206) 18 $muted "Bold" 78 28
-  Draw-Text $g $T.SidePinned ($x + 206) ($y + 206) 18 $muted "Bold" 78 28
-  Fill-RoundRect $g (New-Brush $text) ($x + 32) ($y + 236) 58 3 1
-  $cy = $y + 274
+  $bg = "#1b1b1b"
+  $border = "#3a3a3a"
+  $rowBg = "#262626"
+  $text = "#f5f5f5"
+  $muted = "#b3b3b3"
+  $h = 440
+  $shadow = New-Brush "#18000000"
+  Fill-RoundRect $g $shadow ($x + 10) ($y + 14) $w $h 18
+  $shadow.Dispose()
+  Fill-RoundRect $g (New-Brush $bg) $x $y $w $h 18
+  Draw-RoundRect $g (New-Pen $border 1) $x $y $w $h 18
+  Draw-Icon $g "search" ($x + 26) ($y + 24) 22 $muted
+  Draw-Text $g $T.PaletteQuery ($x + 64) ($y + 22) 19 $text "Regular" ($w - 90) 28
+  Fill-RoundRect $g (New-Brush "#303030") ($x + 18) ($y + 68) ($w - 36) 1 0
+  $cy = $y + 84
   $idx = 0
-  foreach ($it in $T.SideCards) {
-    $fill = if ($idx -eq 0) { $hover } else { $bg }
-    Fill-RoundRect $g (New-Brush $fill) ($x + 18) $cy 324 124 10
-    if ($idx -eq 0) { Draw-RoundRect $g (New-Pen $border 1) ($x + 18) $cy 324 124 10 }
-    Draw-Text $g $it[0] ($x + 36) ($cy + 20) 20 $text "Bold" 190 30
-    Draw-Text $g $it[1] ($x + 36) ($cy + 54) 16 $muted "Regular" 270 24
-    Draw-Text $g $it[2] ($x + 36) ($cy + 86) 15 $muted "Regular" 160 24
-    Draw-Text $g $it[3] ($x + 198) ($cy + 86) 14 $muted "Regular" 144 24
-    $cy += 138
+  foreach ($it in $T.PaletteRows) {
+    if ($idx -eq 0) { Fill-RoundRect $g (New-Brush $rowBg) ($x + 12) $cy ($w - 24) 64 8 }
+    Draw-Text $g $it[0] ($x + 28) ($cy + 10) 18 $text "Bold" ($w - 90) 26
+    Draw-Text $g $it[1] ($x + 28) ($cy + 34) 14 $muted "Regular" ($w - 100) 22
+    if ($idx -eq 0) { Draw-Text $g "↵" ($x + $w - 46) ($cy + 18) 18 $muted "Regular" 30 26 }
+    $cy += 72
     $idx += 1
   }
-  Fill-RoundRect $g (New-Brush $(if ($dark) { "#181818" } else { "#f7f7f7" })) $x ($y + 654) 360 46 0
-  Draw-Text $g $T.SideFooter ($x + 74) ($y + 666) 15 $muted "Regular" 250 24
+  Fill-RoundRect $g (New-Brush "#303030") ($x + 18) ($y + 384) ($w - 36) 1 0
+  Draw-Text $g $T.PaletteHint ($x + 26) ($y + 398) 13 $muted "Regular" ($w - 52) 22
 }
 
 function New-Canvas($path, $dark = $false) {
@@ -315,25 +316,22 @@ function Screenshot-02($lang) {
   $key = if ($lang -like "zh*") { "zh" } else { "en" }
   $script:T = $Translations[$key]
   $zh = ($key -eq "zh")
-  $c = New-Canvas (Join-Path (Join-Path $shotsRoot $lang) "02-sidebar-workflow.png") $true
+  $c = New-Canvas (Join-Path (Join-Path $shotsRoot $lang) "02-command-palette.png") $true
   $g = $c.Graphics
   Draw-BrowserMock $g 56 58 820 680 $true
   Draw-Text $g "ChatGPT" 96 128 32 "#f5f5f5" "Bold" 220 44
   if ($zh) {
-    Draw-Text $g "在网页侧边栏里快速调用常用提示词" 96 178 27 "#e5e5e5" "Regular" 640 40
-    Draw-Text $g "不用离开当前页面，搜索并插入提示词。" 96 218 22 "#bdbdbd" "Regular" 640 34
+    Draw-Text $g "任何网页按 Ctrl+Shift+P 调出面板" 96 178 27 "#e5e5e5" "Regular" 680 40
+    Draw-Text $g "搜索提示词，回车直接插入当前输入框。" 96 218 22 "#bdbdbd" "Regular" 660 34
     Draw-Text $g "告诉我这个方案哪里可以优化，并给出修改建议。" 126 306 22 "#d8d8d8" "Regular" 570 32
     Draw-Text $g "贴入保存好的提示词，一步发送。" 126 340 18 "#9f9f9f" "Regular" 570 28
   } else {
-    Draw-Text $g "Call up prompts from the in-page sidebar" 96 178 27 "#e5e5e5" "Regular" 660 40
-    Draw-Text $g "Search and insert without leaving the page." 96 218 22 "#bdbdbd" "Regular" 640 34
+    Draw-Text $g "Ctrl+Shift+P opens it on any page" 96 178 27 "#e5e5e5" "Regular" 680 40
+    Draw-Text $g "Search a prompt, press Enter, it is inserted." 96 218 22 "#bdbdbd" "Regular" 660 34
     Draw-Text $g "Review this plan and suggest improvements." 126 306 22 "#d8d8d8" "Regular" 570 32
     Draw-Text $g "Paste a saved prompt and send it in one click." 126 340 18 "#9f9f9f" "Regular" 570 28
   }
-  Draw-Sidebar $g 860 58 $true
-  Fill-RoundRect $g (New-Brush "#111111") 1220 332 52 112 16
-  Draw-RoundRect $g (New-Pen "#444444" 1) 1220 332 52 112 16
-  Draw-Icon $g "doc" 1234 374 24 "#ffffff"
+  Draw-Palette $g 820 170 380
   Save-Canvas $c
 }
 
@@ -406,31 +404,32 @@ function Screenshot-04($lang) {
     Draw-Text $g "Click to copy, insert into the input, or auto-click Send on ChatGPT." 76 162 20 "#666666" "Regular" 740 30
     Draw-Text $g "Off by default - enable it in settings." 76 190 17 "#777777" "Regular" 700 28
   }
-  Draw-BrowserMock $g 60 216 720 500 $false
-  Fill-RoundRect $g (New-Brush "#ffffff") 120 318 600 92 16
-  Draw-RoundRect $g (New-Pen "#dedede" 1) 120 318 600 92 16
+  Draw-BrowserMock $g 60 216 660 500 $false
+  Fill-RoundRect $g (New-Brush "#ffffff") 110 318 560 92 16
+  Draw-RoundRect $g (New-Pen "#dedede" 1) 110 318 560 92 16
   if ($zh) {
-    Draw-Text $g "请根据这个产品截图生成标题和描述" 150 334 22 "#111111" "Regular" 500 34
-    Draw-Text $g "已从 PromptVault 一键插入，可直接发送" 150 366 18 "#666666" "Regular" 520 28
-    Draw-Text $g "插入到 ChatGPT 后自动点击发送（默认关闭，设置中可开启）" 120 446 15 "#666666" "Regular" 620 24
+    Draw-Text $g "请根据这个产品截图生成标题和描述" 140 334 22 "#111111" "Regular" 480 34
+    Draw-Text $g "已从 PromptVault 一键插入，可直接发送" 140 366 18 "#666666" "Regular" 480 28
+    Draw-Text $g "插入到 ChatGPT 后自动点击发送（默认关闭，设置中可开启）" 110 446 15 "#666666" "Regular" 560 24
   } else {
-    Draw-Text $g "Write a title and description from this photo" 150 334 22 "#111111" "Regular" 520 34
-    Draw-Text $g "Inserted from PromptVault in one click" 150 366 18 "#666666" "Regular" 520 28
-    Draw-Text $g "On ChatGPT the send button is clicked for you - opt-in." 120 446 15 "#666666" "Regular" 620 24
+    Draw-Text $g "Write a title and description from this photo" 140 334 22 "#111111" "Regular" 480 34
+    Draw-Text $g "Inserted from PromptVault in one click" 140 366 18 "#666666" "Regular" 480 28
+    Draw-Text $g "On ChatGPT the send button is clicked for you - opt-in." 110 446 15 "#666666" "Regular" 560 24
   }
-  # copy chip (white) and send chip (black) side by side
-  Fill-RoundRect $g (New-Brush "#ffffff") 120 505 170 56 12
-  Draw-RoundRect $g (New-Pen "#dedede" 1) 120 505 170 56 12
-  Draw-Icon $g "copy" 146 521 24 "#111111"
-  if ($zh) { Draw-Text $g "复制" 182 519 20 "#111111" "Bold" 90 30 } else { Draw-Text $g "Copy" 182 519 20 "#111111" "Bold" 90 30 }
-  Fill-RoundRect $g (New-Brush "#111111") 310 505 150 56 12
-  Draw-Icon $g "send" 336 521 24 "#ffffff"
-  if ($zh) { Draw-Text $g "发送" 372 519 20 "#ffffff" "Bold" 80 30 } else { Draw-Text $g "Send" 372 519 20 "#ffffff" "Bold" 80 30 }
-  Draw-Sidebar $g 820 80 $false
-  Fill-RoundRect $g (New-Brush "#ffffff") 984 306 158 46 10
-  Draw-RoundRect $g (New-Pen "#dedede" 1) 984 306 158 46 10
-  Draw-Icon $g "insert" 1002 317 22 "#111111"
-  if ($zh) { Draw-Text $g "插入" 1036 316 18 "#111111" "Bold" 92 28 } else { Draw-Text $g "Insert" 1036 316 18 "#111111" "Bold" 92 28 }
+  # action chips: copy / insert into the page / auto-send
+  Fill-RoundRect $g (New-Brush "#ffffff") 110 505 160 56 12
+  Draw-RoundRect $g (New-Pen "#dedede" 1) 110 505 160 56 12
+  Draw-Icon $g "copy" 134 521 24 "#111111"
+  if ($zh) { Draw-Text $g "复制" 168 519 20 "#111111" "Bold" 90 30 } else { Draw-Text $g "Copy" 168 519 20 "#111111" "Bold" 90 30 }
+  Fill-RoundRect $g (New-Brush "#ffffff") 286 505 160 56 12
+  Draw-RoundRect $g (New-Pen "#dedede" 1) 286 505 160 56 12
+  Draw-Icon $g "insert" 310 521 24 "#111111"
+  if ($zh) { Draw-Text $g "插入" 344 519 20 "#111111" "Bold" 90 30 } else { Draw-Text $g "Insert" 344 519 20 "#111111" "Bold" 90 30 }
+  Fill-RoundRect $g (New-Brush "#111111") 462 505 180 56 12
+  Draw-Icon $g "send" 486 521 24 "#ffffff"
+  if ($zh) { Draw-Text $g "发送" 520 519 20 "#ffffff" "Bold" 110 30 } else { Draw-Text $g "Send" 520 519 20 "#ffffff" "Bold" 110 30 }
+  # the extension popup you copy/insert from
+  Draw-Popup $g 760 100 $false
   Save-Canvas $c
 }
 

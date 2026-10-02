@@ -50,6 +50,10 @@ if (Test-Path $OutFile) {
 }
 
 # Files / folders to include in the extension package
+# NOTE: every file listed in manifest.json must be here — pinyin-map.js is a
+# content script, so forgetting it breaks the injected scripts on install.
+# Dev-only files (scripts/, store-assets/, icons/generate-icons.html,
+# create-icons.js, generate-icons.js) must stay out.
 $Include = @(
     'manifest.json',
     'background.js',
@@ -58,6 +62,7 @@ $Include = @(
     'styles.css',
     'storage.js',
     'i18n.js',
+    'pinyin-map.js',
     'content.js',
     'universal-insert.js',
     'command-palette.js',
@@ -67,6 +72,11 @@ $Include = @(
     'assets',
     'icons',
     '_locales'
+)
+
+# Files inside included folders that must never ship
+$Exclude = @(
+    'icons\generate-icons.html'
 )
 
 # Build a staging folder with only the files that ship
@@ -85,6 +95,15 @@ try {
             Copy-Item $src -Destination $dst -Recurse
         } else {
             Copy-Item $src -Destination $dst
+        }
+    }
+
+    # Drop dev-only files that live inside otherwise-shipped folders
+    foreach ($rel in $Exclude) {
+        $p = Join-Path $Stage $rel
+        if (Test-Path $p) {
+            Remove-Item $p -Force
+            Write-Host "Excluded from package: $rel" -ForegroundColor Yellow
         }
     }
 
