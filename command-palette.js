@@ -500,9 +500,11 @@
 
   /**
    * Floating dialog asking the user to fill in {{variables}}.
+   * `presets` maps a variable name to its saved keywords so each row offers
+   * one-click fill plus add / update / delete (mirrors the popup dialog).
    * Resolves to an object of values, or null when cancelled.
    */
-  function showVariableDialog(names, prefills) {
+  function showVariableDialog(names, prefills, presets = {}) {
     return new Promise((resolve) => {
       const c = paletteColors || getThemeColors();
       const overlay = document.createElement('div');
@@ -520,16 +522,27 @@
         transition: opacity 0.15s ease;
       `;
 
+      const inputStyle = `width:100%; box-sizing:border-box; padding:8px 10px; font-size:13px; font-family:inherit;
+                     color:${c.textColor}; background:${c.selectedBg}; border:1px solid ${c.borderColor};
+                     border-radius:6px; outline:none;`;
+      const chipBtnStyle = `border:none; background:transparent; padding:3px 9px; font-family:inherit; font-size:12px;
+                     color:${c.textColor}; cursor:pointer; max-width:160px; overflow:hidden; text-overflow:ellipsis; white-space:nowrap;`;
+      const chipDelStyle = `border:none; border-left:1px solid ${c.borderColor}; background:transparent; padding:0 7px;
+                     font-family:inherit; font-size:14px; line-height:1; color:${c.textMuted}; cursor:pointer;`;
+      const chipUpdateStyle = `border:none; border-left:1px solid ${c.borderColor}; background:transparent; padding:3px 7px;
+                     font-family:inherit; font-size:11px; font-weight:600; color:${c.accentColor}; cursor:pointer;`;
+      const chipAddStyle = `border:1px dashed ${c.borderColor}; border-radius:12px; background:transparent; padding:3px 9px;
+                     font-family:inherit; font-size:12px; color:${c.textMuted}; cursor:pointer;`;
+
       const inputsHtml = names
         .map(
           (name) => `
-          <div style="margin-bottom: 12px;">
+          <div data-var-group="${escapeHtml(name)}" style="margin-bottom: 12px;">
             <label style="display:block; font-size:12px; font-weight:600; color:${c.textColor}; margin-bottom:4px;">${escapeHtml(name)}</label>
             <input type="text" data-variable="${escapeHtml(name)}" value="${escapeHtml(prefills[name] || '')}"
               placeholder="${escapeHtml(i18n.t('variable_input_placeholder') || '在此输入...')}"
-              style="width:100%; box-sizing:border-box; padding:8px 10px; font-size:13px; font-family:inherit;
-                     color:${c.textColor}; background:${c.selectedBg}; border:1px solid ${c.borderColor};
-                     border-radius:6px; outline:none;">
+              style="${inputStyle}">
+            <div data-var-presets="${escapeHtml(name)}" style="display:flex; flex-wrap:wrap; align-items:center; gap:6px; margin-top:6px;"></div>
           </div>`
         )
         .join('');
@@ -540,11 +553,15 @@
           <div style="font-size:15px; font-weight:700; color:${c.textColor}; margin-bottom:4px;">
             ${escapeHtml(i18n.t('variable_fill_title') || '填写变量')}
           </div>
-          <div style="font-size:12px; color:${c.textMuted}; margin-bottom:16px;">
+          <div style="font-size:12px; color:${c.textMuted}; margin-bottom:6px;">
             ${escapeHtml(i18n.t('variable_fill_hint') || '填入内容后插入，留空的变量会被移除')}
           </div>
+          <div style="font-size:11px; color:${c.textMuted}; margin-bottom:12px;">
+            ${escapeHtml(i18n.t('variable_presets_hint') || '点击关键词一键填入，可添加、更新或删除关键词')}
+          </div>
           <div>${inputsHtml}</div>
-          <div style="display:flex; justify-content:flex-end; gap:8px; margin-top:16px;">
+          <div data-var-status style="font-size:11px; color:${c.accentColor}; min-height:14px; margin-top:8px;"></div>
+          <div style="display:flex; justify-content:flex-end; gap:8px; margin-top:12px;">
             <button class="pv-var-cancel" style="padding:8px 14px; font-size:13px; font-family:inherit; font-weight:500;
                     color:${c.textColor}; background:transparent; border:1px solid ${c.borderColor};
                     border-radius:6px; cursor:pointer;">${escapeHtml(i18n.t('btn_cancel') || '取消')}</button>
@@ -554,14 +571,85 @@
           </div>
         </div>`;
 
+      // Keyword presets: local cache + per-row DOM handles (mirrors popup.js)
+      const keywordsByName = presets && typeof presets === 'object' ? presets : {};
+      const activeKeyword = new Map();
+      const groups = new Map();
+
+      overlay.querySelectorAll('[data-var-group]').forEach((groupEl) => {
+        const name = groupEl.dataset.varGroup;
+        groups.set(name, {
+          input: groupEl.querySelector('input[data-variable]'),
+          list: groupEl.querySelector('[data-var-presets]'),
+        });
+      });
+
+      const keywordsOf = (name) => (Array.isArray(keywordsByName[name]) ? keywordsByName[name] : []);
+
+      const renderPresets = (name) => {
+        const group = groups.get(name);
+        if (!group) return;
+        const typed = group.input.value.trim();
+        const active = activeKeyword.get(name);
+
+        const chips = keywordsOf(name)
+          .map((keyword) => {
+            const isActive = keyword === active;
+            const border = isActive ? c.accentColor : c.borderColor;
+            const background = isActive ? `${c.accentColor}22` : c.selectedBg;
+            const dirty = isActive && typed !== '' && typed !== keyword;
+            const labelStyle = `${chipBtnStyle}${isActive ? ` color:${c.accentColor}; font-weight:600;` : ''}`;
+            const updateStyle = `${chipUpdateStyle}${dirty ? ' display:inline-flex; align-items:center;' : ' display:none;'}`;
+            return `<span style="display:inline-flex; align-items:stretch; overflow:hidden; border:1px solid ${border}; border-radius:12px; background:${background};">
+              <button type="button" data-preset-fill="${escapeHtml(keyword)}"
+                      title="${escapeHtml(i18n.t('variable_preset_fill') || '一键填入')}"
+                      style="${labelStyle}">${escapeHtml(keyword)}</button>
+              <button type="button" data-preset-update="${escapeHtml(keyword)}"
+                      title="${escapeHtml(i18n.t('variable_preset_update') || '更新')}"
+                      style="${updateStyle}">${escapeHtml(i18n.t('variable_preset_update') || '更新')}</button>
+              <button type="button" data-preset-del="${escapeHtml(keyword)}"
+                      title="${escapeHtml(i18n.t('variable_preset_delete') || '删除关键词')}"
+                      style="${chipDelStyle}">&times;</button>
+            </span>`;
+          })
+          .join('');
+
+        group.list.innerHTML =
+          chips +
+          `<button type="button" data-preset-add="1" style="${chipAddStyle}">${escapeHtml(
+            i18n.t('variable_preset_add') || '+ 添加关键词'
+          )}</button>`;
+      };
+
+      let statusTimer = null;
+      const setStatus = (text, isError) => {
+        const el = overlay.querySelector('[data-var-status]');
+        if (!el) return;
+        el.textContent = text || '';
+        el.style.color = isError ? '#f38ba8' : c.accentColor;
+        clearTimeout(statusTimer);
+        if (text) statusTimer = setTimeout(() => { el.textContent = ''; }, 2200);
+      };
+
+      const presetReasonText = (reason) => ({
+        invalid: 'toast_preset_invalid',
+        exists: 'toast_preset_exists',
+        full: 'toast_preset_full',
+        missing: 'toast_preset_missing',
+      }[reason] || 'toast_preset_failed');
+
       document.body.appendChild(overlay);
       requestAnimationFrame(() => {
         overlay.style.opacity = '1';
+        names.forEach(renderPresets);
         const first = overlay.querySelector('input[data-variable]');
         if (first) first.focus();
       });
 
-      const close = () => overlay.remove();
+      const close = () => {
+        clearTimeout(statusTimer);
+        overlay.remove();
+      };
 
       const collect = () => {
         const values = {};
@@ -583,8 +671,14 @@
       });
       overlay.querySelector('.pv-var-ok').addEventListener('click', confirm);
 
+      // Re-render the chip row on typing so "update" / "add" states stay honest
+      overlay.addEventListener('input', (e) => {
+        const groupEl = e.target.closest('[data-var-group]');
+        if (groupEl) renderPresets(groupEl.dataset.varGroup);
+      });
+
       overlay.addEventListener('keydown', (e) => {
-        if (e.key === 'Enter') {
+        if (e.key === 'Enter' && e.target.tagName === 'INPUT') {
           e.preventDefault();
           confirm();
         } else if (e.key === 'Escape') {
@@ -594,12 +688,71 @@
         }
       });
 
-      // Clicking the backdrop cancels
-      overlay.addEventListener('click', (e) => {
+      overlay.addEventListener('click', async (e) => {
+        // Clicking the backdrop cancels
         if (e.target === overlay) {
           close();
           resolve(null);
+          return;
         }
+
+        const fillBtn = e.target.closest('[data-preset-fill]');
+        const updateBtn = e.target.closest('[data-preset-update]');
+        const delBtn = e.target.closest('[data-preset-del]');
+        const addBtn = e.target.closest('[data-preset-add]');
+        if (!fillBtn && !updateBtn && !delBtn && !addBtn) return;
+
+        const groupEl = e.target.closest('[data-var-group]');
+        const name = groupEl ? groupEl.dataset.varGroup : '';
+        const group = name ? groups.get(name) : null;
+        if (!group) return;
+        e.preventDefault();
+
+        if (fillBtn) {
+          group.input.value = fillBtn.dataset.presetFill;
+          activeKeyword.set(name, fillBtn.dataset.presetFill);
+          renderPresets(name);
+          group.input.focus();
+          return;
+        }
+
+        if (addBtn) {
+          const result = await Storage.addVariablePreset(name, group.input.value);
+          if (result.ok) {
+            keywordsByName[name] = result.presets[name] || [];
+            activeKeyword.set(name, result.value);
+            setStatus(i18n.t('toast_preset_added') || '关键词已添加');
+          } else {
+            setStatus(i18n.t(presetReasonText(result.reason)), true);
+          }
+          renderPresets(name);
+          return;
+        }
+
+        if (updateBtn) {
+          const from = updateBtn.dataset.presetUpdate;
+          const result = await Storage.updateVariablePreset(name, from, group.input.value);
+          if (result.ok) {
+            keywordsByName[name] = result.presets[name] || [];
+            activeKeyword.set(name, result.value);
+            setStatus(i18n.t('toast_preset_updated') || '关键词已更新');
+          } else {
+            setStatus(i18n.t(presetReasonText(result.reason)), true);
+          }
+          renderPresets(name);
+          return;
+        }
+
+        const value = delBtn.dataset.presetDel;
+        const result = await Storage.removeVariablePreset(name, value);
+        if (result.ok) {
+          keywordsByName[name] = result.presets[name] || [];
+          if (activeKeyword.get(name) === value) activeKeyword.delete(name);
+          setStatus(i18n.t('toast_preset_deleted') || '关键词已删除');
+        } else {
+          setStatus(i18n.t(presetReasonText(result.reason)), true);
+        }
+        renderPresets(name);
       });
     });
   }
@@ -614,7 +767,12 @@
     // Ask the user to fill {{variables}} before inserting
     const names = extractVariables(content);
     if (names.length > 0) {
-      const history = await getVariableHistory();
+      const [history, presets] = await Promise.all([
+        getVariableHistory(),
+        typeof Storage !== 'undefined' && typeof Storage.getVariablePresets === 'function'
+          ? Storage.getVariablePresets().catch(() => ({}))
+          : Promise.resolve({}),
+      ]);
       const prefills = {};
       names.forEach((n) => {
         if (history[n]) prefills[n] = history[n];
@@ -622,7 +780,7 @@
 
       closePalette();
 
-      const values = await showVariableDialog(names, prefills);
+      const values = await showVariableDialog(names, prefills, presets);
       if (values === null) return; // cancelled
 
       await saveVariableHistory(values);

@@ -960,6 +960,120 @@ body {
   box-sizing: border-box;
 }
 
+/* ========== Variable keyword presets ========== */
+/* One-click fill keywords stored per variable name (settings.variablePresets) */
+.variable-presets-hint {
+  margin-top: -6px;
+}
+
+.variable-presets {
+  display: flex;
+  flex-wrap: wrap;
+  align-items: center;
+  gap: 6px;
+  margin-top: 8px;
+}
+
+.variable-preset {
+  display: inline-flex;
+  align-items: stretch;
+  overflow: hidden;
+  border: 1px solid var(--border-color);
+  border-radius: 12px;
+  background: rgba(128, 128, 128, 0.1);
+  transition: var(--transition);
+}
+
+.variable-preset:hover {
+  border-color: var(--text-muted);
+  background: rgba(128, 128, 128, 0.18);
+}
+
+.variable-preset.is-active {
+  border-color: var(--accent-primary);
+  background: rgba(74, 144, 226, 0.14);
+}
+
+.variable-preset-chip {
+  border: none;
+  background: transparent;
+  padding: 4px 10px;
+  font-family: inherit;
+  font-size: 12px;
+  color: var(--text-secondary);
+  cursor: pointer;
+  max-width: 160px;
+  overflow: hidden;
+  text-overflow: ellipsis;
+  white-space: nowrap;
+}
+
+.variable-preset.is-active .variable-preset-chip {
+  color: var(--accent-primary);
+  font-weight: 600;
+}
+
+/* "Update" only shows while the row is edited into something new */
+.variable-preset-update {
+  display: none;
+  border: none;
+  border-left: 1px solid var(--border-color);
+  background: transparent;
+  padding: 4px 8px;
+  font-family: inherit;
+  font-size: 11px;
+  font-weight: 600;
+  color: var(--accent-primary);
+  cursor: pointer;
+}
+
+.variable-preset.is-dirty .variable-preset-update {
+  display: inline-flex;
+  align-items: center;
+}
+
+.variable-preset-update:hover {
+  background: rgba(74, 144, 226, 0.16);
+}
+
+.variable-preset-del {
+  border: none;
+  border-left: 1px solid var(--border-color);
+  background: transparent;
+  padding: 0 7px;
+  font-family: inherit;
+  font-size: 14px;
+  line-height: 1;
+  color: var(--text-muted);
+  cursor: pointer;
+}
+
+.variable-preset-del:hover {
+  color: var(--danger);
+  background: rgba(255, 71, 87, 0.15);
+}
+
+.variable-preset-add {
+  border: 1px dashed var(--border-color);
+  border-radius: 12px;
+  background: transparent;
+  padding: 4px 10px;
+  font-family: inherit;
+  font-size: 12px;
+  color: var(--text-muted);
+  cursor: pointer;
+  transition: var(--transition);
+}
+
+.variable-preset-add:hover {
+  color: var(--accent-primary);
+  border-color: var(--accent-primary);
+}
+
+.variable-preset-add.is-disabled {
+  opacity: 0.45;
+}
+
 /* ========== Variable Guide ========== */
 /* Sits above the settings modal (both are .modal with z-index 1000, so this
    one needs a higher value to stack on top of it). */

@@ -614,6 +614,106 @@ if (typeof window.PromptVaultStorage === 'undefined') {
     await saveAll(data);
   }
 
+  // ========== Variable keyword presets ==========
+  //
+  // {{variable}} placeholders can be filled from saved keywords. Presets live
+  // in settings.variablePresets as { variableName: [keyword, ...] } and are
+  // shared by every prompt, so a keyword saved once shows up everywhere.
+  const MAX_VARIABLE_PRESETS = 8;
+
+  function normalizePresetList(list) {
+    if (!Array.isArray(list)) return [];
+    const seen = new Set();
+    const result = [];
+    list.forEach(item => {
+      const value = String(item == null ? '' : item).trim();
+      if (!value || seen.has(value)) return;
+      seen.add(value);
+      result.push(value);
+    });
+    return result.slice(0, MAX_VARIABLE_PRESETS);
+  }
+
+  /**
+   * Every keyword preset, keyed by variable name.
+   * Always a plain object of non-empty string arrays (junk is dropped).
+   */
+  async function getVariablePresets() {
+    const data = await getAll();
+    const stored = data.settings && data.settings.variablePresets;
+    if (!stored || typeof stored !== 'object' || Array.isArray(stored)) return {};
+
+    const presets = {};
+    Object.keys(stored).forEach(name => {
+      const list = normalizePresetList(stored[name]);
+      if (list.length) presets[name] = list;
+    });
+    return presets;
+  }
+
+  /**
+   * Save a keyword for a variable.
+   * Returns { ok, reason, value, presets } — reason: invalid | exists | full
+   */
+  async function addVariablePreset(name, value) {
+    const key = String(name == null ? '' : name).trim();
+    const text = String(value == null ? '' : value).trim();
+    const presets = await getVariablePresets();
+    if (!key || !text) return { ok: false, reason: 'invalid', presets };
+
+    const list = (presets[key] || []).slice();
+    if (list.includes(text)) return { ok: false, reason: 'exists', presets };
+    if (list.length >= MAX_VARIABLE_PRESETS) return { ok: false, reason: 'full', presets };
+
+    list.push(text);
+    presets[key] = list;
+    await saveSettings({ variablePresets: presets });
+    return { ok: true, reason: '', value: text, presets };
+  }
+
+  /**
+   * Overwrite a keyword in place (keeps its position in the list).
+   * Returns { ok, reason, value, presets } — reason: invalid | missing | exists
+   */
+  async function updateVariablePreset(name, oldValue, newValue) {
+    const key = String(name == null ? '' : name).trim();
+    const from = String(oldValue == null ? '' : oldValue).trim();
+    const to = String(newValue == null ? '' : newValue).trim();
+    const presets = await getVariablePresets();
+    if (!key || !to) return { ok: false, reason: 'invalid', presets };
+
+    const list = (presets[key] || []).slice();
+    const index = list.indexOf(from);
+    if (index === -1) return { ok: false, reason: 'missing', presets };
+    if (to !== from && list.includes(to)) return { ok: false, reason: 'exists', presets };
+
+    list[index] = to;
+    presets[key] = list;
+    await saveSettings({ variablePresets: presets });
+    return { ok: true, reason: '', value: to, presets };
+  }
+
+  /**
+   * Remove a keyword; the variable key is dropped with its last keyword.
+   * Returns { ok, reason, presets } — reason: invalid | missing
+   */
+  async function removeVariablePreset(name, value) {
+    const key = String(name == null ? '' : name).trim();
+    const text = String(value == null ? '' : value).trim();
+    const presets = await getVariablePresets();
+    if (!key || !text) return { ok: false, reason: 'invalid', presets };
+
+    const list = (presets[key] || []).slice();
+    const index = list.indexOf(text);
+    if (index === -1) return { ok: false, reason: 'missing', presets };
+
+    list.splice(index, 1);
+    if (list.length) presets[key] = list;
+    else delete presets[key];
+    await saveSettings({ variablePresets: presets });
+    return { ok: true, reason: '', presets };
+  }
+
   /**
    * Get all existing tags with usage count
    * Returns [{tag, count}] sorted by count desc
@@ -804,6 +904,10 @@ if (typeof window.PromptVaultStorage === 'undefined') {
     importData,
     getSettings,
     saveSettings,
+    getVariablePresets,
+    addVariablePreset,
+    updateVariablePreset,
+    removeVariablePreset,
     generateId,
     getRecentUsage,
     addRecentUsage,

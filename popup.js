@@ -1168,15 +1168,18 @@
 
   /**
    * Show the variable fill-in dialog.
+   * `presets` maps a variable name to its saved keywords so every row can offer
+   * one-click fill plus add / update / delete of those keywords.
    * Resolves to an object of {name: value} when confirmed, or null when cancelled.
    */
-  function openVariableDialog(variableNames, prefills = {}, mode = 'insert') {
+  function openVariableDialog(variableNames, prefills = {}, mode = 'insert', presets = {}) {
     return new Promise((resolve) => {
       const form = document.getElementById('variable-form');
       const modal = document.getElementById('variable-modal');
       const okBtn = document.getElementById('btn-variable-ok');
       const cancelBtn = document.getElementById('btn-variable-cancel');
       const hintEl = document.getElementById('variable-fill-hint');
+      const presetsHintEl = document.getElementById('variable-presets-hint');
 
       // Switch hint and confirm button text by mode (copy vs insert); title stays the same
       if (mode === 'copy') {
@@ -1186,17 +1189,152 @@
         if (hintEl) hintEl.textContent = i18n.t('variable_fill_hint');
         okBtn.textContent = i18n.t('variable_confirm');
       }
+      if (presetsHintEl) presetsHintEl.textContent = i18n.t('variable_presets_hint');
 
       form.innerHTML = variableNames.map(name => {
         const value = prefills[name] || '';
         return `
-          <div class="form-group">
+          <div class="form-group variable-group" data-variable-name="${escapeAttr(name)}">
             <label for="var-${escapeAttr(name)}">${escapeHtml(name)}</label>
             <input type="text" id="var-${escapeAttr(name)}" class="variable-input"
                    data-variable="${escapeAttr(name)}" value="${escapeAttr(value)}"
                    placeholder="${escapeHtml(i18n.t('variable_input_placeholder'))}">
+            <div class="variable-presets" data-variable="${escapeAttr(name)}"></div>
           </div>`;
       }).join('');
+
+      // Keyword cache + per-row DOM handles: re-rendering a chip row never
+      // needs another storage round-trip.
+      const keywordsByName = presets && typeof presets === 'object' ? presets : {};
+      const activeKeyword = new Map();   // variable name -> last clicked keyword
+      const groups = new Map();          // variable name -> { input, list }
+
+      form.querySelectorAll('.variable-group').forEach(groupEl => {
+        const name = groupEl.dataset.variableName;
+        groups.set(name, {
+          input: groupEl.querySelector('.variable-input'),
+          list: groupEl.querySelector('.variable-presets')
+        });
+      });
+
+      const keywordsOf = (name) => (Array.isArray(keywordsByName[name]) ? keywordsByName[name] : []);
+
+      const renderPresets = (name) => {
+        const group = groups.get(name);
+        if (!group) return;
+        const active = activeKeyword.get(name);
+
+        group.list.innerHTML = keywordsOf(name).map(keyword => `
+          <span class="variable-preset${keyword === active ? ' is-active' : ''}" data-value="${escapeAttr(keyword)}">
+            <button type="button" class="variable-preset-chip" data-value="${escapeAttr(keyword)}"
+                    title="${escapeHtml(i18n.t('variable_preset_fill'))}">${escapeHtml(keyword)}</button>
+            <button type="button" class="variable-preset-update" data-value="${escapeAttr(keyword)}"
+                    title="${escapeHtml(i18n.t('variable_preset_update'))}">${escapeHtml(i18n.t('variable_preset_update'))}</button>
+            <button type="button" class="variable-preset-del" data-value="${escapeAttr(keyword)}"
+                    title="${escapeHtml(i18n.t('variable_preset_delete'))}">&times;</button>
+          </span>`).join('') +
+          `<button type="button" class="variable-preset-add" data-variable="${escapeAttr(name)}">${escapeHtml(i18n.t('variable_preset_add'))}</button>`;
+
+        syncPresets(name);
+      };
+
+      /** Refresh active / dirty / disabled states without rebuilding the row. */
+      const syncPresets = (name) => {
+        const group = groups.get(name);
+        if (!group) return;
+        const typed = group.input.value.trim();
+        const active = activeKeyword.get(name);
+        const keywords = keywordsOf(name);
+
+        group.list.querySelectorAll('.variable-preset').forEach(wrap => {
+          const isActive = wrap.dataset.value === active;
+          wrap.classList.toggle('is-active', isActive);
+          // Offer "update" only when the row is actually edited into something new
+          wrap.classList.toggle('is-dirty', isActive && typed !== '' && typed !== wrap.dataset.value);
+        });
+
+        const addBtn = group.list.querySelector('.variable-preset-add');
+        if (addBtn) addBtn.classList.toggle('is-disabled', !typed || keywords.includes(typed));
+      };
+
+      const setActiveKeyword = (name, keyword) => {
+        if (keyword) activeKeyword.set(name, keyword);
+        else activeKeyword.delete(name);
+      };
+
+      const presetReasonToast = (reason) => ({
+        invalid: 'toast_preset_invalid',
+        exists: 'toast_preset_exists',
+        full: 'toast_preset_full',
+        missing: 'toast_preset_missing'
+      }[reason] || 'toast_preset_failed');
+
+      form.onclick = async (e) => {
+        const chip = e.target.closest('.variable-preset-chip');
+        const updateBtn = e.target.closest('.variable-preset-update');
+        const delBtn = e.target.closest('.variable-preset-del');
+        const addBtn = e.target.closest('.variable-preset-add');
+        if (!chip && !updateBtn && !delBtn && !addBtn) return;
+
+        const groupEl = e.target.closest('.variable-group');
+        const name = groupEl ? groupEl.dataset.variableName : '';
+        const group = name ? groups.get(name) : null;
+        if (!group) return;
+        e.preventDefault();
+
+        if (chip) {
+          group.input.value = chip.dataset.value;
+          setActiveKeyword(name, chip.dataset.value);
+          renderPresets(name);
+          group.input.focus();
+          return;
+        }
+
+        if (addBtn) {
+          const result = await Storage.addVariablePreset(name, group.input.value);
+          if (result.ok) {
+            keywordsByName[name] = result.presets[name] || [];
+            setActiveKeyword(name, result.value);
+            showToast(i18n.t('toast_preset_added'), 'success');
+          } else {
+            showToast(i18n.t(presetReasonToast(result.reason)), 'error');
+          }
+          renderPresets(name);
+          return;
+        }
+
+        if (updateBtn) {
+          const from = updateBtn.dataset.value;
+          const result = await Storage.updateVariablePreset(name, from, group.input.value);
+          if (result.ok) {
+            keywordsByName[name] = result.presets[name] || [];
+            setActiveKeyword(name, result.value);
+            showToast(i18n.t('toast_preset_updated'), 'success');
+          } else {
+            showToast(i18n.t(presetReasonToast(result.reason)), 'error');
+          }
+          renderPresets(name);
+          return;
+        }
+
+        if (delBtn) {
+          const value = delBtn.dataset.value;
+          const result = await Storage.removeVariablePreset(name, value);
+          if (result.ok) {
+            keywordsByName[name] = result.presets[name] || [];
+            if (activeKeyword.get(name) === value) setActiveKeyword(name, null);
+            showToast(i18n.t('toast_preset_deleted'), 'success');
+          } else {
+            showToast(i18n.t(presetReasonToast(result.reason)), 'error');
+          }
+          renderPresets(name);
+        }
+      };
+
+      form.oninput = (e) => {
+        const groupEl = e.target.closest('.variable-group');
+        if (groupEl) syncPresets(groupEl.dataset.variableName);
+      };
 
       const collect = () => {
         const values = {};
@@ -1208,6 +1346,8 @@
 
       const cleanup = () => {
         okBtn.onclick = null;
+        form.onclick = null;
+        form.oninput = null;
         modal.removeEventListener('keydown', onKeydown);
       };
 
@@ -1227,6 +1367,9 @@
       // Show directly (not via openModal) so the underlying context stays intact
       modal.classList.remove('hidden');
       modal.addEventListener('keydown', onKeydown);
+
+      // Draw each row's keyword chips once the dialog is on screen
+      variableNames.forEach(renderPresets);
 
       const inputs = form.querySelectorAll('.variable-input');
       if (inputs.length) inputs[0].focus();
@@ -1255,12 +1398,12 @@
     if (names.length === 0) return prompt.content;
 
     const prefills = {};
-    const history = await getVariableHistory();
+    const [history, presets] = await Promise.all([getVariableHistory(), Storage.getVariablePresets()]);
     names.forEach(n => {
       if (Object.prototype.hasOwnProperty.call(history, n)) prefills[n] = history[n];
     });
 
-    const values = await openVariableDialog(names, prefills, mode);
+    const values = await openVariableDialog(names, prefills, mode, presets);
     if (values === null) return null;
 
     await saveVariableHistory(values);
