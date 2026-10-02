@@ -616,9 +616,14 @@ if (typeof window.PromptVaultStorage === 'undefined') {
 
   // ========== Variable keyword presets ==========
   //
-  // {{variable}} placeholders can be filled from saved keywords. Presets live
-  // in settings.variablePresets as { variableName: [keyword, ...] } and are
-  // shared by every prompt, so a keyword saved once shows up everywhere.
+  // {{variable}} placeholders can be filled from saved keywords. Keywords live
+  // on the prompt itself (`prompt.variablePresets`), so every prompt keeps its
+  // own set: { variableName: [keyword, ...] }.
+  //
+  // Older builds kept a single global map in `settings.variablePresets`; a
+  // prompt without its own map still falls back to it, so keywords typed back
+  // then are not lost. The fallback stops as soon as the prompt stores its own
+  // list (even an empty one).
   const MAX_VARIABLE_PRESETS = 8;
 
   function normalizePresetList(list) {
@@ -634,16 +639,9 @@ if (typeof window.PromptVaultStorage === 'undefined') {
     return result.slice(0, MAX_VARIABLE_PRESETS);
   }
 
-  /**
-   * Every keyword preset, keyed by variable name.
-   * Always a plain object of non-empty string arrays (junk is dropped).
-   */
-  async function getVariablePresets() {
-    const data = await getAll();
-    const stored = data.settings && data.settings.variablePresets;
-    if (!stored || typeof stored !== 'object' || Array.isArray(stored)) return {};
-
+  function normalizePresetMap(stored) {
     const presets = {};
+    if (!stored || typeof stored !== 'object' || Array.isArray(stored)) return presets;
     Object.keys(stored).forEach(name => {
       const list = normalizePresetList(stored[name]);
       if (list.length) presets[name] = list;
@@ -652,13 +650,49 @@ if (typeof window.PromptVaultStorage === 'undefined') {
   }
 
   /**
-   * Save a keyword for a variable.
-   * Returns { ok, reason, value, presets } — reason: invalid | exists | full
+   * Keyword presets of a single prompt, keyed by variable name.
+   * Always a plain object of non-empty string arrays (junk is dropped).
+   * Falls back to the legacy global map until the prompt saves its own.
    */
-  async function addVariablePreset(name, value) {
+  async function getVariablePresets(promptId) {
+    const data = await getAll();
+    const prompt = (data.prompts || []).find(p => p.id === promptId);
+    const own = prompt ? prompt.variablePresets : null;
+    if (own && typeof own === 'object' && !Array.isArray(own)) return normalizePresetMap(own);
+    return normalizePresetMap(data.settings && data.settings.variablePresets);
+  }
+
+  /**
+   * Persist a preset map onto the prompt. Writes the prompt record directly so
+   * editing keywords never bumps updatedAt / reorders the "recently updated" list.
+   */
+  async function savePromptPresets(promptId, presets) {
+    const data = await getAll();
+    const prompt = (data.prompts || []).find(p => p.id === promptId);
+    if (!prompt) return false;
+    prompt.variablePresets = presets;
+    await saveAll(data);
+    return true;
+  }
+
+  /** Current presets plus a guard that the prompt still exists. */
+  async function presetContext(promptId) {
+    const prompt = await getPrompt(promptId);
+    if (!prompt) return null;
+    return { prompt, presets: await getVariablePresets(promptId) };
+  }
+
+  /**
+   * Save a keyword for a variable of one prompt.
+   * Returns { ok, reason, value, presets } — reason: invalid | exists | full | missing
+   */
+  async function addVariablePreset(promptId, name, value) {
     const key = String(name == null ? '' : name).trim();
     const text = String(value == null ? '' : value).trim();
-    const presets = await getVariablePresets();
+    const context = await presetContext(promptId);
+    if (!context) return { ok: false, reason: 'missing', presets: {} };
+
+    const { presets } = context;
     if (!key || !text) return { ok: false, reason: 'invalid', presets };
 
     const list = (presets[key] || []).slice();
@@ -667,7 +701,7 @@ if (typeof window.PromptVaultStorage === 'undefined') {
 
     list.push(text);
     presets[key] = list;
-    await saveSettings({ variablePresets: presets });
+    await savePromptPresets(promptId, presets);
     return { ok: true, reason: '', value: text, presets };
   }
 
@@ -675,11 +709,14 @@ if (typeof window.PromptVaultStorage === 'undefined') {
    * Overwrite a keyword in place (keeps its position in the list).
    * Returns { ok, reason, value, presets } — reason: invalid | missing | exists
    */
-  async function updateVariablePreset(name, oldValue, newValue) {
+  async function updateVariablePreset(promptId, name, oldValue, newValue) {
     const key = String(name == null ? '' : name).trim();
     const from = String(oldValue == null ? '' : oldValue).trim();
     const to = String(newValue == null ? '' : newValue).trim();
-    const presets = await getVariablePresets();
+    const context = await presetContext(promptId);
+    if (!context) return { ok: false, reason: 'missing', presets: {} };
+
+    const { presets } = context;
     if (!key || !to) return { ok: false, reason: 'invalid', presets };
 
     const list = (presets[key] || []).slice();
@@ -689,18 +726,23 @@ if (typeof window.PromptVaultStorage === 'undefined') {
 
     list[index] = to;
     presets[key] = list;
-    await saveSettings({ variablePresets: presets });
+    await savePromptPresets(promptId, presets);
     return { ok: true, reason: '', value: to, presets };
   }
 
   /**
    * Remove a keyword; the variable key is dropped with its last keyword.
+   * The (possibly empty) map is still written, so the legacy fallback ends here
+   * and deleted keywords do not come back.
    * Returns { ok, reason, presets } — reason: invalid | missing
    */
-  async function removeVariablePreset(name, value) {
+  async function removeVariablePreset(promptId, name, value) {
     const key = String(name == null ? '' : name).trim();
     const text = String(value == null ? '' : value).trim();
-    const presets = await getVariablePresets();
+    const context = await presetContext(promptId);
+    if (!context) return { ok: false, reason: 'missing', presets: {} };
+
+    const { presets } = context;
     if (!key || !text) return { ok: false, reason: 'invalid', presets };
 
     const list = (presets[key] || []).slice();
@@ -710,7 +752,7 @@ if (typeof window.PromptVaultStorage === 'undefined') {
     list.splice(index, 1);
     if (list.length) presets[key] = list;
     else delete presets[key];
-    await saveSettings({ variablePresets: presets });
+    await savePromptPresets(promptId, presets);
     return { ok: true, reason: '', presets };
   }
 

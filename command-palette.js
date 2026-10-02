@@ -504,7 +504,9 @@
    * one-click fill plus add / update / delete (mirrors the popup dialog).
    * Resolves to an object of values, or null when cancelled.
    */
-  function showVariableDialog(names, prefills, presets = {}) {
+  function showVariableDialog(names, prefills, options = {}) {
+    // `presets` are this prompt's keyword lists, `promptId` is where changes go
+    const { presets = {}, promptId = '' } = options;
     return new Promise((resolve) => {
       const c = paletteColors || getThemeColors();
       const overlay = document.createElement('div');
@@ -717,7 +719,7 @@
         }
 
         if (addBtn) {
-          const result = await Storage.addVariablePreset(name, group.input.value);
+          const result = await Storage.addVariablePreset(promptId, name, group.input.value);
           if (result.ok) {
             keywordsByName[name] = result.presets[name] || [];
             activeKeyword.set(name, result.value);
@@ -731,7 +733,7 @@
 
         if (updateBtn) {
           const from = updateBtn.dataset.presetUpdate;
-          const result = await Storage.updateVariablePreset(name, from, group.input.value);
+          const result = await Storage.updateVariablePreset(promptId, name, from, group.input.value);
           if (result.ok) {
             keywordsByName[name] = result.presets[name] || [];
             activeKeyword.set(name, result.value);
@@ -744,7 +746,7 @@
         }
 
         const value = delBtn.dataset.presetDel;
-        const result = await Storage.removeVariablePreset(name, value);
+        const result = await Storage.removeVariablePreset(promptId, name, value);
         if (result.ok) {
           keywordsByName[name] = result.presets[name] || [];
           if (activeKeyword.get(name) === value) activeKeyword.delete(name);
@@ -770,7 +772,7 @@
       const [history, presets] = await Promise.all([
         getVariableHistory(),
         typeof Storage !== 'undefined' && typeof Storage.getVariablePresets === 'function'
-          ? Storage.getVariablePresets().catch(() => ({}))
+          ? Storage.getVariablePresets(prompt.id).catch(() => ({}))
           : Promise.resolve({}),
       ]);
       const prefills = {};
@@ -780,7 +782,10 @@
 
       closePalette();
 
-      const values = await showVariableDialog(names, prefills, presets);
+      const values = await showVariableDialog(names, prefills, {
+        presets,
+        promptId: prompt.id,
+      });
       if (values === null) return; // cancelled
 
       await saveVariableHistory(values);

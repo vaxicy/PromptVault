@@ -1172,7 +1172,9 @@
    * one-click fill plus add / update / delete of those keywords.
    * Resolves to an object of {name: value} when confirmed, or null when cancelled.
    */
-  function openVariableDialog(variableNames, prefills = {}, mode = 'insert', presets = {}) {
+  function openVariableDialog(variableNames, prefills = {}, mode = 'insert', options = {}) {
+    // `presets` are this prompt's keyword lists, `promptId` is where changes go
+    const { presets = {}, promptId = '' } = options;
     return new Promise((resolve) => {
       const form = document.getElementById('variable-form');
       const modal = document.getElementById('variable-modal');
@@ -1291,7 +1293,7 @@
         }
 
         if (addBtn) {
-          const result = await Storage.addVariablePreset(name, group.input.value);
+          const result = await Storage.addVariablePreset(promptId, name, group.input.value);
           if (result.ok) {
             keywordsByName[name] = result.presets[name] || [];
             setActiveKeyword(name, result.value);
@@ -1305,7 +1307,7 @@
 
         if (updateBtn) {
           const from = updateBtn.dataset.value;
-          const result = await Storage.updateVariablePreset(name, from, group.input.value);
+          const result = await Storage.updateVariablePreset(promptId, name, from, group.input.value);
           if (result.ok) {
             keywordsByName[name] = result.presets[name] || [];
             setActiveKeyword(name, result.value);
@@ -1319,7 +1321,7 @@
 
         if (delBtn) {
           const value = delBtn.dataset.value;
-          const result = await Storage.removeVariablePreset(name, value);
+          const result = await Storage.removeVariablePreset(promptId, name, value);
           if (result.ok) {
             keywordsByName[name] = result.presets[name] || [];
             if (activeKeyword.get(name) === value) setActiveKeyword(name, null);
@@ -1398,12 +1400,18 @@
     if (names.length === 0) return prompt.content;
 
     const prefills = {};
-    const [history, presets] = await Promise.all([getVariableHistory(), Storage.getVariablePresets()]);
+    const [history, presets] = await Promise.all([
+      getVariableHistory(),
+      Storage.getVariablePresets(prompt.id),
+    ]);
     names.forEach(n => {
       if (Object.prototype.hasOwnProperty.call(history, n)) prefills[n] = history[n];
     });
 
-    const values = await openVariableDialog(names, prefills, mode, presets);
+    const values = await openVariableDialog(names, prefills, mode, {
+      presets,
+      promptId: prompt.id,
+    });
     if (values === null) return null;
 
     await saveVariableHistory(values);
@@ -2756,6 +2764,10 @@
       prompt.usageCount = existing.usageCount || 0;
       prompt.lastUsedAt = existing.lastUsedAt || 0;
       prompt.createdAt = existing.createdAt;
+      // savePrompt() replaces the whole record, so anything not copied here is
+      // lost on edit — keep the manual order and this prompt's variable keywords.
+      if (Number.isFinite(existing.sortOrder)) prompt.sortOrder = existing.sortOrder;
+      if (existing.variablePresets) prompt.variablePresets = existing.variablePresets;
       // Keep a copy so Ctrl+Z can restore the pre-edit version
       previousVersion = JSON.parse(JSON.stringify(existing));
     }
