@@ -5,7 +5,7 @@
 
 > 保存、整理和快速访问你的 AI 提示词 | Save, organize, and quickly access your AI prompts
 
-**PromptVault** 是一款 Chrome 扩展，用于管理 AI 提示词：文件夹与标签分类、搜索筛选、复制或插入到网页输入框、导入导出。支持 ChatGPT、Claude、Gemini 等主流平台。
+**PromptVault** 是一款轻量级的 Chrome 扩展，帮助你高效管理 AI 提示词（Prompts）。支持文件夹/标签分类、搜索筛选、一键复制/插入到网页、导入导出等功能。兼容 ChatGPT、Claude、Gemini 等主流 AI 平台。
 
 ---
 
@@ -13,7 +13,7 @@
 
 [![Chrome Web Store](https://img.shields.io/badge/Chrome%20Web%20Store-4285F4?style=for-the-badge&logo=google-chrome&logoColor=white)](https://chromewebstore.google.com/detail/promptvault-ai%E6%8F%90%E7%A4%BA%E8%AF%8D%E7%AE%A1%E7%90%86%E5%8A%A9%E6%89%8B/hofmefncklehaakcdolknkddodnklckc)
 
-从 Chrome 应用商店安装（推荐），或下载源码以开发者模式加载。
+从 Chrome 网上应用商店安装（推荐），或下载源码以开发者模式加载。
 
 ---
 
@@ -22,19 +22,19 @@
 ### 📝 提示词管理
 | 功能 | 说明 |
 |------|------|
-| **创建 / 编辑 / 删除** | 支持标题、内容、文件夹与标签的完整管理 |
-| **复制** | 点击卡片复制到剪贴板 |
+| **创建/编辑/删除** | 完整的 CRUD，支持标题、内容、文件夹、标签 |
+| **复制** | 点击卡片一键复制到剪贴板 |
 | **插入网页** | 将提示词直接插入到 ChatGPT、Claude 等页面的输入框（弹窗里点插入按钮） |
 | **插入后自动发送** | 在 ChatGPT 插入提示词后自动点击发送按钮（默认关闭，可在设置开启） |
-| **变量模板** | 内容中写 `{{变量}}`，插入时按提示填值，固定结构可反复复用 |
-| **关键词填入** | 把常用值存成关键词，填写变量时点击即可填入；关键词属于该条提示词，可随时添加、更新或删除（每个变量最多 8 个） |
+| **变量模板** | 内容中写 `{{变量}}`，插入时按提示填值，固定结构一键复用 |
+| **关键词一键填入** | 把常用值存成关键词，填变量时点一下即填入；关键词属于该条提示词，可随时添加、更新、删除（每个变量最多 8 个） |
 | **置顶** | 常用提示词置顶，优先展示 |
 
 ### 🧩 变量与关键词
 - 在内容里写 `{{主题}}` 这样的占位符，保存后卡片会显示「含变量」
 - 复制或插入时弹出填空框，填完自动替换；留空的变量会被移除
 - 填过一次的值下次自动预填
-- **常用值可存成关键词**：点击关键词即可填入，也可随时添加、更新或删除，每个变量最多保存 8 个
+- **常用值可存成关键词**：点关键词一键填入，也可随时添加 / 更新 / 删除，每个变量最多保存 8 个
 - **关键词存在提示词上**：每条提示词各有一套，同名变量在不同提示词里互不影响
 
 ### 📂 文件夹管理
@@ -55,7 +55,7 @@
   - `title:xxx` — 仅搜索标题
   - `is:pinned` / `is:unpinned` — 按置顶状态筛选
 - 搜索结果关键词高亮
-- 六种排序方式：智能、更新时间、创建时间、名称 A-Z、使用次数、自定义（可拖拽调整）
+- 多种排序方式：智能排序、更新时间、创建时间、名称 A-Z、使用次数
 
 ### 📊 数据管理
 - **导出**：JSON / Markdown / CSV / TXT 四种格式
@@ -70,17 +70,15 @@
 ### ⚙️ 设置
 | 设置项 | 说明 |
 |--------|------|
-| 显示模式 | 列表 / 按文件夹分组 |
-| 默认文件夹 | 新建提示词时预选的文件夹 |
-| 语言 | 中文 / English（跟随浏览器语言，可手动切换） |
+| 默认文件夹 | 新建提示词的默认文件夹 |
+| 语言 | 中文 / English（自动检测） |
 | 显示角标 | 扩展图标上显示提示词数量 |
 | 显示最近使用 | 首页显示最近使用的提示词 |
-| 拖拽排序 | 开启后所有排序模式都可拖拽调整顺序；关闭后仅「智能」可拖拽 |
-| 复制后置顶 | 复制后自动置顶（任意排序模式下生效） |
-| 插入后置顶 | 插入后自动置顶（任意排序模式下生效） |
+| 复制/插入后置顶 | 使用过的提示词自动排到最前（全部排序模式生效） |
 | 插入后自动发送 | 在 ChatGPT 插入提示词后自动点击发送按钮（默认关闭） |
 | 回收站 | 删除的提示词先进入回收站，可还原（默认关闭） |
-| 深浅主题 | 深色 / 浅色主题切换 |
+| 显示模式 | 列表 / 按文件夹分组 |
+| 深浅主题 | 全局独立切换 |
 
 ### 🔄 兼容的 AI 平台
 - **ChatGPT** — chatgpt.com / chat.openai.com
@@ -151,9 +149,9 @@ promptvault/
 
 ## 🔐 隐私
 
-- 提示词、文件夹、标签与设置全部存储在本地（`chrome.storage.local`）
-- 不收集、不上传任何用户数据
-- 除用户主动导入导出外，扩展不发起其他网络请求
+- 所有数据存储在本地（Chrome Storage Local API）
+- 不会收集或上传任何用户数据
+- 调用 AI API 时仅通过用户自己配置的 API Key 发送请求
 - 完整隐私政策：[Privacy Policy](https://vaxicy.github.io/PromptVault-privacy/privacy-policy.html)
 
 ---
@@ -177,7 +175,7 @@ promptvault/
 
 ## 💬 联系与支持
 
-- Chrome 应用商店：[PromptVault](https://chromewebstore.google.com/detail/promptvault-ai%E6%8F%90%E7%A4%BA%E8%AF%8D%E7%AE%A1%E7%90%86%E5%8A%A9%E6%89%8B/hofmefncklehaakcdolknkddodnklckc)
+- Chrome 网上应用店：[PromptVault](https://chromewebstore.google.com/detail/promptvault-ai%E6%8F%90%E7%A4%BA%E8%AF%8D%E7%AE%A1%E7%90%86%E5%8A%A9%E6%89%8B/hofmefncklehaakcdolknkddodnklckc)
 - 反馈与建议：[huangzero2004@gmail.com](mailto:huangzero2004@gmail.com)
 - GitHub Issues：[提交问题](https://github.com/vaxicy/PromptVault/issues)
 
